@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Collaborative Learning Platform",
+  title: "Student Home | LearnTogether AI",
   description:
-    "A unified platform for intelligent study support and peer collaboration.",
+    "Organise learning materials, generate quizzes and collaborate with classmates.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

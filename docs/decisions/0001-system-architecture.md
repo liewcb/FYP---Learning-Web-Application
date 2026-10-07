@@ -17,6 +17,6 @@ Use a responsive Next.js website backed by Supabase Auth, PostgreSQL, Storage an
 
 ## Consequences
 
-- MVC/MVVM is not used as the top-level system description. The system is described as three-tier and modular.
+- The overall system is described as three-tier and modular. Inside the Next.js web application, MVC separates models, views and controllers, with interfaces isolating Supabase and external-service adapters.
 - Database migrations and RLS policies are shared integration artifacts and require teammate review.
 - The web and AI services must agree on explicit API contracts and processing states.
