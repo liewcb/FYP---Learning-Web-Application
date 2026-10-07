@@ -35,9 +35,12 @@ ai-collaborative-learning-platform/
 |-- apps/
 |   `-- web/                     # Next.js website
 |       `-- src/
-|           |-- app/             # Routes and layouts
-|           |-- features/        # Product modules
-|           |-- lib/             # Supabase and shared infrastructure
+|           |-- app/             # Thin Next.js routes and layouts
+|           |-- views/           # React user interface
+|           |-- controllers/     # Application use-case orchestration
+|           |-- models/          # Domain classes, objects and rules
+|           |-- interfaces/      # Supabase and AI service contracts
+|           |-- lib/             # Concrete infrastructure implementations
 |           `-- types/           # Shared TypeScript types
 |-- services/
 |   `-- ai/                      # FastAPI AI/document service
@@ -202,6 +205,19 @@ Both developers jointly own database migrations, integration, testing, deploymen
 7. Do not commit directly to `main` after the initial scaffold.
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for checks and commit conventions.
+
+## MVC development guide
+
+The Next.js application uses MVC with a separate interface/adaptor boundary:
+
+- **Model:** classes, data objects, types, validation and pure business rules in `apps/web/src/models`.
+- **View:** React UI in `apps/web/src/views`.
+- **Controller:** coordinates use cases in `apps/web/src/controllers`.
+- **Interface:** describes required Supabase repositories or external services in `apps/web/src/interfaces`.
+- **Implementation:** talks to Supabase or FastAPI from `apps/web/src/lib`.
+- **App Router:** `apps/web/src/app` contains only route entry points, layouts and API endpoints.
+
+Read [`apps/web/src/README.md`](apps/web/src/README.md) before adding a new module. The home page is a working MVC example, while the document repository and AI health route demonstrate how external calls cross an interface.
 
 ## Initial development order
 

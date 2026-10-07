@@ -20,9 +20,31 @@ Next.js web application
         `-- quiz generation
 ```
 
-## Web feature boundaries
+## Web MVC boundaries
 
-Feature code belongs under `apps/web/src/features`:
+The web application uses MVC inside the Next.js App Router:
+
+```text
+app route -> controller -> interface <- lib adapter -> Supabase/FastAPI
+    |             |
+    v             v
+   view <------- model
+```
+
+| Layer | Location | Responsibility |
+|---|---|---|
+| Route adapter | `src/app` | URLs, layouts, route handlers and dependency assembly |
+| View | `src/views` | React UI and presentation |
+| Controller | `src/controllers` | Application use cases and coordination |
+| Model | `src/models` | Domain classes, data objects and business rules |
+| Interface | `src/interfaces` | Contracts for persistence and external services |
+| Infrastructure | `src/lib` | Supabase clients/repositories, HTTP clients and framework utilities |
+
+Controllers depend on interfaces rather than Supabase or `fetch` directly. Concrete adapters under `lib` implement those interfaces. Views never receive Supabase clients or secret credentials.
+
+## Application modules
+
+Each module is represented across the MVC folders as needed:
 
 | Feature | Responsibilities |
 |---|---|
