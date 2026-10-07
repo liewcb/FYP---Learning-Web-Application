@@ -1,0 +1,14 @@
+{
+  "editor.formatOnSave": true,
+  "eslint.workingDirectories": [
+    "apps/web"
+  ],
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true
+  },
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": [
+    "services/ai/tests"
+  ]
+}

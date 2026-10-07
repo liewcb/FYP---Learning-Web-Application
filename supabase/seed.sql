@@ -1,0 +1,2 @@
+-- Add stable, non-sensitive development seed data here.
+-- Never insert real student information or credentials into this file.

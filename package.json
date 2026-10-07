@@ -1,0 +1,23 @@
+{
+  "name": "ai-collaborative-learning-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered collaborative learning platform for TAR UMT FYP.",
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "lint:web": "pnpm --filter web lint",
+    "dev:ai": "python -m uvicorn app.main:app --reload --app-dir services/ai --port 8000",
+    "test:ai": "python -m pytest services/ai/tests",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "devDependencies": {
+    "supabase": "2.119.0"
+  }
+}

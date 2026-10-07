@@ -1,0 +1,39 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+build/
+coverage/
+.pnpm-store/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+!.env.local.example
+
+# Supabase local state
+supabase/.branches/
+supabase/.temp/
+
+# Editors and operating systems
+.idea/
+.vscode/*.local.json
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Existing local placeholder file
+/test.txt
