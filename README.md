@@ -4,6 +4,8 @@ A responsive web platform that helps university students manage learning materia
 
 This repository is the shared implementation workspace for **Liew Chee Been** and **Shim Kian Hau**.
 
+The current home page is a responsive student dashboard preview. Its sample learning data will be replaced by authenticated Supabase data during the authentication and document-upload milestones.
+
 ## Project links
 
 - GitHub: <https://github.com/liewcb/FYP---Learning-Web-Application>
@@ -77,6 +79,31 @@ pnpm --version
 python --version
 ```
 
+Only Node.js and pnpm are required to view the current website. Python is required when developing or testing the AI service, while Docker Desktop is required only for a local Supabase stack.
+
+## Quick start: open the website
+
+1. Open VS Code.
+2. Select **File > Open Folder**.
+3. Open this folder:
+
+```text
+C:\Users\ACER\Documents\fyp ai webplatform\ai-collaborative-learning-platform
+```
+
+4. In VS Code, select **Terminal > New Terminal**.
+5. Run:
+
+```powershell
+pnpm install
+pnpm dev:web
+```
+
+6. Open <http://localhost:3000> in Chrome, Edge or Firefox.
+7. Press `Ctrl+C` in the terminal when you want to stop the website.
+
+The student dashboard uses preview data, so it can be viewed before Supabase authentication is implemented. If port `3000` is busy, Next.js prints the alternative address in the terminal; open that address instead.
+
 ## First-time setup
 
 ### 1. Clone the repository
@@ -117,9 +144,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ## Running the project
 
-Use two VS Code terminals.
-
-Terminal 1 - website:
+For website-only work, one VS Code terminal is enough:
 
 ```powershell
 pnpm dev:web
@@ -127,14 +152,30 @@ pnpm dev:web
 
 Open <http://localhost:3000>.
 
-Terminal 2 - AI service:
+Use a second terminal only when the website needs the Python AI service:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 pnpm dev:ai
 ```
 
-Open <http://localhost:8000/health> or the generated API documentation at <http://localhost:8000/docs>.
+The AI service runs at <http://localhost:8000>. Its interactive API documentation is at <http://localhost:8000/docs>, and the website-to-AI health proxy is <http://localhost:3000/api/ai/health>.
+
+These processes stay running while you develop. Keep each process in its own terminal and stop it with `Ctrl+C`.
+
+## Where to write code
+
+| Work | Location |
+|---|---|
+| Next.js routes and API entry points | `apps/web/src/app` |
+| React user interface | `apps/web/src/views` |
+| Page and use-case coordination | `apps/web/src/controllers` |
+| Classes, objects and business rules | `apps/web/src/models` |
+| Supabase and AI contracts | `apps/web/src/interfaces` |
+| Supabase/HTTP implementations | `apps/web/src/lib` |
+| Python AI and document processing | `services/ai` |
+
+Normal authentication, forum, profile, group and document-record logic stays in the web application and Supabase. The Python service is reserved for extraction, preprocessing and AI workloads.
 
 ## Supabase workflow
 
@@ -173,6 +214,7 @@ Security rules:
 
 | Command | Purpose |
 |---|---|
+| `pnpm install` | Install all locked JavaScript dependencies |
 | `pnpm dev:web` | Start the Next.js development server |
 | `pnpm lint:web` | Run the web linter |
 | `pnpm build:web` | Produce a production web build |
@@ -237,6 +279,8 @@ Build the first five items as one complete end-to-end flow before expanding the 
 
 - [x] Repository scaffold
 - [x] Next.js web shell
+- [x] MVC web structure and infrastructure interfaces
+- [x] Responsive student home dashboard with preview data
 - [x] FastAPI health service
 - [x] Supabase local configuration
 - [x] Secure starter migration prepared

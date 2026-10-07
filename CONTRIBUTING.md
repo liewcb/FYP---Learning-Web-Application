@@ -8,12 +8,14 @@
 4. Run the checks below before pushing.
 5. Ask the other teammate to review the pull request before merging.
 
+Keep changes inside the MVC boundaries documented in `apps/web/src/README.md`. Views must not contain Supabase queries or direct FastAPI calls; add an interface and a `lib` adapter instead.
+
 ## Required checks
 
 ```powershell
 pnpm lint:web
 pnpm build:web
-python -m pytest services/ai/tests
+pnpm test:ai
 ```
 
 ## Commit style

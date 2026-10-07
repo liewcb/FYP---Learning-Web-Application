@@ -35,3 +35,35 @@ Rules:
 
 The home page is the smallest complete MVC example. The document repository and
 AI health endpoint demonstrate the external-service interface pattern.
+
+## Current student home page
+
+The `/` route currently renders a responsive student dashboard with preview data:
+
+```text
+app/page.tsx
+  -> HomeController.show()
+  -> HomePageModel
+  -> HomeView
+```
+
+- `models/home/home.model.ts` contains the temporary dashboard data and its types.
+- `controllers/home/home.controller.ts` selects the model for the route.
+- `views/home/home.view.tsx` renders the student UI.
+- `app/globals.css` contains the responsive visual styling.
+
+When authentication is implemented, keep the view unchanged where possible. Replace the preview-model creation inside the controller with repository calls, then map the returned domain objects into the page model.
+
+## Adding a module
+
+For a new quiz module, create only the layers it needs:
+
+```text
+models/quiz/
+views/quiz/
+controllers/quiz/
+interfaces/repositories/quiz.repository.ts
+lib/supabase/repositories/supabase-quiz.repository.ts
+```
+
+An interface is an application contract. For example, `DocumentRepository` says what document persistence must do, while `SupabaseDocumentRepository` contains the actual Supabase queries. Controllers import the contract, not the concrete adapter.
