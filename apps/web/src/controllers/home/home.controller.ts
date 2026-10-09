@@ -2,9 +2,14 @@ import {
   createHomePageModel,
   type HomePageModel,
 } from "@/models/home/home.model";
+import type { Viewer } from "@/models/profile/profile.model";
 
 export class HomeController {
-  show(): HomePageModel {
-    return createHomePageModel();
+  show(viewer: Viewer): HomePageModel {
+    return createHomePageModel({
+      displayName: viewer.displayName,
+      initials: viewer.initials,
+      programme: "Undergraduate learner",
+    });
   }
 }

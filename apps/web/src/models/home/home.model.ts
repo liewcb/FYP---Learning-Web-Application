@@ -48,19 +48,23 @@ export interface HomePageModel {
   readonly nextSession: StudySessionSummary;
 }
 
-export function createHomePageModel(): HomePageModel {
+export type StudentSummary = HomePageModel["student"];
+
+export function createStudentNavigation(
+  activeLabel?: string,
+): NavigationItem[] {
+  return [
+    { label: "Home", href: "/" },
+    { label: "My learning", href: "/#recent-learning" },
+    { label: "Community", href: "/#community" },
+    { label: "Study groups", href: "/#study-group" },
+  ].map((item) => ({ ...item, active: item.label === activeLabel }));
+}
+
+export function createHomePageModel(student: StudentSummary): HomePageModel {
   return {
-    student: {
-      displayName: "Student",
-      initials: "ST",
-      programme: "Undergraduate learner",
-    },
-    navigation: [
-      { label: "Home", href: "#home", active: true },
-      { label: "My learning", href: "#recent-learning" },
-      { label: "Community", href: "#community" },
-      { label: "Study groups", href: "#study-group" },
-    ],
+    student,
+    navigation: createStudentNavigation("Home"),
     stats: [
       { label: "Learning materials", value: "12", detail: "+3 this week" },
       { label: "Quizzes completed", value: "7", detail: "2 ready to review" },

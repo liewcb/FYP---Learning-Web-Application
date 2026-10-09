@@ -1,46 +1,20 @@
 import type { HomePageModel } from "@/models/home/home.model";
+import { StudentTopbar } from "@/views/student/student-topbar.view";
 
 interface HomeViewProps {
   model: HomePageModel;
+  signOutAction: () => Promise<void>;
 }
 
-export function HomeView({ model }: HomeViewProps) {
+export function HomeView({ model, signOutAction }: HomeViewProps) {
   return (
     <main className="student-app" id="home">
-      <header className="topbar">
-        <div className="app-shell topbar-inner">
-          <a className="brand" href="#home" aria-label="LearnTogether AI home">
-            <span className="brand-mark" aria-hidden="true">
-              L
-            </span>
-            <span>LearnTogether</span>
-          </a>
-
-          <nav className="main-nav" aria-label="Student navigation">
-            {model.navigation.map((item) => (
-              <a
-                className={item.active ? "nav-link active" : "nav-link"}
-                href={item.href}
-                key={item.label}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-
-          <div className="account-actions">
-            <button className="icon-button" type="button" aria-label="Notifications">
-              <span className="notification-dot" />
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
-              </svg>
-            </button>
-            <div className="student-avatar" aria-hidden="true">
-              {model.student.initials}
-            </div>
-          </div>
-        </div>
-      </header>
+      <StudentTopbar
+        navigation={model.navigation}
+        displayName={model.student.displayName}
+        initials={model.student.initials}
+        signOutAction={signOutAction}
+      />
 
       <div className="app-shell dashboard-content">
         <section className="welcome-panel" aria-labelledby="welcome-title">
@@ -203,8 +177,8 @@ export function HomeView({ model }: HomeViewProps) {
         </div>
 
         <p className="preview-note">
-          Dashboard content is preview data. Authentication and live Supabase
-          data are the next implementation step.
+          Dashboard content is preview data. Live Supabase data is the next
+          implementation step.
         </p>
       </div>
     </main>
