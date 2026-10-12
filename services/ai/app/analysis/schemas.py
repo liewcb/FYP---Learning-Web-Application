@@ -106,3 +106,15 @@ class ContentAnalysisResponse(BaseModel):
     topics: list[TopicResult]
     concepts: list[ConceptResult]
     model: AnalysisModelInfo
+
+
+class PersistedContentAnalysisRequest(ContentAnalysisRequest):
+    """Content-analysis input associated with an existing document row."""
+
+    document_id: int = Field(gt=0)
+
+
+class PersistedContentAnalysisResponse(ContentAnalysisResponse):
+    """Analysis result plus the identifier written to Supabase."""
+
+    analysis_id: int = Field(gt=0)

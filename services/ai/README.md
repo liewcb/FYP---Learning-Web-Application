@@ -31,6 +31,9 @@ Available endpoints:
 | `GET /health` | Health check |
 | `GET /docs` | Interactive FastAPI documentation |
 | `POST /analysis/content` | Analyse preprocessed sentences into keywords, topics, important sentences and concepts |
+| `POST /analysis/content-and-save` | Protected analysis flow that records status and persists the result |
+| `POST /quiz/generate` | Generate and validate a grounded Gemini quiz without persistence |
+| `POST /quiz/generate-and-save` | Protected quiz flow that persists questions and private answer keys |
 
 The Next.js server calls this service through the `AiService` interface. With both applications running, <http://localhost:3000/api/ai/health> tests the complete web-to-AI connection.
 
@@ -67,5 +70,48 @@ is the real result, while JSON shown under **Schemas** is only an example.
 
 `max_topics` is an upper limit rather than a required count. The analyser may
 return fewer topics when an additional cluster would contain only one sentence.
+
+## Configure Gemini quiz generation
+
+Create an API key in Google AI Studio, then copy `.env.example` to `.env` and
+replace only the local placeholder:
+
+```powershell
+Copy-Item services/ai/.env.example services/ai/.env
+```
+
+Never commit or paste the real key into documentation, source code or chat.
+Configure all private server values in `services/ai/.env`:
+
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
+AI_SERVICE_INTERNAL_TOKEN=replace-with-a-long-random-server-token
+GEMINI_API_KEY=your-google-ai-studio-key
+GEMINI_MODEL=gemini-3.5-flash-lite
+```
+
+Generate an internal server token locally with:
+
+```powershell
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Copy the printed value into `AI_SERVICE_INTERNAL_TOKEN`; do not commit or send
+it to the browser. Start Uvicorn with the environment file:
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --app-dir services/ai --port 8000 --env-file services/ai/.env
+```
+
+Swagger then exposes `POST /quiz/generate` for a local integration test. The
+route requests Gemini structured JSON and validates question count, types,
+options, answers and source-sentence indexes before returning a result.
+
+The `*-and-save` routes additionally require an `X-Internal-Token` header that
+matches `AI_SERVICE_INTERNAL_TOKEN`. They are for the trusted Next.js server,
+not direct browser calls. Analysis state is written to `document_analyses`.
+Quiz completion uses one restricted database function so questions and private
+answer keys are committed atomically.
 
 Do not expose a Supabase secret key to the Next.js browser bundle. When document processing is implemented, the web server layer must authenticate requests and call this service through a documented API contract.

@@ -7,7 +7,7 @@
     "dev:web": "pnpm --filter web dev",
     "build:web": "pnpm --filter web build",
     "lint:web": "pnpm --filter web lint",
-    "dev:ai": "python -m uvicorn app.main:app --reload --app-dir services/ai --port 8000",
+    "dev:ai": "python -m uvicorn app.main:app --reload --app-dir services/ai --port 8000 --env-file services/ai/.env",
     "test:ai": "python -m pytest services/ai/tests",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",

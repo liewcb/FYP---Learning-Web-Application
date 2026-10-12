@@ -136,6 +136,10 @@ python -m pip install --upgrade pip
 python -m pip install -r services/ai/requirements-dev.txt
 ```
 
+Copy `services/ai/.env.example` to `services/ai/.env`, then configure the
+Supabase secret key, Gemini key and a random `AI_SERVICE_INTERNAL_TOKEN`. These
+values are server-only and must never use a `NEXT_PUBLIC_` prefix.
+
 If PowerShell blocks activation, run this once in the current terminal and try again:
 
 ```powershell
@@ -285,7 +289,9 @@ Build the first five items as one complete end-to-end flow before expanding the 
 - [x] Supabase local configuration
 - [x] Secure starter migration prepared
 - [x] Automated web and Python checks
-- [ ] Starter migration applied to the shared Supabase project
+- [x] Starter and AI-learning migrations applied to the shared Supabase project
 - [ ] Authentication flow
 - [ ] Document upload flow
-- [ ] AI processing flow
+- [x] Content-analysis and Gemini quiz service endpoints
+- [x] Protected Supabase persistence adapters for analyses and quizzes
+- [ ] Next.js document-to-AI integration and student UI

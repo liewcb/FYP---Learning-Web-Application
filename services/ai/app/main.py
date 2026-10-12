@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.analysis.routes import router as analysis_router
+from app.quiz.routes import router as quiz_router
 
 app = FastAPI(
     title="AI Collaborative Learning Service",
@@ -9,6 +10,7 @@ app = FastAPI(
 )
 
 app.include_router(analysis_router)
+app.include_router(quiz_router)
 
 
 @app.get("/", tags=["system"])
