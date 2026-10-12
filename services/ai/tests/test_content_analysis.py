@@ -7,6 +7,7 @@ from app.analysis.routes import get_content_analyzer
 from app.analysis.schemas import ContentAnalysisRequest
 from app.analysis.service import ContentAnalyzer
 from app.main import app
+from app.persistence.dependencies import get_supabase_persistence
 
 
 class FakeEmbeddingModel:
@@ -62,6 +63,23 @@ def build_analyzer():
         keyword_model=FakeKeywordModel(),
         nlp=FakeNlp(),
     )
+
+
+class FakeAnalysisPersistence:
+    def __init__(self):
+        self.started = None
+        self.completed = None
+        self.failed = None
+
+    def start_analysis(self, document_id, options):
+        self.started = (document_id, options)
+        return 52
+
+    def complete_analysis(self, analysis_id, result):
+        self.completed = (analysis_id, result)
+
+    def fail_analysis(self, analysis_id, message):
+        self.failed = (analysis_id, message)
 
 
 def test_analyzer_returns_all_reported_content_analysis_outputs():
@@ -127,6 +145,36 @@ def test_content_analysis_endpoint_rejects_empty_sentences():
         app.dependency_overrides.clear()
 
     assert response.status_code == 422
+
+
+def test_content_and_save_endpoint_persists_analysis(monkeypatch):
+    persistence = FakeAnalysisPersistence()
+    monkeypatch.setenv("AI_SERVICE_INTERNAL_TOKEN", "test-internal-token")
+    app.dependency_overrides[get_content_analyzer] = build_analyzer
+    app.dependency_overrides[get_supabase_persistence] = lambda: persistence
+    client = TestClient(app)
+    try:
+        response = client.post(
+            "/analysis/content-and-save",
+            headers={"X-Internal-Token": "test-internal-token"},
+            json={
+                "document_id": 17,
+                "sentences": [
+                    "Database normalization reduces duplicated data.",
+                    "Third Normal Form removes transitive dependencies.",
+                ],
+                "top_keywords": 3,
+                "top_sentences": 1,
+                "max_topics": 1,
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json()["analysis_id"] == 52
+    assert persistence.started[0] == 17
+    assert persistence.completed[0] == 52
 
 
 def test_clean_phrase_removes_leading_determiners():
