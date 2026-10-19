@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { adminBasePath, adminNavigation } from "@/models/admin/admin.model";
 import type { Viewer } from "@/models/profile/profile.model";
 import { AdminSidebar } from "@/views/admin/admin-sidebar.view";
+import { BrandLogo } from "@/views/shared/brand-logo.view";
 
 interface AdminShellProps {
   readonly viewer: Viewer;
@@ -16,11 +17,8 @@ export function AdminShell({ viewer, signOutAction, children }: AdminShellProps)
     <div className="admin-app">
       <div className="admin-main">
         <header className="admin-topbar">
-          <Link className="brand" href={adminBasePath}>
-            <span className="brand-mark" aria-hidden="true">
-              L
-            </span>
-            <span>LearnTogether</span>
+          <Link className="brand-link" href={adminBasePath} aria-label="Athenix admin">
+            <BrandLogo tone="navy" />
             <span className="admin-badge">Admin</span>
           </Link>
         </header>

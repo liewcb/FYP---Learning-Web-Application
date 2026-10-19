@@ -10,7 +10,7 @@ import { authRoutes } from "@/models/auth/auth-routes";
 import { ProfileView } from "@/views/profile/profile.view";
 
 export const metadata: Metadata = {
-  title: "My profile | Admin | LearnTogether AI",
+  title: "My profile · Admin",
 };
 
 export default async function AdminProfilePage() {

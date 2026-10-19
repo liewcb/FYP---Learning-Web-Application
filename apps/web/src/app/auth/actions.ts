@@ -34,11 +34,13 @@ export async function signInAction(
   _previous: SignInFormState,
   formData: FormData,
 ): Promise<SignInFormState> {
-  const controller = await createAuthController();
+  const remember = formData.get("remember") === "on";
+  const controller = await createAuthController({ persistentSession: remember });
   const result = await controller.signIn(
     {
       identifier: field(formData, "identifier"),
       password: field(formData, "password"),
+      remember,
     },
     formData.get("next"),
   );

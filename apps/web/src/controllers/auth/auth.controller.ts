@@ -49,7 +49,7 @@ export class AuthController {
     next: unknown,
   ): Promise<AuthActionResult<SignInFormState>> {
     const identifier = input.identifier.trim();
-    const values = { identifier };
+    const values = { identifier, remember: input.remember };
     const fieldErrors = validateSignIn({ ...input, identifier });
 
     if (fieldErrors && Object.keys(fieldErrors).length > 0) {

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { signOutAction } from "@/app/auth/actions";
@@ -6,6 +7,10 @@ import { createProfileController } from "@/lib/dependencies/server";
 import { adminBasePath } from "@/models/admin/admin.model";
 import { authRoutes } from "@/models/auth/auth-routes";
 import { HomeView } from "@/views/home/home.view";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+};
 
 export default async function Home() {
   const profiles = await createProfileController();

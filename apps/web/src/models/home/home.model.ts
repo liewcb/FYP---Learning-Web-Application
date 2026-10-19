@@ -50,21 +50,40 @@ export interface HomePageModel {
 
 export type StudentSummary = HomePageModel["student"];
 
+export const studentNavigationLabels = [
+  "Dashboard",
+  "My Documents",
+  "Study Buddy",
+  "Quizzes",
+  "Forum",
+  "Library",
+] as const;
+
+export type StudentNavigationLabel = (typeof studentNavigationLabels)[number];
+
+const studentNavigationHrefs: Record<StudentNavigationLabel, string> = {
+  Dashboard: "/",
+  "My Documents": "/documents",
+  "Study Buddy": "/study-buddy",
+  Quizzes: "/quizzes",
+  Forum: "/forum",
+  Library: "/library",
+};
+
 export function createStudentNavigation(
-  activeLabel?: string,
+  activeLabel?: StudentNavigationLabel,
 ): NavigationItem[] {
-  return [
-    { label: "Home", href: "/" },
-    { label: "My learning", href: "/#recent-learning" },
-    { label: "Community", href: "/#community" },
-    { label: "Study groups", href: "/#study-group" },
-  ].map((item) => ({ ...item, active: item.label === activeLabel }));
+  return studentNavigationLabels.map((label) => ({
+    label,
+    href: studentNavigationHrefs[label],
+    active: label === activeLabel,
+  }));
 }
 
 export function createHomePageModel(student: StudentSummary): HomePageModel {
   return {
     student,
-    navigation: createStudentNavigation("Home"),
+    navigation: createStudentNavigation("Dashboard"),
     stats: [
       { label: "Learning materials", value: "12", detail: "+3 this week" },
       { label: "Quizzes completed", value: "7", detail: "2 ready to review" },

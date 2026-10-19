@@ -11,7 +11,7 @@ import { ProfileView } from "@/views/profile/profile.view";
 import { StudentTopbar } from "@/views/student/student-topbar.view";
 
 export const metadata: Metadata = {
-  title: "My profile | LearnTogether AI",
+  title: "My profile",
 };
 
 export default async function ProfilePage() {

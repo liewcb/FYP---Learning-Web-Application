@@ -6,7 +6,7 @@ import { safeRedirectPath } from "@/models/auth/auth-routes";
 import { SignInView } from "@/views/auth/sign-in.view";
 
 export const metadata: Metadata = {
-  title: "Log in | LearnTogether AI",
+  title: "Sign in",
 };
 
 const pageErrors: Record<string, string> = {

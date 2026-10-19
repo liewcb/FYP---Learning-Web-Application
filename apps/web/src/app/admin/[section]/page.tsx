@@ -10,7 +10,7 @@ export async function generateMetadata({
 }: PageProps<"/admin/[section]">): Promise<Metadata> {
   const section = findAdminSection((await params).section);
 
-  return { title: `${section?.label ?? "Admin"} | LearnTogether AI` };
+  return { title: section?.label ?? "Admin" };
 }
 
 export default async function AdminSectionPage({

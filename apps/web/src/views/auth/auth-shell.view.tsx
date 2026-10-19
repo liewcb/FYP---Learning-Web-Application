@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 
+import { BrandLogo } from "@/views/shared/brand-logo.view";
+import { OwlMark } from "@/views/shared/owl-mark.view";
+
 interface AuthShellProps {
   readonly title: string;
   readonly subtitle: string;
@@ -8,6 +11,8 @@ interface AuthShellProps {
   /** Optional back link or button shown above the title. */
   readonly back?: ReactNode;
 }
+
+const highlights = ["AI summaries", "Auto quizzes", "Study groups", "Live video"];
 
 export function AuthShell({
   title,
@@ -18,35 +23,34 @@ export function AuthShell({
 }: AuthShellProps) {
   return (
     <main className="auth-page">
-      <section className="auth-intro" aria-hidden="true">
-        <div className="brand">
-          <span className="brand-mark">L</span>
-          <span>LearnTogether</span>
-        </div>
+      <section className="auth-intro" aria-label="About Athenix">
+        <BrandLogo tone="ivory" className="auth-intro-brand" />
+
         <div className="auth-intro-copy">
-          <p className="eyebrow">AI-powered collaborative learning</p>
-          <h2>Understand your notes faster, and learn together.</h2>
-          <ul>
-            <li>Summaries and key concepts from your lecture notes</li>
-            <li>Quizzes generated from your own materials</li>
-            <li>Study groups, forums and a verified library</li>
-          </ul>
+          <OwlMark tone="ivory" withPerch className="auth-hero-owl" />
+          <h2>Wisdom, connected.</h2>
+          <p>
+            Upload your notes, let AI surface the key ideas, then study them
+            with your peers — chat, share and meet on video, all in one place.
+          </p>
         </div>
+
+        <ul className="auth-highlights">
+          {highlights.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
       </section>
 
       <section className="auth-panel">
         <div className="auth-card">
+          <BrandLogo tone="navy" className="auth-card-brand" />
           {back ? <div className="auth-back">{back}</div> : null}
-          <div className="brand auth-card-brand">
-            <span className="brand-mark" aria-hidden="true">
-              L
-            </span>
-            <span>LearnTogether</span>
-          </div>
           <h1>{title}</h1>
           <p className="auth-subtitle">{subtitle}</p>
           {children}
           <p className="auth-footer">{footer}</p>
+          <p className="auth-fineprint">Final Year Project · TAR UMT · 2026</p>
         </div>
       </section>
     </main>

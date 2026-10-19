@@ -5,7 +5,7 @@ import { passwordResetMessages } from "@/models/auth/password-reset.model";
 import { ForgotPasswordView } from "@/views/auth/forgot-password.view";
 
 export const metadata: Metadata = {
-  title: "Forgot password | LearnTogether AI",
+  title: "Forgot password",
 };
 
 const pageErrors: Record<string, string> = {

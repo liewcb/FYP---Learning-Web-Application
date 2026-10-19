@@ -4,6 +4,7 @@ import {
   useState,
   type ChangeEventHandler,
   type FocusEventHandler,
+  type ReactNode,
 } from "react";
 
 interface FormFieldProps {
@@ -21,6 +22,9 @@ interface FormFieldProps {
   readonly maxLength?: number;
   readonly autoCapitalize?: "none" | "words";
   readonly inputMode?: "text" | "numeric" | "email";
+  readonly placeholder?: string;
+  /** Shown at the right end of the label row, e.g. "Forgot password?". */
+  readonly labelAction?: ReactNode;
   readonly onBlur?: FocusEventHandler<HTMLInputElement>;
   readonly onChange?: ChangeEventHandler<HTMLInputElement>;
 }
@@ -50,6 +54,8 @@ export function FormField({
   maxLength,
   autoCapitalize,
   inputMode,
+  placeholder,
+  labelAction,
   onBlur,
   onChange,
 }: FormFieldProps) {
@@ -66,6 +72,7 @@ export function FormField({
       autoCapitalize={isPassword ? "none" : autoCapitalize}
       autoCorrect={isPassword ? "off" : undefined}
       inputMode={inputMode}
+      placeholder={placeholder}
       spellCheck={isPassword ? false : undefined}
       defaultValue={defaultValue}
       aria-invalid={error ? true : undefined}
@@ -81,7 +88,14 @@ export function FormField({
 
   return (
     <div className="form-field">
-      <label htmlFor={id}>{label}</label>
+      {labelAction ? (
+        <div className="form-label-row">
+          <label htmlFor={id}>{label}</label>
+          {labelAction}
+        </div>
+      ) : (
+        <label htmlFor={id}>{label}</label>
+      )}
       {isPassword ? (
         <div className="password-input">
           {input}

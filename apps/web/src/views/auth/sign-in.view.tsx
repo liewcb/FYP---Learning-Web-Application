@@ -32,11 +32,10 @@ export function SignInView({
   return (
     <AuthShell
       title="Welcome back"
-      subtitle="Log in to continue to your learning workspace."
+      subtitle="Sign in to continue to Athenix."
       footer={
         <>
-          New to LearnTogether?{" "}
-          <Link href={authRoutes.signUp}>Create an account</Link>
+          New to Athenix? <Link href={authRoutes.signUp}>Create an account</Link>
         </>
       }
     >
@@ -64,6 +63,7 @@ export function SignInView({
           label="Username or email"
           autoComplete="username"
           autoCapitalize="none"
+          placeholder="you@university.edu"
           defaultValue={state.values?.identifier}
           error={state.fieldErrors?.identifier}
         />
@@ -72,16 +72,26 @@ export function SignInView({
           label="Password"
           type="password"
           autoComplete="current-password"
+          placeholder="••••••••"
           error={state.fieldErrors?.password}
+          labelAction={
+            <Link className="label-link" href={authRoutes.forgotPassword}>
+              Forgot password?
+            </Link>
+          }
         />
-        <div className="form-row-end">
-          <Link className="text-action" href={authRoutes.forgotPassword}>
-            Forgot password?
-          </Link>
-        </div>
+
+        <label className="remember-field">
+          <input
+            type="checkbox"
+            name="remember"
+            defaultChecked={state.values?.remember ?? false}
+          />
+          <span>Remember me</span>
+        </label>
 
         <button className="button button-dark" type="submit" disabled={pending}>
-          {pending ? "Logging in..." : "Log in"}
+          {pending ? "Signing in..." : "Sign in"}
         </button>
       </form>
     </AuthShell>

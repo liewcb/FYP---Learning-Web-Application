@@ -24,6 +24,7 @@ export interface EmailCredentials {
 export interface SignInFormValues {
   readonly identifier: string;
   readonly password: string;
+  readonly remember?: boolean;
 }
 
 export interface SignInFormState {
@@ -32,7 +33,7 @@ export interface SignInFormState {
   /** True when the account is locked, so the form can offer a reset link. */
   readonly locked?: boolean;
   readonly fieldErrors?: Partial<Record<"identifier" | "password", string>>;
-  readonly values?: { readonly identifier: string };
+  readonly values?: { readonly identifier: string; readonly remember?: boolean };
 }
 
 export interface SignUpInput extends EmailCredentials {

@@ -6,7 +6,7 @@ import { createAdminController } from "@/lib/dependencies/server";
 import { AdminShell } from "@/views/admin/admin-shell.view";
 
 export const metadata: Metadata = {
-  title: "Admin | LearnTogether AI",
+  title: "Admin",
 };
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {

@@ -2,6 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
+  applySessionPreference,
+  isPersistentSession,
+  rememberCookieName,
+} from "@/lib/supabase/session-preference";
+import {
   authRoutes,
   isGuestOnlyPath,
   isPublicPath,
@@ -37,6 +42,9 @@ function redirectWithCookies(
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+  const persistent = isPersistentSession(
+    request.cookies.get(rememberCookieName)?.value,
+  );
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -52,7 +60,11 @@ export async function updateSession(request: NextRequest) {
           );
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
+            response.cookies.set(
+              name,
+              value,
+              applySessionPreference(options, persistent),
+            ),
           );
           Object.entries(headers).forEach(([key, value]) =>
             response.headers.set(key, value),

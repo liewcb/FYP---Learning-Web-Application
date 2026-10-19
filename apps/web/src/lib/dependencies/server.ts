@@ -17,8 +17,10 @@ export function createAiController(): AiController {
   return new AiController(new HttpAiService());
 }
 
-export async function createAuthController(): Promise<AuthController> {
-  const supabase = await createClient();
+export async function createAuthController(
+  options: { persistentSession?: boolean } = {},
+): Promise<AuthController> {
+  const supabase = await createClient(options);
 
   return new AuthController(
     new SupabaseAuthService(supabase),

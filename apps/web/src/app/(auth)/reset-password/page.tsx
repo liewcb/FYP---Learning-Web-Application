@@ -5,7 +5,7 @@ import { createPasswordResetController } from "@/lib/dependencies/server";
 import { ResetPasswordView } from "@/views/auth/reset-password.view";
 
 export const metadata: Metadata = {
-  title: "Set a new password | LearnTogether AI",
+  title: "Set a new password",
 };
 
 export default async function ResetPasswordPage() {
