@@ -1,6 +1,7 @@
 import { AdminController } from "@/controllers/admin/admin.controller";
 import { AiController } from "@/controllers/ai/ai.controller";
 import { AuthController } from "@/controllers/auth/auth.controller";
+import { PasswordResetController } from "@/controllers/auth/password-reset.controller";
 import { DocumentController } from "@/controllers/documents/document.controller";
 import { ProfileController } from "@/controllers/profile/profile.controller";
 import { HttpAiService } from "@/lib/ai/http-ai-service";
@@ -9,6 +10,7 @@ import { SupabaseProfileRepository } from "@/lib/supabase/repositories/supabase-
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { SupabaseAuthService } from "@/lib/supabase/services/supabase-auth.service";
+import { SupabaseLoginAttemptStore } from "@/lib/supabase/services/supabase-login-attempt-store";
 import { SupabaseUsernameDirectory } from "@/lib/supabase/services/supabase-username-directory";
 
 export function createAiController(): AiController {
@@ -21,6 +23,17 @@ export async function createAuthController(): Promise<AuthController> {
   return new AuthController(
     new SupabaseAuthService(supabase),
     new SupabaseUsernameDirectory(supabase, createServiceRoleClient),
+    new SupabaseLoginAttemptStore(createServiceRoleClient),
+  );
+}
+
+export async function createPasswordResetController(): Promise<PasswordResetController> {
+  const supabase = await createClient();
+
+  return new PasswordResetController(
+    new SupabaseAuthService(supabase),
+    new SupabaseUsernameDirectory(supabase, createServiceRoleClient),
+    new SupabaseLoginAttemptStore(createServiceRoleClient),
   );
 }
 

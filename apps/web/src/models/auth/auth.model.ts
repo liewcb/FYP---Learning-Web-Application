@@ -28,6 +28,9 @@ export interface SignInFormValues {
 
 export interface SignInFormState {
   readonly error?: string;
+  readonly notice?: string;
+  /** True when the account is locked, so the form can offer a reset link. */
+  readonly locked?: boolean;
   readonly fieldErrors?: Partial<Record<"identifier" | "password", string>>;
   readonly values?: { readonly identifier: string };
 }
@@ -161,7 +164,7 @@ function validateEmail(email: string): string | undefined {
   return undefined;
 }
 
-function validatePassword(password: string): string | undefined {
+export function validatePassword(password: string): string | undefined {
   if (password.length < passwordRules.minLength) {
     return `Use at least ${passwordRules.minLength} characters.`;
   }

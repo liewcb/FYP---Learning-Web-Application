@@ -1,11 +1,11 @@
+import { resolveLoginEmail } from "@/controllers/shared/resolve-login-email";
 import type { AuthService } from "@/interfaces/services/auth-service.interface";
+import type { LoginAttemptStore } from "@/interfaces/services/login-attempt-store.interface";
 import type { UsernameDirectory } from "@/interfaces/services/username-directory.interface";
 import { authRoutes, safeRedirectPath } from "@/models/auth/auth-routes";
 import {
   authFailureMessages,
   confirmationSentNotice,
-  isEmailIdentifier,
-  normaliseEmail,
   toSignUpEchoValues,
   usernameTakenMessage,
   validateSignIn,
@@ -19,6 +19,12 @@ import {
   type UsernameCheck,
 } from "@/models/auth/auth.model";
 import {
+  accountLockedMessage,
+  attemptsLeftMessage,
+  loginAttemptKey,
+  loginAttemptPolicy,
+} from "@/models/auth/login-attempts.model";
+import {
   normaliseUsername,
   validateUsername,
 } from "@/models/profile/study-profile.model";
@@ -31,6 +37,7 @@ export class AuthController {
   constructor(
     private readonly auth: AuthService,
     private readonly usernames: UsernameDirectory,
+    private readonly attempts: LoginAttemptStore,
   ) {}
 
   currentUser(): Promise<AuthUser | null> {
@@ -50,15 +57,31 @@ export class AuthController {
     }
 
     let email: string | null;
+    let key: string;
+    let lockedUntil: Date | null;
 
+    // Fails closed: if the lock cannot be checked, nobody signs in.
     try {
-      email = await this.resolveLoginEmail(identifier);
+      email = await resolveLoginEmail(this.usernames, identifier);
+      key = loginAttemptKey(email ?? identifier);
+      lockedUntil = await this.attempts.getLockedUntil(key);
     } catch (error) {
-      console.error("Username lookup failed", error);
+      console.error("Login pre-check failed", error);
 
       return {
         status: "show",
         state: { error: authFailureMessages.unavailable, values },
+      };
+    }
+
+    if (lockedUntil) {
+      return {
+        status: "show",
+        state: {
+          error: accountLockedMessage(lockedUntil, new Date()),
+          locked: true,
+          values,
+        },
       };
     }
 
@@ -67,31 +90,44 @@ export class AuthController {
       : ({ status: "failed", reason: "invalid_credentials" } as const);
 
     if (outcome.status === "failed") {
+      if (outcome.reason === "invalid_credentials") {
+        return { status: "show", state: await this.recordFailure(key, values) };
+      }
+
       return {
         status: "show",
         state: { error: authFailureMessages[outcome.reason], values },
       };
     }
 
+    try {
+      await this.attempts.clear(key);
+    } catch (error) {
+      console.error("Unable to clear failed login attempts", error);
+    }
+
     return { status: "redirect", to: safeRedirectPath(next) };
   }
 
-  /**
-   * An unknown username gets the same message as a wrong password, so the
-   * login form cannot be used to discover which usernames exist.
-   */
-  private async resolveLoginEmail(identifier: string): Promise<string | null> {
-    if (isEmailIdentifier(identifier)) {
-      return normaliseEmail(identifier);
+  private async recordFailure(
+    key: string,
+    values: SignInFormState["values"],
+  ): Promise<SignInFormState> {
+    try {
+      const result = await this.attempts.recordFailure(key, loginAttemptPolicy);
+
+      return result.lockedUntil
+        ? {
+            error: accountLockedMessage(result.lockedUntil, new Date()),
+            locked: true,
+            values,
+          }
+        : { error: attemptsLeftMessage(result.attemptsLeft), values };
+    } catch (error) {
+      console.error("Unable to record failed login attempt", error);
+
+      return { error: authFailureMessages.invalid_credentials, values };
     }
-
-    const username = normaliseUsername(identifier);
-
-    if (validateUsername(username, { required: true })) {
-      return null;
-    }
-
-    return this.usernames.findLoginEmail(username);
   }
 
   async checkUsername(value: string): Promise<UsernameCheck> {
@@ -197,10 +233,14 @@ export class AuthController {
     confirmation: EmailConfirmation | null,
     next: unknown,
   ): Promise<string> {
+    const destination = safeRedirectPath(next);
+
     if (confirmation && (await this.auth.confirmEmail(confirmation))) {
-      return safeRedirectPath(next);
+      return destination;
     }
 
-    return `${authRoutes.signIn}?error=confirmation_failed`;
+    return destination === authRoutes.resetPassword
+      ? `${authRoutes.forgotPassword}?error=link_expired`
+      : `${authRoutes.signIn}?error=confirmation_failed`;
   }
 }

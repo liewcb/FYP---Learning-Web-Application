@@ -1874,3 +1874,58 @@ a.student-avatar {
   background: var(--surface-soft);
   color: var(--primary-dark);
 }
+
+/* Forgot password and login extras */
+
+.form-row-end {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -8px;
+}
+
+.text-action {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.text-action:hover {
+  text-decoration: underline;
+}
+
+.text-action:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.form-alert a,
+.form-notice a:not(.button) {
+  color: inherit;
+  font-weight: 750;
+}
+
+.reset-account {
+  margin: 0;
+  border-radius: 11px;
+  padding: 11px 14px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.reset-account strong {
+  color: var(--ink);
+}
+
+.reset-secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+}

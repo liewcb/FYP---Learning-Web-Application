@@ -15,11 +15,18 @@ interface SignInViewProps {
   ) => Promise<SignInFormState>;
   readonly next?: string;
   readonly initialError?: string;
+  readonly initialNotice?: string;
 }
 
-export function SignInView({ action, next, initialError }: SignInViewProps) {
+export function SignInView({
+  action,
+  next,
+  initialError,
+  initialNotice,
+}: SignInViewProps) {
   const [state, formAction, pending] = useActionState(action, {
     error: initialError,
+    notice: initialNotice,
   });
 
   return (
@@ -37,6 +44,16 @@ export function SignInView({ action, next, initialError }: SignInViewProps) {
         {state.error ? (
           <p className="form-alert" role="alert">
             {state.error}
+            {state.locked ? (
+              <>
+                {" "}
+                <Link href={authRoutes.forgotPassword}>Reset your password</Link>
+              </>
+            ) : null}
+          </p>
+        ) : state.notice ? (
+          <p className="form-notice" role="status">
+            {state.notice}
           </p>
         ) : null}
 
@@ -57,6 +74,11 @@ export function SignInView({ action, next, initialError }: SignInViewProps) {
           autoComplete="current-password"
           error={state.fieldErrors?.password}
         />
+        <div className="form-row-end">
+          <Link className="text-action" href={authRoutes.forgotPassword}>
+            Forgot password?
+          </Link>
+        </div>
 
         <button className="button button-dark" type="submit" disabled={pending}>
           {pending ? "Logging in..." : "Log in"}

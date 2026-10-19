@@ -11,6 +11,11 @@ import type {
   SignUpInput,
   SignUpOutcome,
 } from "@/models/auth/auth.model";
+import type {
+  RecoverySession,
+  RequestResetOutcome,
+  UpdatePasswordOutcome,
+} from "@/models/auth/password-reset.model";
 
 const failureReasonsByCode: Record<string, AuthFailureReason> = {
   invalid_credentials: "invalid_credentials",
@@ -28,6 +33,11 @@ const failureReasonsByCode: Record<string, AuthFailureReason> = {
 function toFailureReason(error: AuthError): AuthFailureReason {
   return (error.code && failureReasonsByCode[error.code]) || "unavailable";
 }
+
+const rateLimitCodes = new Set(["over_request_rate_limit", "over_email_send_rate_limit"]);
+
+/** Sign-in methods that prove the user just opened a reset email. */
+const recoveryMethods = new Set(["recovery", "otp", "magiclink"]);
 
 export class SupabaseAuthService implements AuthService {
   constructor(private readonly supabase: SupabaseClient) {}
@@ -111,5 +121,76 @@ export class SupabaseAuthService implements AuthService {
           });
 
     return !error;
+  }
+
+  async requestPasswordReset(
+    email: string,
+    redirectTo: string,
+  ): Promise<RequestResetOutcome> {
+    // The emailed link lands on /auth/confirm, which starts a recovery
+    // session and forwards to the "set a new password" page.
+    const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+
+    if (!error) {
+      return { status: "sent" };
+    }
+
+    if (error.code && rateLimitCodes.has(error.code)) {
+      return { status: "failed", reason: "rate_limited" };
+    }
+
+    console.error("Password reset request failed", error);
+
+    return { status: "failed", reason: "unavailable" };
+  }
+
+  async getRecoverySession(): Promise<RecoverySession | null> {
+    const { data, error } = await this.supabase.auth.getClaims();
+
+    if (error || !data?.claims || typeof data.claims.email !== "string") {
+      return null;
+    }
+
+    let latest: number | null = null;
+
+    for (const entry of data.claims.amr ?? []) {
+      if (
+        typeof entry === "object" &&
+        recoveryMethods.has(entry.method) &&
+        typeof entry.timestamp === "number" &&
+        (latest === null || entry.timestamp > latest)
+      ) {
+        latest = entry.timestamp;
+      }
+    }
+
+    return latest === null
+      ? null
+      : { email: data.claims.email, verifiedAt: new Date(latest * 1000) };
+  }
+
+  async updatePassword(password: string): Promise<UpdatePasswordOutcome> {
+    const { error } = await this.supabase.auth.updateUser({ password });
+
+    if (!error) {
+      return { status: "updated" };
+    }
+
+    switch (error.code) {
+      case "same_password":
+        return { status: "failed", reason: "same_password" };
+      case "weak_password":
+        return { status: "failed", reason: "weak_password" };
+      case "session_not_found":
+      case "session_expired":
+      case "reauthentication_needed":
+        return { status: "failed", reason: "session_expired" };
+      default:
+        console.error("Password update failed", error);
+
+        return { status: "failed", reason: "unavailable" };
+    }
   }
 }

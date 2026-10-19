@@ -20,6 +20,7 @@ interface FormFieldProps {
   readonly minLength?: number;
   readonly maxLength?: number;
   readonly autoCapitalize?: "none" | "words";
+  readonly inputMode?: "text" | "numeric" | "email";
   readonly onBlur?: FocusEventHandler<HTMLInputElement>;
   readonly onChange?: ChangeEventHandler<HTMLInputElement>;
 }
@@ -48,6 +49,7 @@ export function FormField({
   minLength,
   maxLength,
   autoCapitalize,
+  inputMode,
   onBlur,
   onChange,
 }: FormFieldProps) {
@@ -63,6 +65,7 @@ export function FormField({
       autoComplete={autoComplete}
       autoCapitalize={isPassword ? "none" : autoCapitalize}
       autoCorrect={isPassword ? "off" : undefined}
+      inputMode={inputMode}
       spellCheck={isPassword ? false : undefined}
       defaultValue={defaultValue}
       aria-invalid={error ? true : undefined}
