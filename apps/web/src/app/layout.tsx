@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Sora } from "next/font/google";
+import { cookies } from "next/headers";
+
+import { parseTheme, themeCookieName } from "@/models/preferences/theme.model";
 import "./globals.css";
 
 const sora = Sora({
@@ -17,9 +20,18 @@ export const metadata: Metadata = {
     "Upload your notes, let AI surface the key ideas, then study them with your peers.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // A saved choice wins; without one, CSS follows the system setting.
+  const theme = parseTheme((await cookies()).get(themeCookieName)?.value);
+
   return (
-    <html lang="en" className={`${sora.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${sora.variable} h-full antialiased`}
+      data-theme={theme ?? undefined}
+      // The theme toggle updates data-theme in the browser.
+      suppressHydrationWarning
+    >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

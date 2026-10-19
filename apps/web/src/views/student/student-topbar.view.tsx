@@ -2,14 +2,13 @@ import Link from "next/link";
 
 import type { NavigationItem } from "@/models/home/home.model";
 import { BrandLogo } from "@/views/shared/brand-logo.view";
+import { ThemeToggle } from "@/views/shared/theme-toggle.view";
 
 interface StudentTopbarProps {
   readonly navigation: readonly NavigationItem[];
   readonly displayName: string;
   readonly initials: string;
   readonly signOutAction: () => Promise<void>;
-  /** Light (default) or the midnight-navy variant from the brand kit. */
-  readonly tone?: "light" | "dark";
 }
 
 export function StudentTopbar({
@@ -17,13 +16,13 @@ export function StudentTopbar({
   displayName,
   initials,
   signOutAction,
-  tone = "light",
 }: StudentTopbarProps) {
+  // Colours come from the light/dark theme; see .topbar in globals.css.
   return (
-    <header className={`topbar topbar-${tone}`}>
+    <header className="topbar">
       <div className="app-shell topbar-inner">
         <Link className="brand-link" href="/" aria-label="Athenix dashboard">
-          <BrandLogo tone={tone === "dark" ? "ivory" : "navy"} />
+          <BrandLogo />
         </Link>
 
         <nav className="main-nav" aria-label="Main">
@@ -80,6 +79,8 @@ export function StudentTopbar({
               </form>
             </div>
           </details>
+
+          <ThemeToggle />
         </div>
       </div>
     </header>

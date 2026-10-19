@@ -1,12 +1,12 @@
 import { OwlMark } from "@/views/shared/owl-mark.view";
 
 interface BrandLogoProps {
-  /** "ivory" for dark backgrounds, "navy" for light ones. */
-  readonly tone?: "ivory" | "navy";
+  /** "auto" follows the theme; "ivory"/"navy" force a colour. */
+  readonly tone?: "ivory" | "navy" | "auto";
   readonly className?: string;
 }
 
-export function BrandLogo({ tone = "navy", className }: BrandLogoProps) {
+export function BrandLogo({ tone = "auto", className }: BrandLogoProps) {
   return (
     <span className={`brand brand-${tone}${className ? ` ${className}` : ""}`}>
       <OwlMark tone={tone} className="brand-owl" />

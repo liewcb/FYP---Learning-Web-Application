@@ -119,7 +119,7 @@ export function createHomePageModel(student: StudentSummary): HomePageModel {
         status: "Summary ready",
         updatedAt: "Updated 18 minutes ago",
         progress: 78,
-        color: "#2f8f70",
+        color: "#3e5bb3",
       },
       {
         title: "Research Methodology Notes",
@@ -127,7 +127,7 @@ export function createHomePageModel(student: StudentSummary): HomePageModel {
         status: "Processing",
         updatedAt: "Uploaded today",
         progress: 42,
-        color: "#5475d6",
+        color: "#5a6b8c",
       },
       {
         title: "Database Systems — Week 5",
@@ -135,7 +135,7 @@ export function createHomePageModel(student: StudentSummary): HomePageModel {
         status: "Quiz ready",
         updatedAt: "Updated yesterday",
         progress: 91,
-        color: "#c47a3d",
+        color: "#c98a1f",
       },
     ],
     nextSession: {

@@ -44,7 +44,7 @@ export function AuthShell({
 
       <section className="auth-panel">
         <div className="auth-card">
-          <BrandLogo tone="navy" className="auth-card-brand" />
+          <BrandLogo className="auth-card-brand" />
           {back ? <div className="auth-back">{back}</div> : null}
           <h1>{title}</h1>
           <p className="auth-subtitle">{subtitle}</p>

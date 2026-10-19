@@ -1,6 +1,9 @@
 interface OwlMarkProps {
-  /** "ivory" for dark backgrounds, "navy" for light ones. */
-  readonly tone?: "ivory" | "navy";
+  /**
+   * "ivory" for dark backgrounds, "navy" for light ones, or "auto" to use
+   * the surrounding text colour so it follows the light/dark theme.
+   */
+  readonly tone?: "ivory" | "navy" | "auto";
   /** Adds the gold perch line under the owl, as in the large brand mark. */
   readonly withPerch?: boolean;
   readonly className?: string;
@@ -14,8 +17,8 @@ const gold = "#F2B544";
  * sharp at any size. Decorative: the brand name is always shown next to it
  * or given as a label by the parent.
  */
-export function OwlMark({ tone = "navy", withPerch = false, className }: OwlMarkProps) {
-  const stroke = strokeColours[tone];
+export function OwlMark({ tone = "auto", withPerch = false, className }: OwlMarkProps) {
+  const stroke = tone === "auto" ? "currentColor" : strokeColours[tone];
   const maskId = `athenix-moon-${tone}`;
 
   return (

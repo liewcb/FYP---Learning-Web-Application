@@ -1,23 +1,133 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #14211d;
-  --muted: #65736e;
-  --paper: #f4f7f5;
-  --surface: #ffffff;
-  --surface-soft: #edf4f0;
-  --primary: #1d7157;
-  --primary-dark: #12503e;
-  --navy: #172923;
-  --line: #dfe7e2;
-  --shadow: 0 18px 50px rgb(35 62 51 / 8%);
-
   /* Athenix brand kit */
   --brand-navy: #1f2a44;
   --brand-midnight: #131b2f;
   --brand-ivory: #ede6d6;
   --brand-gold: #f2b544;
-  --brand-mist: #f6f7fa;
+
+  /* Light theme (default) */
+  --paper: #f4f6fa;
+  --surface: #ffffff;
+  --surface-soft: #eef1f6;
+  --ink: #1f2a44;
+  --ink-soft: #3c4556;
+  --heading: #1f2a44;
+  --muted: #5b6475;
+  --placeholder: #8a93a3;
+  --line: #dfe3ea;
+  --line-strong: #cfd5df;
+  --primary: #1f2a44;
+  --primary-hover: #2a3858;
+  --primary-dark: #131b2f;
+  --on-primary: #ede6d6;
+  --accent: #f2b544;
+  --accent-soft: #fbf1dc;
+  --accent-ink: #8a5a14;
+  --info: #3e5bb3;
+  --info-soft: #e7ecfb;
+  --success: #2f7a5c;
+  --success-soft: #e3f2eb;
+  --danger: #b23a28;
+  --danger-strong: #c2412d;
+  --danger-soft: #fdf1ee;
+  --danger-line: #f1c7bf;
+  --danger-ink: #8e2f20;
+  --danger-field: #fffaf9;
+  --focus-ring: rgb(242 181 68 / 60%);
+  --focus-ring-soft: rgb(31 42 68 / 12%);
+  --shadow: 0 18px 50px rgb(17 26 46 / 8%);
+  --shadow-tint: rgb(17 26 46 / 8%);
+  --hero-bg:
+    radial-gradient(circle at 90% 15%, rgb(242 181 68 / 18%), transparent 30%),
+    linear-gradient(130deg, #131b2f 0%, #1f2a44 100%);
+  --sidebar-bg: #131b2f;
+
+  /* Older names kept so existing rules still resolve. */
+  --navy: var(--heading);
+  --brand-mist: var(--paper);
+
+  color-scheme: light;
+}
+
+/* Dark theme: chosen with the header toggle, or taken from the system. */
+:root[data-theme="dark"] {
+  --paper: #0d1424;
+  --surface: #151e33;
+  --surface-soft: #1e2a44;
+  --ink: #e3e7ef;
+  --ink-soft: #c5ccd9;
+  --heading: #f4efe4;
+  --muted: #9aa4b8;
+  --placeholder: #6f7a90;
+  --line: #26324d;
+  --line-strong: #34405c;
+  --primary: #f2b544;
+  --primary-hover: #f6c766;
+  --primary-dark: #f4efe4;
+  --on-primary: #131b2f;
+  --accent-soft: rgb(242 181 68 / 14%);
+  --accent-ink: #f2c46b;
+  --info: #9db2ff;
+  --info-soft: rgb(120 150 255 / 14%);
+  --success: #7fd6ae;
+  --success-soft: rgb(127 214 174 / 13%);
+  --danger: #ff9a87;
+  --danger-strong: #e5604a;
+  --danger-soft: rgb(229 96 74 / 12%);
+  --danger-line: rgb(229 96 74 / 35%);
+  --danger-ink: #ffb4a6;
+  --danger-field: rgb(229 96 74 / 6%);
+  --focus-ring-soft: rgb(242 181 68 / 18%);
+  --shadow: 0 18px 50px rgb(0 0 0 / 35%);
+  --shadow-tint: rgb(0 0 0 / 30%);
+  --hero-bg:
+    radial-gradient(circle at 90% 15%, rgb(242 181 68 / 16%), transparent 30%),
+    linear-gradient(130deg, #1a2540 0%, #24314f 100%);
+  --sidebar-bg: #0a101d;
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d1424;
+    --surface: #151e33;
+    --surface-soft: #1e2a44;
+    --ink: #e3e7ef;
+    --ink-soft: #c5ccd9;
+    --heading: #f4efe4;
+    --muted: #9aa4b8;
+    --placeholder: #6f7a90;
+    --line: #26324d;
+    --line-strong: #34405c;
+    --primary: #f2b544;
+    --primary-hover: #f6c766;
+    --primary-dark: #f4efe4;
+    --on-primary: #131b2f;
+    --accent-soft: rgb(242 181 68 / 14%);
+    --accent-ink: #f2c46b;
+    --info: #9db2ff;
+    --info-soft: rgb(120 150 255 / 14%);
+    --success: #7fd6ae;
+    --success-soft: rgb(127 214 174 / 13%);
+    --danger: #ff9a87;
+    --danger-strong: #e5604a;
+    --danger-soft: rgb(229 96 74 / 12%);
+    --danger-line: rgb(229 96 74 / 35%);
+    --danger-ink: #ffb4a6;
+    --danger-field: rgb(229 96 74 / 6%);
+    --focus-ring-soft: rgb(242 181 68 / 18%);
+    --shadow: 0 18px 50px rgb(0 0 0 / 35%);
+    --shadow-tint: rgb(0 0 0 / 30%);
+    --hero-bg:
+      radial-gradient(circle at 90% 15%, rgb(242 181 68 / 16%), transparent 30%),
+      linear-gradient(130deg, #1a2540 0%, #24314f 100%);
+    --sidebar-bg: #0a101d;
+
+    color-scheme: dark;
+  }
 }
 
 * {
@@ -53,7 +163,7 @@ a {
 
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid var(--focus-ring, rgb(64 158 126 / 35%));
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -69,13 +179,13 @@ a:focus-visible {
 /* Header (Athenix brand). Light by default; add .topbar-dark for midnight. */
 
 .topbar {
-  --topbar-bg: #ffffff;
-  --topbar-border: #e3e7ee;
-  --topbar-text: #4e5767;
-  --topbar-text-strong: var(--brand-navy);
-  --topbar-search-bg: #eef1f5;
-  --topbar-search-text: var(--brand-navy);
-  --topbar-search-muted: #7a8396;
+  --topbar-bg: var(--surface);
+  --topbar-border: var(--line);
+  --topbar-text: var(--ink-soft);
+  --topbar-text-strong: var(--heading);
+  --topbar-search-bg: var(--surface-soft);
+  --topbar-search-text: var(--ink);
+  --topbar-search-muted: var(--placeholder);
   --topbar-avatar-bg: var(--brand-navy);
   --topbar-avatar-text: var(--brand-ivory);
   --topbar-avatar-ring: transparent;
@@ -88,7 +198,8 @@ a:focus-visible {
   background: var(--topbar-bg);
 }
 
-.topbar-dark {
+/* The header turns midnight navy in the dark theme. */
+:root[data-theme="dark"] .topbar {
   --topbar-bg: var(--brand-midnight);
   --topbar-border: #1f2a44;
   --topbar-text: #aab3c5;
@@ -99,6 +210,21 @@ a:focus-visible {
   --topbar-avatar-bg: var(--brand-ivory);
   --topbar-avatar-text: var(--brand-navy);
   --topbar-avatar-ring: #2b3856;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .topbar {
+    --topbar-bg: var(--brand-midnight);
+    --topbar-border: #1f2a44;
+    --topbar-text: #aab3c5;
+    --topbar-text-strong: var(--brand-ivory);
+    --topbar-search-bg: #1e2a44;
+    --topbar-search-text: var(--brand-ivory);
+    --topbar-search-muted: #8a94a8;
+    --topbar-avatar-bg: var(--brand-ivory);
+    --topbar-avatar-text: var(--brand-navy);
+    --topbar-avatar-ring: #2b3856;
+  }
 }
 
 .topbar-inner {
@@ -146,6 +272,15 @@ a:focus-visible {
 
 .brand-ivory .brand-name {
   color: var(--brand-ivory);
+}
+
+/* Follows the theme: navy on light pages, ivory on dark ones. */
+.brand-auto {
+  color: var(--heading);
+}
+
+.brand-auto .brand-name {
+  color: var(--heading);
 }
 
 .main-nav {
@@ -310,19 +445,19 @@ a:focus-visible {
   display: grid;
   min-width: 210px;
   gap: 2px;
-  border: 1px solid #e3e7ee;
+  border: 1px solid var(--line);
   border-radius: 14px;
   padding: 8px;
-  background: #ffffff;
-  box-shadow: 0 18px 40px rgb(17 26 46 / 16%);
+  background: var(--surface);
+  box-shadow: 0 18px 40px var(--shadow-tint);
 }
 
 .account-menu-name {
   overflow: hidden;
   margin: 0 0 4px;
-  border-bottom: 1px solid #eef1f5;
+  border-bottom: 1px solid var(--surface-soft);
   padding: 8px 10px 10px;
-  color: var(--brand-navy);
+  color: var(--heading);
   font-size: 0.88rem;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -336,7 +471,7 @@ a:focus-visible {
   border-radius: 9px;
   padding: 9px 10px;
   background: transparent;
-  color: #3c4556;
+  color: var(--ink-soft);
   cursor: pointer;
   font: inherit;
   font-size: 0.88rem;
@@ -345,8 +480,8 @@ a:focus-visible {
 }
 
 .account-menu-item:hover {
-  background: #f1f3f7;
-  color: var(--brand-navy);
+  background: var(--surface-soft);
+  color: var(--heading);
 }
 
 @media (max-width: 1320px) {
@@ -415,9 +550,8 @@ a:focus-visible {
   grid-template-columns: 1.2fr 0.8fr;
   border-radius: 26px;
   background:
-    radial-gradient(circle at 90% 15%, rgb(101 200 165 / 22%), transparent 28%),
-    linear-gradient(130deg, #14251f 0%, #1c3e32 100%);
-  color: white;
+    var(--hero-bg);
+  color: var(--brand-ivory);
   padding: 48px;
   box-shadow: var(--shadow);
 }
@@ -436,7 +570,7 @@ a:focus-visible {
 .eyebrow,
 .section-kicker {
   margin: 0;
-  color: #86d8bb;
+  color: var(--brand-gold);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -459,7 +593,7 @@ a:focus-visible {
 .welcome-copy > p:not(.eyebrow) {
   max-width: 600px;
   margin: 0;
-  color: #c4d4cd;
+  color: #c3cad8;
   font-size: 1.03rem;
   line-height: 1.7;
 }
@@ -494,22 +628,22 @@ a:focus-visible {
 }
 
 .button-light {
-  background: #f2fbf7;
-  color: var(--primary-dark);
+  background: var(--brand-ivory);
+  color: var(--brand-navy);
 }
 
 .button-dark {
   width: 100%;
-  background: var(--navy);
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
 }
 
 .button-dark:hover {
-  background: #203c32;
+  background: var(--primary-hover);
 }
 
 .text-link {
-  color: #deebe6;
+  color: var(--brand-ivory);
   font-size: 0.9rem;
   font-weight: 700;
   text-decoration: none;
@@ -539,7 +673,7 @@ a:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #b9cac3;
+  color: #b5bdcc;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -549,8 +683,8 @@ a:focus-visible {
 .focus-badge,
 .live-pill {
   border-radius: 999px;
-  background: rgb(122 218 184 / 16%);
-  color: #9de8cc;
+  background: rgb(242 181 68 / 16%);
+  color: var(--brand-gold);
   padding: 6px 9px;
   font-size: 0.66rem;
   font-weight: 800;
@@ -566,7 +700,7 @@ a:focus-visible {
 
 .focus-meta {
   margin: 0 0 20px;
-  color: #b9cac3;
+  color: #b5bdcc;
   font-size: 0.82rem;
 }
 
@@ -583,7 +717,7 @@ a:focus-visible {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #76d2b2;
+  background: var(--brand-gold);
 }
 
 .stats-grid {
@@ -609,7 +743,7 @@ a:focus-visible {
   width: 70px;
   height: 70px;
   border-radius: 50%;
-  background: #ecf6f1;
+  background: var(--surface-soft);
   content: "";
 }
 
@@ -677,7 +811,7 @@ a:focus-visible {
   grid-template-columns: auto 1fr auto;
   border: 1px solid var(--line);
   border-radius: 18px;
-  background: white;
+  background: var(--surface);
   padding: 22px;
   text-decoration: none;
   transition:
@@ -688,8 +822,8 @@ a:focus-visible {
 
 .quick-action:hover {
   transform: translateY(-2px);
-  border-color: #c8d7cf;
-  box-shadow: 0 16px 35px rgb(35 62 51 / 8%);
+  border-color: var(--line-strong);
+  box-shadow: 0 16px 35px var(--shadow-tint);
 }
 
 .action-icon {
@@ -703,18 +837,18 @@ a:focus-visible {
 }
 
 .quick-action.mint .action-icon {
-  background: #dff3e9;
-  color: #1f7558;
+  background: var(--surface-soft);
+  color: var(--primary);
 }
 
 .quick-action.blue .action-icon {
-  background: #e3eafd;
-  color: #4764bd;
+  background: var(--info-soft);
+  color: var(--info);
 }
 
 .quick-action.amber .action-icon {
-  background: #faead8;
-  color: #a8652f;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .action-copy {
@@ -735,7 +869,7 @@ a:focus-visible {
 }
 
 .action-arrow {
-  color: #89968f;
+  color: var(--muted);
   font-size: 1.1rem;
 }
 
@@ -776,7 +910,7 @@ a:focus-visible {
   align-items: center;
   gap: 15px;
   grid-template-columns: auto 1fr;
-  border-top: 1px solid #edf1ef;
+  border-top: 1px solid var(--line);
   padding-block: 18px;
 }
 
@@ -817,14 +951,14 @@ a:focus-visible {
 .material-title-row p,
 .material-progress-row > span {
   margin: 0;
-  color: #7a8781;
+  color: var(--muted);
   font-size: 0.72rem;
 }
 
 .material-status {
   flex: none;
   border-radius: 999px;
-  background: #edf6f1;
+  background: var(--surface-soft);
   color: var(--primary);
   padding: 6px 9px;
   font-size: 0.67rem;
@@ -838,7 +972,7 @@ a:focus-visible {
 .material-progress {
   width: min(240px, 48%);
   height: 4px;
-  background: #e9eeeb;
+  background: var(--surface-soft);
 }
 
 .material-progress span {
@@ -862,7 +996,7 @@ a:focus-visible {
 }
 
 .live-pill {
-  background: #e8f4ee;
+  background: var(--surface-soft);
   color: var(--primary);
 }
 
@@ -871,14 +1005,14 @@ a:focus-visible {
   width: 61px;
   overflow: hidden;
   margin-top: 26px;
-  border: 1px solid #d9e4de;
+  border: 1px solid var(--line);
   border-radius: 12px;
   text-align: center;
 }
 
 .calendar-block span {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
   padding: 5px;
   font-size: 0.61rem;
   font-weight: 820;
@@ -914,13 +1048,13 @@ a:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-top: 1px solid #edf1ef;
+  border-top: 1px solid var(--line);
   padding-top: 10px;
   font-size: 0.75rem;
 }
 
 .session-details dt {
-  color: #7b8882;
+  color: var(--muted);
 }
 
 .session-details dd {
@@ -932,7 +1066,7 @@ a:focus-visible {
 .community-card {
   display: flex;
   gap: 15px;
-  background: #eef4ff;
+  background: var(--info-soft);
   padding: 22px;
 }
 
@@ -943,8 +1077,8 @@ a:focus-visible {
   flex: none;
   place-items: center;
   border-radius: 12px;
-  background: #dce7fd;
-  color: #4963b6;
+  background: var(--info-soft);
+  color: var(--info);
   font-weight: 900;
 }
 
@@ -957,7 +1091,7 @@ a:focus-visible {
 }
 
 .community-card a {
-  color: #4761ae;
+  color: var(--info);
   font-size: 0.76rem;
   font-weight: 760;
   text-decoration: none;
@@ -965,7 +1099,7 @@ a:focus-visible {
 
 .preview-note {
   margin: 31px 0 0;
-  color: #7a8781;
+  color: var(--muted);
   font-size: 0.74rem;
   text-align: center;
 }
@@ -1046,21 +1180,11 @@ a:focus-visible {
 /* Authentication pages (Athenix) */
 
 .auth-page {
-  /* Re-points the shared form styles at the brand colours on these pages. */
-  --primary: var(--brand-navy);
-  --primary-dark: var(--brand-navy);
-  --navy: var(--brand-navy);
-  --ink: var(--brand-navy);
-  --muted: #5b6475;
-  --line: #d3d9e2;
-  --surface-soft: #eef1f5;
-  --focus-ring: rgb(242 181 68 / 60%);
-
   display: grid;
   min-height: 100vh;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  background: var(--brand-mist);
-  color: var(--brand-navy);
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .auth-intro {
@@ -1147,7 +1271,7 @@ a:focus-visible {
 
 .auth-card h1 {
   margin: 0;
-  color: var(--brand-navy);
+  color: var(--heading);
   font-size: clamp(2.1rem, 3vw, 2.6rem);
   font-weight: 800;
   letter-spacing: -0.045em;
@@ -1156,7 +1280,7 @@ a:focus-visible {
 
 .auth-subtitle {
   margin: 12px 0 36px;
-  color: #5b6475;
+  color: var(--muted);
   font-size: 1.05rem;
   line-height: 1.5;
 }
@@ -1167,26 +1291,26 @@ a:focus-visible {
 }
 
 .auth-page .form-field label {
-  color: var(--brand-navy);
+  color: var(--heading);
   font-size: 0.95rem;
   font-weight: 600;
 }
 
 .auth-page .form-field input:not([type="checkbox"], [type="radio"]) {
   min-height: 56px;
-  border-color: #cfd5df;
+  border-color: var(--line-strong);
   border-radius: 12px;
   padding-inline: 18px;
   font-size: 1rem;
 }
 
 .auth-page .form-field input::placeholder {
-  color: #8a93a3;
+  color: var(--placeholder);
 }
 
 .auth-page .form-field input:focus {
-  border-color: var(--brand-navy);
-  box-shadow: 0 0 0 4px rgb(31 42 68 / 12%);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--focus-ring-soft);
 }
 
 .auth-page .password-input input {
@@ -1201,7 +1325,7 @@ a:focus-visible {
 }
 
 .label-link {
-  color: var(--brand-navy);
+  color: var(--primary);
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
@@ -1217,7 +1341,7 @@ a:focus-visible {
   justify-self: start;
   gap: 12px;
   margin-top: 4px;
-  color: #4e5767;
+  color: var(--ink-soft);
   cursor: pointer;
   font-size: 0.98rem;
 }
@@ -1226,21 +1350,21 @@ a:focus-visible {
   width: 20px;
   height: 20px;
   margin: 0;
-  accent-color: var(--brand-navy);
+  accent-color: var(--primary);
 }
 
 .auth-page .button-dark {
   min-height: 56px;
   margin-top: 8px;
   border-radius: 12px;
-  background: var(--brand-navy);
-  color: var(--brand-ivory);
+  background: var(--primary);
+  color: var(--on-primary);
   font-size: 1.05rem;
   font-weight: 700;
 }
 
 .auth-page .button-dark:hover {
-  background: #2a3858;
+  background: var(--primary-hover);
 }
 
 .auth-page .button-dark:disabled {
@@ -1250,13 +1374,13 @@ a:focus-visible {
 
 .auth-footer {
   margin: 28px 0 0;
-  color: #5b6475;
+  color: var(--muted);
   font-size: 0.98rem;
   text-align: center;
 }
 
 .auth-footer a {
-  color: var(--brand-navy);
+  color: var(--heading);
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -1264,7 +1388,7 @@ a:focus-visible {
 
 .auth-fineprint {
   margin: 48px 0 0;
-  color: #6b7384;
+  color: var(--muted);
   font-size: 0.82rem;
   text-align: center;
 }
@@ -1317,7 +1441,7 @@ a:focus-visible {
 .form-field input:focus {
   border-color: var(--primary);
   outline: none;
-  box-shadow: 0 0 0 4px rgb(64 158 126 / 18%);
+  box-shadow: 0 0 0 4px var(--focus-ring-soft);
 }
 
 .field-error,
@@ -1328,7 +1452,7 @@ a:focus-visible {
 }
 
 .field-error {
-  color: #b23a28;
+  color: var(--danger);
 }
 
 .field-hint {
@@ -1345,15 +1469,15 @@ a:focus-visible {
 }
 
 .form-alert {
-  border: 1px solid #f1c7bf;
-  background: #fdf1ee;
-  color: #8e2f20;
+  border: 1px solid var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--danger-ink);
 }
 
 .form-notice {
   display: grid;
   gap: 16px;
-  border: 1px solid #c9d3e3;
+  border: 1px solid var(--line-strong);
   background: var(--surface-soft);
   color: var(--primary-dark);
 }
@@ -1397,11 +1521,11 @@ a.student-avatar {
 .form-field textarea:focus {
   border-color: var(--primary);
   outline: none;
-  box-shadow: 0 0 0 4px rgb(64 158 126 / 18%);
+  box-shadow: 0 0 0 4px var(--focus-ring-soft);
 }
 
 .form-field [aria-invalid="true"] {
-  border-color: #c2412d;
+  border-color: var(--danger-strong);
 }
 
 .checkbox-field {
@@ -1469,7 +1593,7 @@ a.student-avatar {
   height: 72px;
   place-items: center;
   border-radius: 22px;
-  background: #dceee5;
+  background: var(--surface-soft);
   color: var(--primary-dark);
   font-size: 1.4rem;
   font-weight: 800;
@@ -1495,8 +1619,8 @@ a.student-avatar {
 }
 
 .role-badge.admin {
-  background: var(--navy);
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
 }
 
 .profile-layout {
@@ -1589,13 +1713,13 @@ a.student-avatar {
 }
 
 .status-pill.active {
-  background: #e4f4ec;
+  background: var(--success-soft);
   color: var(--primary-dark);
 }
 
 .status-pill.suspended {
-  background: #fdf1ee;
-  color: #8e2f20;
+  background: var(--danger-soft);
+  color: var(--danger-ink);
 }
 
 .storage-figure {
@@ -1645,15 +1769,15 @@ a.student-avatar {
   align-items: center;
   border-bottom: 1px solid var(--line);
   padding-inline: clamp(20px, 4vw, 44px);
-  background: rgb(255 255 255 / 91%);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
   backdrop-filter: blur(16px);
 }
 
 .admin-badge {
   border-radius: 999px;
   padding: 4px 9px;
-  background: var(--navy);
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1672,8 +1796,8 @@ a.student-avatar {
   height: 100vh;
   flex-direction: column;
   padding: 22px 16px;
-  background: var(--navy);
-  color: white;
+  background: var(--sidebar-bg);
+  color: var(--brand-ivory);
 }
 
 .admin-identity {
@@ -1699,7 +1823,7 @@ a.student-avatar {
 }
 
 .admin-identity div span {
-  color: #9fb3ab;
+  color: #aab3c5;
   font-size: 0.75rem;
 }
 
@@ -1718,7 +1842,7 @@ a.student-avatar {
   border-radius: 10px;
   padding: 10px 12px;
   background: transparent;
-  color: #c4d4cd;
+  color: #c3cad8;
   cursor: pointer;
   font-size: 0.86rem;
   font-weight: 650;
@@ -1729,12 +1853,12 @@ a.student-avatar {
 
 .admin-nav-link:hover {
   background: rgb(255 255 255 / 7%);
-  color: white;
+  color: var(--brand-ivory);
 }
 
 .admin-nav-link.active {
-  background: var(--primary);
-  color: white;
+  background: var(--brand-gold);
+  color: var(--brand-midnight);
 }
 
 .admin-nav-icon {
@@ -1806,7 +1930,7 @@ a.student-avatar {
 }
 
 .admin-module-card:hover {
-  border-color: #b9d8ca;
+  border-color: var(--line-strong);
   transform: translateY(-2px);
 }
 
@@ -1832,8 +1956,8 @@ a.student-avatar {
   margin-top: 4px;
   border-radius: 999px;
   padding: 3px 9px;
-  background: #fbf3e7;
-  color: #8a5a22;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
   font-size: 0.7rem;
   font-weight: 750;
 }
@@ -1842,7 +1966,7 @@ a.student-avatar {
   display: grid;
   justify-items: center;
   gap: 10px;
-  border: 1px dashed #c9d8d0;
+  border: 1px dashed var(--line-strong);
   border-radius: 18px;
   padding: 56px 24px;
   background: var(--surface);
@@ -1981,7 +2105,7 @@ a.student-avatar {
 .step-indicator li.active span,
 .step-indicator li.done span {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
 }
 
 .form-step {
@@ -2062,7 +2186,7 @@ a.student-avatar {
   border-radius: 999px;
   padding: 0 15px;
   background: var(--surface);
-  color: #44544e;
+  color: var(--ink-soft);
   font-size: 0.84rem;
   font-weight: 650;
   transition:
@@ -2072,7 +2196,7 @@ a.student-avatar {
 }
 
 .choice-chip:hover span {
-  border-color: #b9d8ca;
+  border-color: var(--line-strong);
 }
 
 .choice-chip input:checked + span {
@@ -2082,7 +2206,7 @@ a.student-avatar {
 }
 
 .choice-chip input:focus-visible + span {
-  outline: 3px solid rgb(64 158 126 / 35%);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -2146,7 +2270,7 @@ a.student-avatar {
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  color: #b23a28;
+  color: var(--danger);
   font-weight: 600;
 }
 
@@ -2158,7 +2282,7 @@ a.student-avatar {
   margin-top: 1px;
   place-items: center;
   border-radius: 50%;
-  background: #c2412d;
+  background: var(--danger-strong);
   color: white;
   content: "!";
   font-size: 0.68rem;
@@ -2169,15 +2293,15 @@ a.student-avatar {
 .form-field input[aria-invalid="true"],
 .form-field select[aria-invalid="true"],
 .form-field textarea[aria-invalid="true"] {
-  border-color: #c2412d;
-  background: #fffaf9;
+  border-color: var(--danger-strong);
+  background: var(--danger-field);
 }
 
 .form-field input[aria-invalid="true"]:focus,
 .form-field select[aria-invalid="true"]:focus,
 .form-field textarea[aria-invalid="true"]:focus {
-  border-color: #c2412d;
-  box-shadow: 0 0 0 4px rgb(194 65 45 / 15%);
+  border-color: var(--danger-strong);
+  box-shadow: 0 0 0 4px var(--focus-ring-soft);
 }
 
 /* Back link above auth card titles */
@@ -2277,4 +2401,40 @@ a.student-avatar {
   background: var(--brand-ivory);
   box-shadow: none;
   color: var(--brand-navy);
+}
+
+/* Theme toggle: shows the moon in the light theme and the sun in the dark. */
+
+.theme-toggle svg {
+  width: 21px;
+}
+
+.theme-icon-sun {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-icon-sun {
+  display: block;
+}
+
+:root[data-theme="dark"] .theme-icon-moon {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-icon-sun {
+    display: block;
+  }
+
+  :root:not([data-theme="light"]) .theme-icon-moon {
+    display: none;
+  }
+}
+
+.admin-topbar {
+  justify-content: space-between;
+}
+
+.admin-theme-toggle {
+  color: var(--heading);
 }
