@@ -1,0 +1,98 @@
+export const quizDifficulties = ["easy", "medium", "hard", "mixed"] as const;
+export const quizQuestionTypes = [
+  "multiple_choice",
+  "true_false",
+  "short_answer",
+] as const;
+
+export type QuizDifficulty = (typeof quizDifficulties)[number];
+export type QuizQuestionType = (typeof quizQuestionTypes)[number];
+
+export interface QuizGenerationRequest {
+  readonly material_title: string;
+  readonly sentences: readonly string[];
+  readonly question_count: number;
+  readonly difficulty: QuizDifficulty;
+  readonly question_types: readonly QuizQuestionType[];
+}
+
+export interface GeneratedQuizQuestion {
+  readonly question_type: QuizQuestionType;
+  readonly prompt: string;
+  readonly options: readonly string[];
+  readonly correct_answer: string;
+  readonly explanation: string;
+  readonly source_sentence_indexes: readonly number[];
+  readonly position: number;
+}
+
+export interface GeneratedQuiz {
+  readonly title: string;
+  readonly difficulty: QuizDifficulty;
+  readonly model: string;
+  readonly questions: readonly GeneratedQuizQuestion[];
+}
+
+export interface QuizGenerationFormValues {
+  readonly materialTitle: string;
+  readonly text: string;
+  readonly questionCount: string;
+  readonly difficulty: string;
+  readonly questionTypes: readonly string[];
+}
+
+export interface QuizGenerationFormState {
+  readonly error?: string;
+  readonly result?: GeneratedQuiz;
+  readonly values?: QuizGenerationFormValues;
+}
+
+export type QuizAnswers = Readonly<Record<number, string>>;
+
+export interface QuizScore {
+  readonly correct: number;
+  readonly total: number;
+  readonly percentage: number;
+}
+
+function normaliseAnswer(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .replace(/\s+/g, " ");
+}
+
+/** Grades generated answers consistently without requiring another AI request. */
+export function isCorrectQuizAnswer(
+  question: GeneratedQuizQuestion,
+  answer: string | undefined,
+): boolean {
+  return normaliseAnswer(answer ?? "") === normaliseAnswer(question.correct_answer);
+}
+
+export function calculateQuizScore(
+  questions: readonly GeneratedQuizQuestion[],
+  answers: QuizAnswers,
+): QuizScore {
+  const correct = questions.filter((question) =>
+    isCorrectQuizAnswer(question, answers[question.position]),
+  ).length;
+  const total = questions.length;
+
+  return {
+    correct,
+    total,
+    percentage: total === 0 ? 0 : Math.round((correct / total) * 100),
+  };
+}
+
+export function isQuizDifficulty(value: string): value is QuizDifficulty {
+  return quizDifficulties.includes(value as QuizDifficulty);
+}
+
+export function validQuestionTypes(
+  values: readonly string[],
+): QuizQuestionType[] {
+  return quizQuestionTypes.filter((type) => values.includes(type));
+}

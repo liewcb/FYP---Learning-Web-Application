@@ -8,7 +8,6 @@ import {
 } from "@/lib/supabase/session-preference";
 import {
   authRoutes,
-  isGuestOnlyPath,
   isPublicPath,
 } from "@/models/auth/auth-routes";
 
@@ -82,10 +81,6 @@ export async function updateSession(request: NextRequest) {
 
   if (!isSignedIn && !isPublicPath(pathname)) {
     return redirectWithCookies(request, authRoutes.signIn, response);
-  }
-
-  if (isSignedIn && isGuestOnlyPath(pathname)) {
-    return redirectWithCookies(request, authRoutes.home, response);
   }
 
   return response;

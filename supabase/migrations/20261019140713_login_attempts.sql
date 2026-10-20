@@ -2,7 +2,10 @@
 -- The table lives in the unexposed private schema, and the functions below
 -- can only be called by the server with the secret key. A browser therefore
 -- cannot read, reset or inflate anyone's counter.
-create table private.login_attempts (
+-- This table may already exist when the SQL was first tested manually. Keep
+-- the migration safe to replay so the remaining functions and grants are not
+-- skipped when migration history is synchronized.
+create table if not exists private.login_attempts (
   key text primary key,
   failed_count integer not null default 0,
   last_failed_at timestamptz,

@@ -75,7 +75,7 @@ Verify them:
 ```powershell
 git --version
 node --version
-pnpm --version
+pnpm.cmd --version
 python --version
 ```
 
@@ -95,14 +95,14 @@ C:\Users\ACER\Documents\fyp ai webplatform\ai-collaborative-learning-platform
 5. Run:
 
 ```powershell
-pnpm install
-pnpm dev:web
+pnpm.cmd install
+pnpm.cmd dev:web
 ```
 
 6. Open <http://localhost:3000> in Chrome, Edge or Firefox.
 7. Press `Ctrl+C` in the terminal when you want to stop the website.
 
-The student dashboard uses preview data, so it can be viewed before Supabase authentication is implemented. If port `3000` is busy, Next.js prints the alternative address in the terminal; open that address instead.
+The public landing page can be viewed without signing in. Student workspace pages such as Documents and Quizzes require a Supabase account. If port `3000` is busy, Next.js prints the alternative address in the terminal; open that address instead.
 
 ## First-time setup
 
@@ -116,7 +116,7 @@ cd FYP---Learning-Web-Application
 ### 2. Install web dependencies
 
 ```powershell
-pnpm install
+pnpm.cmd install
 ```
 
 ### 3. Configure the website environment
@@ -151,7 +151,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 For website-only work, one VS Code terminal is enough:
 
 ```powershell
-pnpm dev:web
+pnpm.cmd dev:web
 ```
 
 Open <http://localhost:3000>.
@@ -160,12 +160,44 @@ Use a second terminal only when the website needs the Python AI service:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-pnpm dev:ai
+pnpm.cmd dev:ai
 ```
 
 The AI service runs at <http://localhost:8000>. Its interactive API documentation is at <http://localhost:8000/docs>, and the website-to-AI health proxy is <http://localhost:3000/api/ai/health>.
 
 These processes stay running while you develop. Keep each process in its own terminal and stop it with `Ctrl+C`.
+
+### Test the analysis and quiz UI
+
+Start both services in separate VS Code terminals:
+
+```powershell
+pnpm.cmd dev:web
+```
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+pnpm.cmd dev:ai
+```
+
+After signing in, use:
+
+- <http://localhost:3000/documents> to upload a private PDF/DOCX and test content analysis with pasted text.
+- <http://localhost:3000/quizzes> to generate a temporary quiz from pasted learning content.
+
+The pasted-text fields are a temporary integration bridge. Shim's extraction
+and preprocessing module will later supply the cleaned sentences automatically;
+the page layout and AI service interface can remain in place.
+
+### Test the forum
+
+The forum uses Next.js and Supabase only, so the Python AI service is not needed.
+Start the website, sign in, then open <http://localhost:3000/forum>.
+
+You can publish a community discussion, attach up to four images/PDF/DOCX files,
+comment, toggle an upvote, and delete content you own. The **Connections** feed
+is intentionally reserved for Shim's peer-connection table; community and
+personal feeds work now without that dependency.
 
 ## Where to write code
 
@@ -188,22 +220,22 @@ The repository contains a local Supabase configuration and a reviewed starter mi
 Authenticate and link the local repository:
 
 ```powershell
-pnpm exec supabase login
-pnpm exec supabase link --project-ref eqoxfvrdsysptrdzruoe
+pnpm.cmd exec supabase login
+pnpm.cmd exec supabase link --project-ref eqoxfvrdsysptrdzruoe
 ```
 
 Review pending migrations before applying them:
 
 ```powershell
-pnpm exec supabase migration list
-pnpm exec supabase db push
+pnpm.cmd exec supabase migration list
+pnpm.cmd exec supabase db push
 ```
 
 For local Supabase development, start Docker Desktop and run:
 
 ```powershell
-pnpm supabase:start
-pnpm supabase:reset
+pnpm.cmd supabase:start
+pnpm.cmd supabase:reset
 ```
 
 Security rules:
@@ -294,4 +326,8 @@ Build the first five items as one complete end-to-end flow before expanding the 
 - [ ] Document upload flow
 - [x] Content-analysis and Gemini quiz service endpoints
 - [x] Protected Supabase persistence adapters for analyses and quizzes
-- [ ] Next.js document-to-AI integration and student UI
+- [x] Student content-analysis and quiz-generation test UI
+- [x] Interactive quiz answering, scoring, feedback and retry
+- [x] Temporary private PDF/DOCX upload and document listing
+- [x] Forum foundation with posts, comments, upvotes and private attachments
+- [ ] Automatic document extraction-to-AI integration

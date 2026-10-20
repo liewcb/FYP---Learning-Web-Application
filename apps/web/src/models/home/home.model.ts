@@ -93,14 +93,14 @@ export function createHomePageModel(student: StudentSummary): HomePageModel {
       {
         title: "Upload study notes",
         description: "Add a PDF or DOCX file to your private learning space.",
-        href: "#recent-learning",
+        href: "/documents",
         icon: "↑",
         tone: "mint",
       },
       {
         title: "Generate a quiz",
         description: "Turn your processed notes into a focused self-test.",
-        href: "#recent-learning",
+        href: "/quizzes",
         icon: "✦",
         tone: "blue",
       },
