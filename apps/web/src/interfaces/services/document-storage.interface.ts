@@ -13,4 +13,6 @@ export interface DocumentFileUpload {
 export interface DocumentStorage {
   upload(input: DocumentFileUpload): Promise<StoredDocumentFile>;
   remove(path: string): Promise<void>;
+  /** Short-lived link that downloads the file under its original name. */
+  createDownloadUrl(path: string, fileName: string): Promise<string>;
 }
