@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { NavigationItem } from "@/models/home/home.model";
 import { BrandLogo } from "@/views/shared/brand-logo.view";
+import { NotificationBell } from "@/views/shared/notification-bell.view";
 import { ThemeToggle } from "@/views/shared/theme-toggle.view";
 
 interface StudentTopbarProps {
@@ -52,12 +53,7 @@ export function StudentTopbar({
         </form>
 
         <div className="account-actions">
-          <button className="icon-button" type="button" aria-label="Notifications">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
-            </svg>
-            <span className="notification-dot" />
-          </button>
+          <NotificationBell />
 
           <details className="account-menu">
             <summary

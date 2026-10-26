@@ -5,6 +5,8 @@
 | Owner | Method and path | Purpose |
 |---|---|---|
 | Next.js | `GET /api/health` | Confirm that the web service is running |
+| Next.js | `GET /api/notifications` | Signed-in user's 15 latest notifications and unread count (`401` when signed out) |
+| Next.js | `POST /api/notifications` | Mark all of the signed-in user's notifications as read (same-origin only, `204`) |
 | Next.js | `GET /api/ai/health` | Call FastAPI through the `AiService` interface and return `503` when unavailable |
 | FastAPI | `GET /` | Return AI-service information and endpoint links |
 | FastAPI | `GET /health` | Confirm that the AI service is running |
@@ -68,3 +70,34 @@ questions or answer keys are committed.
 - **Status changes:** `documents.status` moves `uploaded | failed | stale
   processing -> processing -> ready | failed`. `failed` sets
   `documents.error_message`. Success upserts one `document_contents` row.
+
+## Study Buddy database functions
+
+The peer module has no HTTP endpoint. The Next.js server calls these Supabase
+RPC functions with the signed-in student's session through
+`StudyBuddyRepository`. Each is `security definer`, executable only by
+`authenticated`, and always acts as `auth.uid()`.
+
+| Function | Purpose | Returns |
+|---|---|---|
+| `discover_study_buddies(p_username, p_major, p_year, p_interest, p_study_mode, p_limit)` | Ranked recommendations when no filter is set (existing buddies excluded); search results otherwise | Student cards with `match_score`, match reasons and `connection_status` |
+| `list_my_study_buddies()` | Buddies and pending requests in both directions | Student cards |
+| `send_study_buddy_request(p_addressee)` | Add a buddy; accepts automatically if they already asked you | `pending`, `accepted`, `self`, `forbidden`, `unavailable`, `limit`, `unauthenticated` |
+| `respond_to_study_buddy_request(p_requester, p_accept)` | Accept or decline a received request | `accepted`, `declined`, `not_found`, `unauthenticated` |
+| `remove_study_buddy(p_other)` | Cancel a sent request or remove a buddy | `removed`, `not_found`, `unauthenticated` |
+
+- Only active student accounts with "Show me in peer search" switched on can
+  be discovered or receive new requests. Admin and suspended accounts never
+  appear.
+- Match score (0-100): same major 40, same year 20 (one year apart 10), 10 per
+  shared interest up to 30, compatible study mode 5, a shared study time 5.
+- `peer_connections` is read-only through the Data API (participants only);
+  a declined or cancelled request deletes its row so it can be sent again.
+
+### Notifications
+
+`public.notifications` rows are created only by the `peer_connections_notify`
+trigger: a new request notifies the recipient (`study_buddy_request`), an
+accepted request notifies the requester (`study_buddy_accepted`), and a
+cancelled or declined request withdraws its unread notification. Students can
+read their own rows and may only change `read_at`.

@@ -153,6 +153,12 @@ def clean_blocks(blocks: list[SourceBlock]) -> list[SourceBlock]:
 
     cleaned: list[SourceBlock] = []
     for block in blocks:
+        if block.kind == "image_text":
+            # OCR returns positioned lines, just like a PDF page.
+            lines = [_collapse(line) for line in normalise_text(block.text).split("\n")]
+            cleaned.extend(_lines_to_blocks(lines))
+            continue
+
         text = _collapse(normalise_text(block.text).replace("\n", " "))
         if not text:
             continue

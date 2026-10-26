@@ -59,6 +59,15 @@ failures, using **Retry extraction** in the **Manage documents** tab.
 2. Download the private file from the `learning-materials` bucket.
 3. Extract text with `pypdf` (page by page) or `python-docx` (headings,
    paragraphs, lists and tables in reading order).
+   - OCR: scanned or image-only PDF pages are rendered with `pypdfium2` at
+     200 DPI and read with RapidOCR (PP-OCR models on ONNX Runtime). Pictures
+     inside PDF pages and DOCX files are read too, and DOCX picture text keeps
+     its position. The models ship inside the `rapidocr` wheel, so OCR runs
+     offline and nothing leaves the server.
+   - Icons and decorations are skipped, full-page scans that already have a
+     text layer are not read twice, and one document is limited to 60 OCR
+     images or 4 minutes of OCR. OCR text adds a student-visible warning
+     because it can contain recognition mistakes.
 4. Preprocess:
    - normalise Unicode (NFKC), ligatures, invisible and control characters
    - remove repeated PDF headers and footers and page numbers
@@ -70,8 +79,8 @@ failures, using **Retry extraction** in the **Manage documents** tab.
 5. Upsert `document_contents` (cleaned text, sentences, page and word counts,
    warnings and the file's SHA-256), then mark the document `ready`.
 
-Unreadable files (password-protected or scanned PDFs, damaged files, material
-without complete sentences) mark the document `failed` with a message the
+Unreadable files (password-protected PDFs, blank or unreadable scans, damaged
+files, material without complete sentences) mark the document `failed` with a message the
 student can act on. Consumers should cap stored sentences to the analysis and
 quiz limits of 500 sentences and 100,000 characters; the web model provides
 `limitSentencesForAi` for this.

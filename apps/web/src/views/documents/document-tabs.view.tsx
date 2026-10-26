@@ -14,17 +14,17 @@ interface DocumentTabsProps {
 
 export function DocumentTabs({ active, documentCount }: DocumentTabsProps) {
   return (
-    <nav className="document-tabs" aria-label="My Documents sections">
+    <nav className="page-tabs" aria-label="My Documents sections">
       {documentTabs.map((tab) => (
         <Link
-          className={tab.key === active ? "document-tab active" : "document-tab"}
+          className={tab.key === active ? "page-tab active" : "page-tab"}
           href={tab.href}
           key={tab.key}
           aria-current={tab.key === active ? "page" : undefined}
         >
           {tab.label}
           {tab.key === "manage" ? (
-            <span className="document-tab-count">{documentCount}</span>
+            <span className="page-tab-count">{documentCount}</span>
           ) : null}
         </Link>
       ))}

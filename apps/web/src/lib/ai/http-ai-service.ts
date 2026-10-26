@@ -50,11 +50,11 @@ export class HttpAiService implements AiService {
       );
     }
 
-    // Large PDFs can take a while to download and parse.
+    // Scanned PDFs are read with OCR, which can take a few minutes.
     return this.post<DocumentProcessingResult>(
       "/documents/process",
       { document_id: documentId },
-      180_000,
+      300_000,
       { "X-Internal-Token": this.internalToken },
     );
   }

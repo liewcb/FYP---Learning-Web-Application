@@ -5,13 +5,17 @@ import { AuthController } from "@/controllers/auth/auth.controller";
 import { PasswordResetController } from "@/controllers/auth/password-reset.controller";
 import { DocumentController } from "@/controllers/documents/document.controller";
 import { ForumController } from "@/controllers/forum/forum.controller";
+import { NotificationController } from "@/controllers/notifications/notification.controller";
+import { StudyBuddyController } from "@/controllers/peers/study-buddy.controller";
 import { ProfileController } from "@/controllers/profile/profile.controller";
 import { QuizController } from "@/controllers/quizzes/quiz.controller";
 import { HttpAiService } from "@/lib/ai/http-ai-service";
 import { AfterBackgroundTaskRunner } from "@/lib/next/after-background-task-runner";
 import { SupabaseDocumentRepository } from "@/lib/supabase/repositories/supabase-document.repository";
 import { SupabaseForumRepository } from "@/lib/supabase/repositories/supabase-forum.repository";
+import { SupabaseNotificationRepository } from "@/lib/supabase/repositories/supabase-notification.repository";
 import { SupabaseProfileRepository } from "@/lib/supabase/repositories/supabase-profile.repository";
+import { SupabaseStudyBuddyRepository } from "@/lib/supabase/repositories/supabase-study-buddy.repository";
 import { SupabaseDocumentStorage } from "@/lib/supabase/storage/supabase-document-storage";
 import { SupabaseForumAttachmentStorage } from "@/lib/supabase/storage/supabase-forum-attachment-storage";
 import { createClient } from "@/lib/supabase/server";
@@ -91,4 +95,19 @@ export async function createForumController(): Promise<ForumController> {
     new SupabaseForumRepository(supabase),
     new SupabaseForumAttachmentStorage(supabase),
   );
+}
+
+export async function createStudyBuddyController(): Promise<StudyBuddyController> {
+  const supabase = await createClient();
+
+  return new StudyBuddyController(
+    new SupabaseStudyBuddyRepository(supabase),
+    new SupabaseProfileRepository(supabase),
+  );
+}
+
+export async function createNotificationController(): Promise<NotificationController> {
+  const supabase = await createClient();
+
+  return new NotificationController(new SupabaseNotificationRepository(supabase));
 }

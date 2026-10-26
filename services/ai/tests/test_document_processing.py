@@ -7,6 +7,7 @@ import httpx
 import pypdf
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image, ImageDraw, ImageFont
 
 from app.documents.extraction import (
     DOCX_MIME_TYPE,
@@ -16,6 +17,7 @@ from app.documents.extraction import (
     SourceBlock,
     extract_document,
 )
+from app.documents.ocr import MAX_OCR_IMAGES, OcrSession, RapidOcrEngine
 from app.documents.preprocessing import (
     MAX_SENTENCE_CHARACTERS,
     normalise_text,
@@ -238,14 +240,13 @@ def test_pdf_extraction_reads_every_page():
     assert preprocess_document(extracted).sentences == EXPECTED_SAFETY_SENTENCES
 
 
-def test_pdf_without_selectable_text_is_rejected():
-    writer = pypdf.PdfWriter()
-    writer.add_blank_page(width=612, height=792)
-    buffer = BytesIO()
-    writer.write(buffer)
+def test_blank_pdf_is_rejected_after_ocr_finds_nothing():
+    engine = FakeOcrEngine([])
 
-    with pytest.raises(ExtractionError, match="No selectable text"):
-        extract_document(buffer.getvalue(), PDF_MIME_TYPE)
+    with pytest.raises(ExtractionError, match="No readable text"):
+        extract_document(blank_pdf(), PDF_MIME_TYPE, OcrSession(lambda: engine))
+
+    assert engine.calls == 1
 
 
 def test_password_protected_pdf_is_rejected():
@@ -283,6 +284,157 @@ def test_docx_extraction_keeps_structure_and_abbreviations():
         "2NF; Removes partial dependencies on a composite key",
         "Keys, e.g. student IDs, identify each row uniquely.",
     ]
+
+
+# OCR -------------------------------------------------------------------------
+
+
+class FakeOcrEngine:
+    name = "fake-ocr"
+    version = "1"
+
+    def __init__(self, lines: list[str]) -> None:
+        self.lines = lines
+        self.calls = 0
+
+    def read_lines(self, image):
+        self.calls += 1
+        return list(self.lines)
+
+
+def blank_pdf() -> bytes:
+    writer = pypdf.PdfWriter()
+    writer.add_blank_page(width=612, height=792)
+    buffer = BytesIO()
+    writer.write(buffer)
+    return buffer.getvalue()
+
+
+def text_image(lines: list[str]) -> Image.Image:
+    """Picture of typed text, like a screenshot or a scanned page."""
+
+    font = ImageFont.load_default(size=36)
+    image = Image.new("RGB", (1_400, 120 + 70 * len(lines)), "white")
+    draw = ImageDraw.Draw(image)
+    for index, line in enumerate(lines):
+        draw.text((60, 60 + 70 * index), line, fill="black", font=font)
+    return image
+
+
+def scanned_pdf(lines: list[str]) -> bytes:
+    buffer = BytesIO()
+    text_image(lines).save(buffer, "PDF", resolution=150)
+    return buffer.getvalue()
+
+
+def docx_with_picture(lines: list[str]) -> bytes:
+    picture = BytesIO()
+    text_image(lines).save(picture, "PNG")
+    picture.seek(0)
+
+    document = docx.Document()
+    document.add_paragraph("The diagram below summarises hazard analysis steps.")
+    document.add_picture(picture)
+    document.add_paragraph("Each mitigation must be verified before release.")
+    buffer = BytesIO()
+    document.save(buffer)
+    return buffer.getvalue()
+
+
+def test_scanned_pdf_pages_are_read_with_ocr():
+    engine = FakeOcrEngine(
+        ["Hazard analysis identifies the causes", "of system failures."]
+    )
+
+    extracted = extract_document(blank_pdf(), PDF_MIME_TYPE, OcrSession(lambda: engine))
+    result = preprocess_document(extracted)
+
+    assert extracted.extractor_name == "pypdf+fake-ocr"
+    assert result.sentences == [
+        "Hazard analysis identifies the causes of system failures."
+    ]
+    assert any("with OCR" in warning for warning in result.warnings)
+
+
+def test_docx_picture_text_keeps_its_position():
+    engine = FakeOcrEngine(["Identify every hazard early.", "Analyse their root causes."])
+
+    extracted = extract_document(
+        docx_with_picture(["unused by the fake engine"]),
+        DOCX_MIME_TYPE,
+        OcrSession(lambda: engine),
+    )
+
+    assert [block.kind for block in extracted.blocks] == [
+        "paragraph",
+        "image_text",
+        "paragraph",
+    ]
+    assert preprocess_document(extracted).sentences == [
+        "The diagram below summarises hazard analysis steps.",
+        "Identify every hazard early.",
+        "Analyse their root causes.",
+        "Each mitigation must be verified before release.",
+    ]
+
+
+def test_text_documents_never_load_the_ocr_models():
+    def fail_to_load():
+        raise AssertionError("OCR engine should not be created")
+
+    extract_document(build_pdf(SAFETY_NOTES_PAGES), PDF_MIME_TYPE, OcrSession(fail_to_load))
+    extract_document(build_docx(), DOCX_MIME_TYPE, OcrSession(fail_to_load))
+
+
+def test_ocr_session_skips_icons_and_enforces_the_image_limit():
+    engine = FakeOcrEngine(["Readable line of text."])
+    session = OcrSession(lambda: engine)
+
+    assert session.read(Image.new("RGB", (40, 40), "white")) == []
+    for _ in range(MAX_OCR_IMAGES + 2):
+        session.read(Image.new("RGB", (400, 100), "white"))
+
+    assert engine.calls == MAX_OCR_IMAGES
+    assert session.images_with_text == MAX_OCR_IMAGES
+    assert session.images_skipped == 2
+    assert any("OCR limit" in warning for warning in session.warnings())
+
+
+def test_ocr_session_stops_when_the_time_budget_is_used():
+    times = iter([0.0, 0.0, 999.0])
+    engine = FakeOcrEngine(["Readable line of text."])
+    session = OcrSession(lambda: engine, clock=lambda: next(times))
+    image = Image.new("RGB", (400, 100), "white")
+
+    session.read(image)
+    session.read(image)
+
+    assert engine.calls == 1
+    assert session.images_skipped == 1
+
+
+def test_real_ocr_reads_a_scanned_pdf_and_a_docx_picture():
+    """End-to-end check with the bundled RapidOCR models (runs offline)."""
+
+    engine = RapidOcrEngine()
+    lines = [
+        "Hazard analysis identifies the causes of failures.",
+        "Fault trees show how component failures combine.",
+    ]
+
+    pdf_result = preprocess_document(
+        extract_document(scanned_pdf(lines), PDF_MIME_TYPE, OcrSession(lambda: engine))
+    )
+    docx_result = preprocess_document(
+        extract_document(
+            docx_with_picture(lines), DOCX_MIME_TYPE, OcrSession(lambda: engine)
+        )
+    )
+
+    for result in (pdf_result, docx_result):
+        text = " ".join(result.sentences).lower()
+        assert "hazard analysis identifies the causes of failures" in text
+        assert "fault trees show how component failures combine" in text
 
 
 # Processing orchestration ----------------------------------------------------
