@@ -31,12 +31,15 @@ export default async function DocumentsPage() {
   }
 
   const controller = await createDocumentController();
-  const documents = await controller.list();
+  const documents = await controller.listAndResumeProcessing();
 
   return (
     <DocumentsView
       viewer={viewer}
       documents={documents.map((document) => document.data)}
+      awaitingExtraction={documents.some((document) =>
+        document.isAwaitingExtraction(),
+      )}
       uploadAction={uploadDocumentAction}
       analysisAction={analyseContentAction}
       signOutAction={signOutAction}

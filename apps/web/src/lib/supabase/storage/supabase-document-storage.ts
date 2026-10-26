@@ -9,6 +9,7 @@ import type {
 } from "@/interfaces/services/document-storage.interface";
 
 const learningMaterialsBucket = "learning-materials";
+const downloadUrlLifetimeSeconds = 60;
 
 function safeFileName(fileName: string): string {
   const cleaned = fileName
@@ -50,5 +51,17 @@ export class SupabaseDocumentStorage implements DocumentStorage {
     if (error) {
       throw new Error(`Unable to remove document: ${error.message}`);
     }
+  }
+
+  async createDownloadUrl(path: string, fileName: string): Promise<string> {
+    const { data, error } = await this.supabase.storage
+      .from(learningMaterialsBucket)
+      .createSignedUrl(path, downloadUrlLifetimeSeconds, { download: fileName });
+
+    if (error) {
+      throw new Error(`Unable to open document: ${error.message}`);
+    }
+
+    return data.signedUrl;
   }
 }

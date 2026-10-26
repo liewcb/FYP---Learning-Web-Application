@@ -6,15 +6,19 @@ import logging
 import os
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
 from app.analysis.schemas import ContentAnalysisResponse
+from app.documents.schemas import ClaimedDocument, DocumentContentRecord
 from app.quiz.schemas import QuizGenerationResponse
 
 
 logger = logging.getLogger(__name__)
 DEFAULT_TIMEOUT_SECONDS = 20.0
+DOWNLOAD_TIMEOUT_SECONDS = 60.0
+LEARNING_MATERIALS_BUCKET = "learning-materials"
 
 
 class SupabaseNotConfiguredError(RuntimeError):
@@ -34,6 +38,7 @@ class SupabasePersistence:
         supabase_url: str | None = None,
         secret_key: str | None = None,
         client: httpx.Client | None = None,
+        storage_client: httpx.Client | None = None,
     ) -> None:
         resolved_url = (supabase_url or os.getenv("SUPABASE_URL", "")).rstrip("/")
         resolved_key = secret_key or os.getenv("SUPABASE_SECRET_KEY", "")
@@ -49,6 +54,110 @@ class SupabasePersistence:
                 "Content-Type": "application/json",
             },
             timeout=DEFAULT_TIMEOUT_SECONDS,
+        )
+        self.storage_client = storage_client or httpx.Client(
+            base_url=f"{resolved_url}/storage/v1/",
+            headers={
+                "apikey": resolved_key,
+                "Authorization": f"Bearer {resolved_key}",
+            },
+            timeout=DOWNLOAD_TIMEOUT_SECONDS,
+        )
+
+    def claim_document(
+        self, document_id: int, *, stale_before: datetime
+    ) -> ClaimedDocument | None:
+        """Atomically move a document into processing if nobody else owns it."""
+
+        cutoff = stale_before.astimezone(timezone.utc).isoformat(timespec="seconds")
+        rows = self._request(
+            "PATCH",
+            "documents",
+            params={
+                "id": f"eq.{document_id}",
+                "or": (
+                    "(status.in.(uploaded,failed),"
+                    f'and(status.eq.processing,updated_at.lt."{cutoff}"))'
+                ),
+                "select": "id,storage_path,mime_type",
+            },
+            headers={"Prefer": "return=representation"},
+            json={"status": "processing", "error_message": None},
+        )
+        if not isinstance(rows, list) or not rows:
+            return None
+
+        row = rows[0]
+        try:
+            return ClaimedDocument(
+                id=int(row["id"]),
+                storage_path=str(row["storage_path"]),
+                mime_type=str(row["mime_type"]),
+            )
+        except (KeyError, TypeError, ValueError) as error:
+            raise SupabasePersistenceError(
+                "Supabase returned an invalid document row."
+            ) from error
+
+    def document_status(self, document_id: int) -> str | None:
+        rows = self._request(
+            "GET",
+            "documents",
+            params={"id": f"eq.{document_id}", "select": "status"},
+        )
+        if not isinstance(rows, list) or not rows:
+            return None
+        status = rows[0].get("status") if isinstance(rows[0], dict) else None
+        return status if isinstance(status, str) else None
+
+    def download_learning_material(self, storage_path: str) -> bytes:
+        response = self._send(
+            self.storage_client,
+            "GET",
+            f"object/{LEARNING_MATERIALS_BUCKET}/{quote(storage_path, safe='/')}",
+        )
+        return response.content
+
+    def save_document_content(
+        self, document_id: int, content: DocumentContentRecord
+    ) -> None:
+        # Re-processing replaces the previous extraction for the same document.
+        self._request(
+            "POST",
+            "document_contents",
+            params={"on_conflict": "document_id"},
+            headers={"Prefer": "resolution=merge-duplicates,return=minimal"},
+            json={
+                "document_id": document_id,
+                "extracted_text": content.extracted_text,
+                "sentences": content.sentences,
+                "language_code": content.language_code,
+                "extractor_name": content.extractor_name,
+                "extractor_version": content.extractor_version,
+                "source_sha256": content.source_sha256,
+                "page_count": content.page_count,
+                "word_count": content.word_count,
+                "warnings": content.warnings,
+                "extracted_at": self._now(),
+            },
+        )
+
+    def complete_document(self, document_id: int) -> None:
+        self._request(
+            "PATCH",
+            "documents",
+            params={"id": f"eq.{document_id}", "status": "eq.processing"},
+            headers={"Prefer": "return=minimal"},
+            json={"status": "ready", "error_message": None},
+        )
+
+    def fail_document(self, document_id: int, message: str) -> None:
+        self._request(
+            "PATCH",
+            "documents",
+            params={"id": f"eq.{document_id}"},
+            headers={"Prefer": "return=minimal"},
+            json={"status": "failed", "error_message": message[:2_000]},
         )
 
     def start_analysis(self, document_id: int, options: dict[str, Any]) -> int:
@@ -166,8 +275,23 @@ class SupabasePersistence:
         )
 
     def _request(self, method: str, path: str, **kwargs: Any) -> Any:
+        response = self._send(self.client, method, path, **kwargs)
+
+        if response.status_code == 204 or not response.content:
+            return None
         try:
-            response = self.client.request(method, path, **kwargs)
+            return response.json()
+        except ValueError as error:
+            raise SupabasePersistenceError(
+                "Supabase returned an invalid persistence response."
+            ) from error
+
+    @staticmethod
+    def _send(
+        client: httpx.Client, method: str, path: str, **kwargs: Any
+    ) -> httpx.Response:
+        try:
+            response = client.request(method, path, **kwargs)
             response.raise_for_status()
         except httpx.HTTPError as error:
             status_code = getattr(getattr(error, "response", None), "status_code", None)
@@ -181,14 +305,7 @@ class SupabasePersistence:
                 "Supabase persistence request failed."
             ) from error
 
-        if response.status_code == 204 or not response.content:
-            return None
-        try:
-            return response.json()
-        except ValueError as error:
-            raise SupabasePersistenceError(
-                "Supabase returned an invalid persistence response."
-            ) from error
+        return response
 
     @staticmethod
     def _created_id(rows: Any, resource_name: str) -> int:

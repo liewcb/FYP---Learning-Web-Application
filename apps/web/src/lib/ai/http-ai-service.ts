@@ -6,6 +6,7 @@ import type {
   ContentAnalysisRequest,
   ContentAnalysisResult,
 } from "@/models/analysis/content-analysis.model";
+import type { DocumentProcessingResult } from "@/models/document/document.model";
 import type {
   GeneratedQuiz,
   QuizGenerationRequest,
@@ -15,6 +16,7 @@ export class HttpAiService implements AiService {
   constructor(
     private readonly baseUrl = process.env.AI_SERVICE_URL ??
       "http://localhost:8000",
+    private readonly internalToken = process.env.AI_SERVICE_INTERNAL_TOKEN,
   ) {}
 
   async checkHealth(): Promise<AiServiceStatus> {
@@ -41,6 +43,22 @@ export class HttpAiService implements AiService {
     return { status: "ok" };
   }
 
+  processDocument(documentId: number): Promise<DocumentProcessingResult> {
+    if (!this.internalToken) {
+      throw new Error(
+        "Text extraction is not configured. Set AI_SERVICE_INTERNAL_TOKEN for the web server.",
+      );
+    }
+
+    // Large PDFs can take a while to download and parse.
+    return this.post<DocumentProcessingResult>(
+      "/documents/process",
+      { document_id: documentId },
+      180_000,
+      { "X-Internal-Token": this.internalToken },
+    );
+  }
+
   analyseContent(
     request: ContentAnalysisRequest,
   ): Promise<ContentAnalysisResult> {
@@ -61,13 +79,14 @@ export class HttpAiService implements AiService {
     path: string,
     body: unknown,
     timeoutMs: number,
+    headers: Record<string, string> = {},
   ): Promise<T> {
     let response: Response;
 
     try {
       response = await fetch(`${this.baseUrl}${path}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify(body),
         cache: "no-store",
         signal: AbortSignal.timeout(timeoutMs),

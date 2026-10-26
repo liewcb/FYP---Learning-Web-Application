@@ -4,7 +4,7 @@ import type {
 } from "@/models/forum/forum.model";
 import { isImageAttachment } from "@/models/forum/forum.model";
 import { CommentFormView } from "@/views/forum/comment-form.view";
-import { ConfirmSubmitButton } from "@/views/forum/confirm-submit-button.view";
+import { ConfirmSubmitButton } from "@/views/shared/confirm-submit-button.view";
 
 interface ForumThreadViewProps {
   readonly thread: ForumThread;

@@ -8,6 +8,7 @@ import { ForumController } from "@/controllers/forum/forum.controller";
 import { ProfileController } from "@/controllers/profile/profile.controller";
 import { QuizController } from "@/controllers/quizzes/quiz.controller";
 import { HttpAiService } from "@/lib/ai/http-ai-service";
+import { AfterBackgroundTaskRunner } from "@/lib/next/after-background-task-runner";
 import { SupabaseDocumentRepository } from "@/lib/supabase/repositories/supabase-document.repository";
 import { SupabaseForumRepository } from "@/lib/supabase/repositories/supabase-forum.repository";
 import { SupabaseProfileRepository } from "@/lib/supabase/repositories/supabase-profile.repository";
@@ -75,7 +76,12 @@ export async function createDocumentController(): Promise<DocumentController> {
   const supabase = await createClient();
   const documents = new SupabaseDocumentRepository(supabase);
 
-  return new DocumentController(documents, new SupabaseDocumentStorage(supabase));
+  return new DocumentController(
+    documents,
+    new SupabaseDocumentStorage(supabase),
+    new HttpAiService(),
+    new AfterBackgroundTaskRunner(),
+  );
 }
 
 export async function createForumController(): Promise<ForumController> {

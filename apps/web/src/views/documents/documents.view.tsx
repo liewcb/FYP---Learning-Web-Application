@@ -3,18 +3,27 @@ import Link from "next/link";
 import type { ContentAnalysisFormState } from "@/models/analysis/content-analysis.model";
 import type {
   DocumentRecord,
-  DocumentStatus,
   DocumentUploadFormState,
 } from "@/models/document/document.model";
 import { createStudentNavigation } from "@/models/home/home.model";
 import type { Viewer } from "@/models/profile/profile.model";
 import { ContentAnalysisTester } from "@/views/analysis/content-analysis-tester.view";
+import {
+  documentStatusLabels,
+  documentTypeLabel,
+  formatBytes,
+  formatContentSummary,
+  formatDocumentDate,
+} from "@/views/documents/document-display";
+import { DocumentTabs } from "@/views/documents/document-tabs.view";
 import { DocumentUploadView } from "@/views/documents/document-upload.view";
+import { ProcessingRefresher } from "@/views/documents/processing-refresher.view";
 import { StudentTopbar } from "@/views/student/student-topbar.view";
 
 interface DocumentsViewProps {
   readonly viewer: Viewer;
   readonly documents: readonly DocumentRecord[];
+  readonly awaitingExtraction: boolean;
   readonly uploadAction: (
     state: DocumentUploadFormState,
     formData: FormData,
@@ -26,30 +35,10 @@ interface DocumentsViewProps {
   readonly signOutAction: () => Promise<void>;
 }
 
-const statusLabels: Record<DocumentStatus, string> = {
-  uploaded: "Uploaded",
-  processing: "Processing",
-  ready: "Ready",
-  failed: "Needs attention",
-};
-
-const dateFormatter = new Intl.DateTimeFormat("en-MY", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) {
-    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  }
-
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 export function DocumentsView({
   viewer,
   documents,
+  awaitingExtraction,
   uploadAction,
   analysisAction,
   signOutAction,
@@ -69,8 +58,8 @@ export function DocumentsView({
             <p className="section-kicker">Content Analysis Module</p>
             <h1>Turn your notes into clear learning insights.</h1>
             <p>
-              Upload private learning material, then test the NLP pipeline with
-              extracted text while the automatic document bridge is completed.
+              Upload private learning material. Its text is extracted and
+              cleaned automatically, ready for content analysis and quizzes.
             </p>
           </div>
           <Link className="button button-outline" href="/quizzes">
@@ -78,16 +67,19 @@ export function DocumentsView({
           </Link>
         </header>
 
+        <DocumentTabs active="workspace" documentCount={documents.length} />
+        <ProcessingRefresher active={awaitingExtraction} />
+
         <section className="process-strip" aria-label="Document processing stages">
           <div className="complete">
             <span>1</span>
             <strong>Upload</strong>
             <small>Working now</small>
           </div>
-          <div>
+          <div className="complete">
             <span>2</span>
             <strong>Extract text</strong>
-            <small>Shim&apos;s module</small>
+            <small>Automatic after upload</small>
           </div>
           <div className="active">
             <span>3</span>
@@ -111,6 +103,11 @@ export function DocumentsView({
                 <p className="section-kicker">Private workspace</p>
                 <h2>Your uploaded materials</h2>
               </div>
+              {documents.length > 0 ? (
+                <Link className="text-action module-card-link" href="/documents/manage">
+                  Manage all <span aria-hidden="true">→</span>
+                </Link>
+              ) : null}
             </div>
 
             {documents.length > 0 ? (
@@ -118,17 +115,20 @@ export function DocumentsView({
                 {documents.map((document) => (
                   <li key={document.id}>
                     <span className="document-type" aria-hidden="true">
-                      {document.mimeType === "application/pdf" ? "PDF" : "DOC"}
+                      {documentTypeLabel(document.mimeType)}
                     </span>
                     <div>
                       <strong>{document.title}</strong>
                       <p>
-                        {document.fileName} · {formatBytes(document.sizeBytes)} ·{" "}
-                        {dateFormatter.format(new Date(document.createdAt))}
+                        {document.status === "ready" && document.content
+                          ? formatContentSummary(document.content)
+                          : document.fileName}{" "}
+                        · {formatBytes(document.sizeBytes)} ·{" "}
+                        {formatDocumentDate(document.createdAt)}
                       </p>
                     </div>
                     <span className={`status-chip ${document.status}`}>
-                      {statusLabels[document.status]}
+                      {documentStatusLabels[document.status]}
                     </span>
                   </li>
                 ))}

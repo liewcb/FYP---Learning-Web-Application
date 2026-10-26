@@ -30,6 +30,7 @@ Available endpoints:
 | `GET /` | Service information |
 | `GET /health` | Health check |
 | `GET /docs` | Interactive FastAPI documentation |
+| `POST /documents/process` | Protected extraction and preprocessing of an uploaded PDF or DOCX into `document_contents` |
 | `POST /analysis/content` | Analyse preprocessed sentences into keywords, topics, important sentences and concepts |
 | `POST /analysis/content-and-save` | Protected analysis flow that records status and persists the result |
 | `POST /quiz/generate` | Generate and validate a grounded Gemini quiz without persistence |
@@ -42,6 +43,38 @@ Run the tests with:
 ```powershell
 pnpm test:ai
 ```
+
+## Document extraction and preprocessing
+
+`POST /documents/process` turns an uploaded learning material into clean,
+ordered sentences that content analysis and quiz generation can use directly.
+The Next.js server calls it automatically after each upload. If an upload was
+missed (for example, the AI service was offline) or a run crashed, opening
+**My Documents** restarts it automatically. Students only act on genuine
+failures, using **Retry extraction** in the **Manage documents** tab.
+
+1. Claim the document with one conditional update, moving `uploaded` or
+   `failed` to `processing`. A document stuck in `processing` for more than
+   10 minutes is treated as abandoned and may be claimed again.
+2. Download the private file from the `learning-materials` bucket.
+3. Extract text with `pypdf` (page by page) or `python-docx` (headings,
+   paragraphs, lists and tables in reading order).
+4. Preprocess:
+   - normalise Unicode (NFKC), ligatures, invisible and control characters
+   - remove repeated PDF headers and footers and page numbers
+   - repair words hyphenated across line breaks and rebuild wrapped paragraphs
+   - detect headings, which stay in the text but never become sentences
+   - split sentences with spaCy's rule-based sentencizer
+   - drop fragments under three words, captions, URLs, number-only rows and
+     duplicates, and split sentences longer than 2,000 characters
+5. Upsert `document_contents` (cleaned text, sentences, page and word counts,
+   warnings and the file's SHA-256), then mark the document `ready`.
+
+Unreadable files (password-protected or scanned PDFs, damaged files, material
+without complete sentences) mark the document `failed` with a message the
+student can act on. Consumers should cap stored sentences to the analysis and
+quiz limits of 500 sentences and 100,000 characters; the web model provides
+`limitSentencesForAi` for this.
 
 ## Try content analysis without the website
 
@@ -108,8 +141,10 @@ Swagger then exposes `POST /quiz/generate` for a local integration test. The
 route requests Gemini structured JSON and validates question count, types,
 options, answers and source-sentence indexes before returning a result.
 
-The `*-and-save` routes additionally require an `X-Internal-Token` header that
-matches `AI_SERVICE_INTERNAL_TOKEN`. They are for the trusted Next.js server,
+The `*-and-save` routes and `POST /documents/process` additionally require an
+`X-Internal-Token` header that matches `AI_SERVICE_INTERNAL_TOKEN`. Set the same
+value as `AI_SERVICE_INTERNAL_TOKEN` in `apps/web/.env.local` so the web server
+can start text extraction. They are for the trusted Next.js server,
 not direct browser calls. Analysis state is written to `document_analyses`.
 Quiz completion uses one restricted database function so questions and private
 answer keys are committed atomically.

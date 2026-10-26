@@ -29,8 +29,8 @@ export function DocumentUploadView({ action }: DocumentUploadViewProps) {
       </div>
 
       <p className="module-card-copy">
-        Store one private PDF or DOCX now. Text extraction will be connected to
-        this record when the preprocessing module is ready.
+        Store one private PDF or DOCX. Its text is then extracted, cleaned and
+        split into sentences for content analysis and quiz generation.
       </p>
 
       {state.error ? (
