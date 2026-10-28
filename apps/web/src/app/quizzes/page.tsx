@@ -4,15 +4,27 @@ import { redirect } from "next/navigation";
 import { signOutAction } from "@/app/auth/actions";
 import { generateQuizAction } from "@/app/quizzes/actions";
 import { createProfileController } from "@/lib/dependencies/server";
+import { createDocumentController } from "@/lib/dependencies/server";
 import { adminBasePath } from "@/models/admin/admin.model";
 import { authRoutes } from "@/models/auth/auth-routes";
+import type { DocumentStudySource } from "@/models/document/document.model";
 import { QuizzesView } from "@/views/quizzes/quizzes.view";
 
 export const metadata: Metadata = {
   title: "Quiz generator",
 };
 
-export default async function QuizzesPage() {
+interface QuizzesPageProps {
+  readonly searchParams: Promise<{ documentId?: string | string[] }>;
+}
+
+function parseDocumentId(value: string | string[] | undefined): number | null {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return null;
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+export default async function QuizzesPage({ searchParams }: QuizzesPageProps) {
   const profiles = await createProfileController();
   const viewer = await profiles.currentViewer();
 
@@ -24,11 +36,39 @@ export default async function QuizzesPage() {
     redirect(adminBasePath);
   }
 
+  const params = await searchParams;
+  const requestedDocumentId = parseDocumentId(params.documentId);
+  let quizSource: DocumentStudySource | null = null;
+  let sourceNotice: string | undefined;
+
+  if (requestedDocumentId) {
+    const documents = await createDocumentController();
+    const document = (await documents.list()).find(
+      (item) => item.id === requestedDocumentId && item.status === "ready",
+    );
+    const content = document ? await documents.content(document.id) : null;
+
+    if (document && content) {
+      quizSource = {
+        id: document.id,
+        title: document.title,
+        fileName: document.fileName,
+        text: content.sentences.join("\n"),
+        sentenceCount: content.sentenceCount,
+      };
+    } else {
+      sourceNotice =
+        "That upload is not ready for quizzes yet. Open My Documents and wait until its status is Ready.";
+    }
+  }
+
   return (
     <QuizzesView
       viewer={viewer}
       generateAction={generateQuizAction}
       signOutAction={signOutAction}
+      source={quizSource}
+      sourceNotice={sourceNotice}
     />
   );
 }

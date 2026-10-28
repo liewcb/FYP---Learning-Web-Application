@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { createStudentNavigation } from "@/models/home/home.model";
 import type { Viewer } from "@/models/profile/profile.model";
+import type { DocumentStudySource } from "@/models/document/document.model";
 import type { QuizGenerationFormState } from "@/models/quiz/quiz.model";
 import { QuizBuilderView } from "@/views/quizzes/quiz-builder.view";
 import { StudentTopbar } from "@/views/student/student-topbar.view";
@@ -13,12 +14,16 @@ interface QuizzesViewProps {
     formData: FormData,
   ) => Promise<QuizGenerationFormState>;
   readonly signOutAction: () => Promise<void>;
+  readonly source: DocumentStudySource | null;
+  readonly sourceNotice?: string;
 }
 
 export function QuizzesView({
   viewer,
   generateAction,
   signOutAction,
+  source,
+  sourceNotice,
 }: QuizzesViewProps) {
   return (
     <main className="student-app">
@@ -35,8 +40,8 @@ export function QuizzesView({
             <p className="section-kicker">Quiz &amp; Assessment Generation Module</p>
             <h1>Turn understood content into active practice.</h1>
             <p>
-              Configure a focused assessment, answer every question and review
-              immediate grounded feedback. Saved attempts will be connected later.
+              Configure a focused assessment from an uploaded document or pasted
+              content, answer each question and review grounded feedback.
             </p>
           </div>
           <Link className="button button-outline" href="/documents">
@@ -59,7 +64,12 @@ export function QuizzesView({
           </div>
         </section>
 
-        <QuizBuilderView action={generateAction} />
+        <QuizBuilderView
+          key={source?.id ?? "manual-quiz"}
+          action={generateAction}
+          source={source}
+          sourceNotice={sourceNotice}
+        />
       </div>
     </main>
   );

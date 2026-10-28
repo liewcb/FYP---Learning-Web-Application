@@ -2746,6 +2746,60 @@ a.student-avatar {
   font-size: 0.76rem;
 }
 
+.upload-file-field {
+  display: grid;
+  gap: 10px;
+}
+
+.selected-upload-file,
+.document-source-callout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: var(--surface-soft);
+}
+
+.selected-upload-file-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--primary-dark);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.selected-upload-file-details {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 3px;
+}
+
+.selected-upload-file-details strong,
+.selected-upload-file-details small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-upload-file-details strong {
+  color: var(--heading);
+  font-size: 0.82rem;
+}
+
+.selected-upload-file-details small,
+.document-source-callout span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
 .document-library-card {
   min-height: 100%;
 }
@@ -2780,6 +2834,42 @@ a.student-avatar {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.document-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 8px;
+}
+
+.document-row-actions a,
+.document-source-callout a {
+  color: var(--primary-dark);
+  font-size: 0.75rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.document-row-actions a:hover,
+.document-source-callout a:hover {
+  text-decoration: underline;
+}
+
+.document-source-callout {
+  display: grid;
+  gap: 4px;
+  align-items: start;
+}
+
+.document-source-callout strong {
+  color: var(--heading);
+  font-size: 0.85rem;
+}
+
+.document-source-picker {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
 }
 
 .document-list strong {

@@ -165,6 +165,23 @@ export interface DocumentContent extends DocumentContentSummary {
   readonly extractedAt: string;
 }
 
+/** Extracted text prepared to be reused by the analysis and quiz modules. */
+export interface DocumentStudySource {
+  readonly id: number;
+  readonly title: string;
+  readonly fileName: string;
+  readonly text: string;
+  readonly sentenceCount: number;
+}
+
+/** A ready document that a student can select as an AI input source. */
+export interface DocumentStudySourceOption {
+  readonly id: number;
+  readonly title: string;
+  readonly fileName: string;
+  readonly sentenceCount: number;
+}
+
 export interface DocumentRecord extends CreateDocumentInput {
   readonly id: number;
   readonly status: DocumentStatus;

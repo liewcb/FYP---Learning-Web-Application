@@ -1,10 +1,17 @@
 "use client";
 
 import { useActionState } from "react";
+import { useRouter } from "next/navigation";
 
 import type { ContentAnalysisFormState } from "@/models/analysis/content-analysis.model";
+import type {
+  DocumentStudySource,
+  DocumentStudySourceOption,
+} from "@/models/document/document.model";
 
 interface ContentAnalysisTesterProps {
+  readonly source: DocumentStudySource | null;
+  readonly availableSources: readonly DocumentStudySourceOption[];
   readonly action: (
     state: ContentAnalysisFormState,
     formData: FormData,
@@ -18,26 +25,69 @@ const defaults = {
   maxTopics: "5",
 };
 
-export function ContentAnalysisTester({ action }: ContentAnalysisTesterProps) {
+export function ContentAnalysisTester({
+  action,
+  source,
+  availableSources,
+}: ContentAnalysisTesterProps) {
   const [state, formAction, pending] = useActionState(action, {});
-  const values = state.values ?? defaults;
+  const router = useRouter();
+  const values = state.values ?? { ...defaults, text: source?.text ?? "" };
   const result = state.result;
 
   return (
-    <section className="analysis-workspace" aria-labelledby="analysis-test-title">
+    <section id="analysis" className="analysis-workspace" aria-labelledby="analysis-test-title">
       <form className="module-card analysis-form" action={formAction} noValidate>
         <div className="module-card-heading">
           <span className="module-icon blue" aria-hidden="true">✦</span>
           <div>
-            <p className="section-kicker">Temporary test bridge</p>
-            <h2 id="analysis-test-title">Analyse pasted text</h2>
+            <p className="section-kicker">Content analysis</p>
+            <h2 id="analysis-test-title">
+              {source ? "Analyse extracted material" : "Analyse learning content"}
+            </h2>
           </div>
         </div>
 
         <p className="module-card-copy">
-          Until automatic extraction is connected, paste the text from your
-          notes here to test the real NLP analysis service.
+          {source
+            ? `Extracted sentences from “${source.title}” are loaded below. You can review or edit them before running the NLP analysis.`
+            : "Choose a ready document from your uploads, or paste learning content below to test the NLP analysis service."}
         </p>
+
+        {source ? (
+          <div className="document-source-callout">
+            <strong>{source.title}</strong>
+            <span>{source.fileName} · {source.sentenceCount} extracted sentences</span>
+          </div>
+        ) : null}
+
+        <div className="form-field document-source-picker">
+          <label htmlFor="analysis-document-source">Document to analyse</label>
+          <select
+            id="analysis-document-source"
+            value={source?.id.toString() ?? ""}
+            onChange={(event) => {
+              const selectedId = event.target.value;
+              router.push(
+                selectedId
+                  ? `/documents?documentId=${selectedId}#analysis`
+                  : "/documents#analysis",
+              );
+            }}
+          >
+            <option value="">Paste text manually</option>
+            {availableSources.map((document) => (
+              <option key={document.id} value={document.id}>
+                {document.title} — {document.sentenceCount} sentences
+              </option>
+            ))}
+          </select>
+          <p className="field-hint">
+            {availableSources.length > 0
+              ? "Choose a Ready document to load its extracted text automatically."
+              : "No documents are ready yet. Wait for extraction to finish, then refresh this page."}
+          </p>
+        </div>
 
         {state.error ? (
           <p className="form-alert" role="alert">{state.error}</p>
@@ -55,7 +105,9 @@ export function ContentAnalysisTester({ action }: ContentAnalysisTesterProps) {
             required
           />
           <p className="field-hint">
-            Results are shown for testing and are not saved to Supabase yet.
+            {source
+              ? "This text came from your uploaded document and remains editable for this analysis."
+              : "Paste content here, or choose a ready upload from the materials list above."}
           </p>
         </div>
 

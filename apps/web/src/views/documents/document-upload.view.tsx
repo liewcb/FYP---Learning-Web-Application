@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import {
   documentUploadRules,
   type DocumentUploadFormState,
 } from "@/models/document/document.model";
+import { formatBytes } from "@/views/documents/document-display";
 
 interface DocumentUploadViewProps {
   readonly action: (
@@ -17,6 +18,8 @@ interface DocumentUploadViewProps {
 export function DocumentUploadView({ action }: DocumentUploadViewProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const [title, setTitle] = useState(state.values?.title ?? "");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   return (
     <form className="module-card upload-form" action={formAction} noValidate>
@@ -53,27 +56,53 @@ export function DocumentUploadView({ action }: DocumentUploadViewProps) {
         />
       </div>
 
-      <label className="upload-picker" htmlFor="document-file">
-        <span className="upload-picker-icon" aria-hidden="true">＋</span>
-        <span>
-          <strong>Choose a PDF or DOCX</strong>
-          <small>Private upload · maximum 25 MB</small>
-        </span>
-        <input
-          id="document-file"
-          name="file"
-          type="file"
-          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
+      <div className="upload-file-field">
+        <label className="upload-picker" htmlFor="document-file">
+          <span className="upload-picker-icon" aria-hidden="true">＋</span>
+          <span>
+            <strong>Choose a PDF or DOCX</strong>
+            <small>Private upload · maximum 25 MB</small>
+          </span>
+          <input
+            ref={fileInput}
+            id="document-file"
+            name="file"
+            type="file"
+            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            onChange={(event) => {
+              const file = event.target.files?.[0] ?? null;
+              setSelectedFile(file);
 
-            if (file && !title.trim()) {
-              setTitle(file.name.replace(/\.(pdf|docx)$/i, ""));
-            }
-          }}
-          required
-        />
-      </label>
+              if (file && !title.trim()) {
+                setTitle(file.name.replace(/\.(pdf|docx)$/i, ""));
+              }
+            }}
+            required
+          />
+        </label>
+        {selectedFile ? (
+          <div className="selected-upload-file" role="status">
+            <span className="selected-upload-file-icon" aria-hidden="true">
+              {selectedFile.name.toLowerCase().endsWith(".pdf") ? "PDF" : "DOC"}
+            </span>
+            <span className="selected-upload-file-details">
+              <strong>{selectedFile.name}</strong>
+              <small>{formatBytes(selectedFile.size)} · ready to upload</small>
+            </span>
+            <button
+              className="text-action"
+              type="button"
+              onClick={() => {
+                if (fileInput.current) fileInput.current.value = "";
+                setSelectedFile(null);
+              }}
+              aria-label={`Remove ${selectedFile.name}`}
+            >
+              Remove
+            </button>
+          </div>
+        ) : null}
+      </div>
 
       <button className="button button-dark" type="submit" disabled={pending}>
         {pending ? "Uploading..." : "Upload document"}

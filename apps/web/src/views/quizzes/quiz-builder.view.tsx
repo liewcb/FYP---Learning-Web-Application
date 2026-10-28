@@ -1,11 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
 import type { QuizGenerationFormState } from "@/models/quiz/quiz.model";
+import type { DocumentStudySource } from "@/models/document/document.model";
 import { InteractiveQuizView } from "@/views/quizzes/interactive-quiz.view";
 
 interface QuizBuilderViewProps {
+  readonly source: DocumentStudySource | null;
+  readonly sourceNotice?: string;
   readonly action: (
     state: QuizGenerationFormState,
     formData: FormData,
@@ -26,9 +30,13 @@ const typeLabels = {
   short_answer: "Short answer",
 } as const;
 
-export function QuizBuilderView({ action }: QuizBuilderViewProps) {
+export function QuizBuilderView({ action, source, sourceNotice }: QuizBuilderViewProps) {
   const [state, formAction, pending] = useActionState(action, {});
-  const values = state.values ?? defaultValues;
+  const values = state.values ?? {
+    ...defaultValues,
+    materialTitle: source?.title ?? "",
+    text: source?.text ?? "",
+  };
   const result = state.result;
 
   return (
@@ -43,9 +51,22 @@ export function QuizBuilderView({ action }: QuizBuilderViewProps) {
         </div>
 
         <p className="module-card-copy">
-          Paste extracted learning content for now. Gemini will only generate
-          questions supported by the supplied sentences.
+          {source
+            ? `Extracted sentences from “${source.title}” are loaded below. Gemini will generate questions grounded in that text.`
+            : "Choose a ready upload from My Documents or paste learning content. Gemini will ground questions in the supplied sentences."}
         </p>
+
+        {sourceNotice ? (
+          <p className="form-alert" role="alert">{sourceNotice}</p>
+        ) : null}
+
+        {source ? (
+          <div className="document-source-callout">
+            <strong>{source.title}</strong>
+            <span>{source.fileName} · {source.sentenceCount} extracted sentences</span>
+            <Link href="/documents">Choose another upload</Link>
+          </div>
+        ) : null}
 
         {state.error ? (
           <p className="form-alert" role="alert">{state.error}</p>
@@ -75,7 +96,9 @@ export function QuizBuilderView({ action }: QuizBuilderViewProps) {
             required
           />
           <p className="field-hint">
-            Temporary test input; automatic document text will replace it later.
+            {source
+              ? "Review or edit the extracted text before generating the quiz."
+              : "You can also choose a ready document from My Documents to fill this automatically."}
           </p>
         </div>
 

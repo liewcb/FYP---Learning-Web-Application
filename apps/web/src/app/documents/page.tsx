@@ -12,13 +12,27 @@ import {
 } from "@/lib/dependencies/server";
 import { adminBasePath } from "@/models/admin/admin.model";
 import { authRoutes } from "@/models/auth/auth-routes";
+import type {
+  DocumentStudySource,
+  DocumentStudySourceOption,
+} from "@/models/document/document.model";
 import { DocumentsView } from "@/views/documents/documents.view";
 
 export const metadata: Metadata = {
   title: "Content analysis",
 };
 
-export default async function DocumentsPage() {
+interface DocumentsPageProps {
+  readonly searchParams: Promise<{ documentId?: string | string[] }>;
+}
+
+function parseDocumentId(value: string | string[] | undefined): number | null {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return null;
+  const id = Number(value);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
+export default async function DocumentsPage({ searchParams }: DocumentsPageProps) {
   const profiles = await createProfileController();
   const viewer = await profiles.currentViewer();
 
@@ -32,6 +46,34 @@ export default async function DocumentsPage() {
 
   const controller = await createDocumentController();
   const documents = await controller.listAndResumeProcessing();
+  const availableAnalysisSources: DocumentStudySourceOption[] = documents
+    .filter((document) => document.status === "ready" && document.content)
+    .map((document) => ({
+      id: document.id,
+      title: document.title,
+      fileName: document.fileName,
+      sentenceCount: document.content?.sentenceCount ?? 0,
+    }));
+  const params = await searchParams;
+  const requestedDocumentId = parseDocumentId(params.documentId);
+  const selectedDocument = documents.find(
+    (document) => document.id === requestedDocumentId && document.status === "ready",
+  );
+  let analysisSource: DocumentStudySource | null = null;
+
+  if (selectedDocument) {
+    const content = await controller.content(selectedDocument.id);
+
+    if (content) {
+      analysisSource = {
+        id: selectedDocument.id,
+        title: selectedDocument.title,
+        fileName: selectedDocument.fileName,
+        text: content.sentences.join("\n"),
+        sentenceCount: content.sentenceCount,
+      };
+    }
+  }
 
   return (
     <DocumentsView
@@ -40,6 +82,8 @@ export default async function DocumentsPage() {
       awaitingExtraction={documents.some((document) =>
         document.isAwaitingExtraction(),
       )}
+      analysisSource={analysisSource}
+      availableAnalysisSources={availableAnalysisSources}
       uploadAction={uploadDocumentAction}
       analysisAction={analyseContentAction}
       signOutAction={signOutAction}

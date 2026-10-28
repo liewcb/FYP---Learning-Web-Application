@@ -180,14 +180,13 @@ pnpm.cmd dev:web
 pnpm.cmd dev:ai
 ```
 
-After signing in, use:
-
-- <http://localhost:3000/documents> to upload a private PDF/DOCX and test content analysis with pasted text.
-- <http://localhost:3000/quizzes> to generate a temporary quiz from pasted learning content.
-
-The pasted-text fields are a temporary integration bridge. Shim's extraction
-and preprocessing module will later supply the cleaned sentences automatically;
-the page layout and AI service interface can remain in place.
+After signing in, open <http://localhost:3000/documents> to upload a private
+PDF/DOCX. The page shows the chosen filename and size before upload, then
+refreshes while extraction runs. Once a document is marked **Ready**, choose
+**Analyse this material** or **Make a quiz** on its row. Both pages load the
+preprocessed sentences from that document; the text remains editable before
+you run the AI request. The standalone analysis and quiz pages also accept
+pasted text for quick tests.
 
 ### Test the forum
 

@@ -3,6 +3,8 @@ import Link from "next/link";
 import type { ContentAnalysisFormState } from "@/models/analysis/content-analysis.model";
 import type {
   DocumentRecord,
+  DocumentStudySource,
+  DocumentStudySourceOption,
   DocumentUploadFormState,
 } from "@/models/document/document.model";
 import { createStudentNavigation } from "@/models/home/home.model";
@@ -24,6 +26,8 @@ interface DocumentsViewProps {
   readonly viewer: Viewer;
   readonly documents: readonly DocumentRecord[];
   readonly awaitingExtraction: boolean;
+  readonly analysisSource: DocumentStudySource | null;
+  readonly availableAnalysisSources: readonly DocumentStudySourceOption[];
   readonly uploadAction: (
     state: DocumentUploadFormState,
     formData: FormData,
@@ -39,6 +43,8 @@ export function DocumentsView({
   viewer,
   documents,
   awaitingExtraction,
+  analysisSource,
+  availableAnalysisSources,
   uploadAction,
   analysisAction,
   signOutAction,
@@ -84,12 +90,12 @@ export function DocumentsView({
           <div className="active">
             <span>3</span>
             <strong>Analyse</strong>
-            <small>Test by pasting text</small>
+            <small>Ready documents can be analysed</small>
           </div>
-          <div>
+          <div className="active">
             <span>4</span>
             <strong>Generate quiz</strong>
-            <small>Available next</small>
+            <small>Ready documents can create quizzes</small>
           </div>
         </section>
 
@@ -126,6 +132,16 @@ export function DocumentsView({
                         · {formatBytes(document.sizeBytes)} ·{" "}
                         {formatDocumentDate(document.createdAt)}
                       </p>
+                      {document.status === "ready" ? (
+                        <div className="document-row-actions">
+                          <Link href={`/documents?documentId=${document.id}#analysis`}>
+                            Analyse this material <span aria-hidden="true">→</span>
+                          </Link>
+                          <Link href={`/quizzes?documentId=${document.id}`}>
+                            Make a quiz <span aria-hidden="true">→</span>
+                          </Link>
+                        </div>
+                      ) : null}
                     </div>
                     <span className={`status-chip ${document.status}`}>
                       {documentStatusLabels[document.status]}
@@ -143,7 +159,12 @@ export function DocumentsView({
           </article>
         </section>
 
-        <ContentAnalysisTester action={analysisAction} />
+        <ContentAnalysisTester
+          key={analysisSource?.id ?? "manual-analysis"}
+          action={analysisAction}
+          source={analysisSource}
+          availableSources={availableAnalysisSources}
+        />
       </div>
     </main>
   );
