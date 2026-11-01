@@ -70,6 +70,24 @@ export class HttpAiService implements AiService {
     );
   }
 
+  analyseAndSaveDocument(
+    documentId: number,
+    request: ContentAnalysisRequest,
+  ): Promise<ContentAnalysisResult> {
+    if (!this.internalToken) {
+      throw new Error(
+        "Saved content analysis is not configured. Set AI_SERVICE_INTERNAL_TOKEN for the web server.",
+      );
+    }
+
+    return this.post<ContentAnalysisResult>(
+      "/analysis/content-and-save",
+      { ...request, document_id: documentId },
+      180_000,
+      { "X-Internal-Token": this.internalToken },
+    );
+  }
+
   generateQuiz(request: QuizGenerationRequest): Promise<GeneratedQuiz> {
     // Gemini may retry temporary 429/5xx responses inside the AI service.
     return this.post<GeneratedQuiz>("/quiz/generate", request, 190_000);

@@ -77,6 +77,22 @@ sign in
 
 Document status is persisted so that failures are visible and processing can later move to a queue without changing the user workflow.
 
+## Revision dashboard
+
+The student dashboard (`/`) is a revision workspace over the student's own
+documents. Step 1 uses no new AI endpoints.
+
+- `study_subjects` groups documents (`documents.subject_id`) and notes.
+- The reader shows `document_contents.sentences` grouped into passages.
+  Highlights (`study_highlights`), notes (`study_notes`) and reading progress
+  (`reading_progress`) refer to passages by their first sentence index.
+- Key points and key terms come from the newest ready `document_analyses` row.
+  **Find key points** calls the existing `/analysis/content-and-save` endpoint.
+- `study_activity` records one row per day of revision for the streak. It is
+  written only by triggers and `record_reading_progress()`.
+- Ownership of a document's or note's subject and source document is enforced
+  by triggers, because row-level security alone cannot check foreign ids.
+
 ## Study buddy chat
 
 One-to-one chats between accepted study buddies (`chat_conversations`,
