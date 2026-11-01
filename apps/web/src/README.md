@@ -33,26 +33,27 @@ Rules:
 - `lib` implements those interfaces using Supabase, HTTP and Next.js utilities.
 - `app` files remain thin framework entry points that assemble controllers and views.
 
-The home page is the smallest complete MVC example. The document repository and
-AI health endpoint demonstrate the external-service interface pattern.
+The document repository and AI health endpoint demonstrate the external-service
+interface pattern.
 
-## Current student home page
+## Student dashboard (revision workspace)
 
-The `/` route currently renders a responsive student dashboard with preview data:
+The `/` route is the revision workspace: sources, a reader and a notebook.
 
 ```text
 app/page.tsx
-  -> HomeController.show()
-  -> HomePageModel
-  -> HomeView
+  -> RevisionController.loadDashboard()   (documents, subjects, notes, progress)
+  -> RevisionDashboardModel
+  -> RevisionDashboardView -> RevisionWorkspace (client)
+       -> app/revision/actions.ts (Server Actions) -> RevisionController
 ```
 
-- `models/home/home.model.ts` contains the temporary dashboard data and its types.
-- `controllers/home/home.controller.ts` selects the model for the route.
-- `views/home/home.view.tsx` renders the student UI.
-- `app/globals.css` contains the responsive visual styling.
-
-When authentication is implemented, keep the view unchanged where possible. Replace the preview-model creation inside the controller with repository calls, then map the returned domain objects into the page model.
+- `models/revision/revision.model.ts` holds the types and pure rules: passages,
+  streak, validation.
+- `interfaces/repositories/revision.repository.ts` is implemented by
+  `lib/supabase/repositories/supabase-revision.repository.ts`.
+- `views/revision/` contains the Sources, Reader and Notebook panes.
+- `models/home/home.model.ts` now only holds the student navigation.
 
 ## Adding a module
 

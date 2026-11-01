@@ -4,7 +4,7 @@ A responsive web platform that helps university students manage learning materia
 
 This repository is the shared implementation workspace for **Liew Chee Been** and **Shim Kian Hau**.
 
-The current home page is a responsive student dashboard preview. Its sample learning data will be replaced by authenticated Supabase data during the authentication and document-upload milestones.
+The student dashboard is a revision workspace: students read their uploaded documents, highlight passages, keep notes linked to the text and see key points from content analysis.
 
 ## Project links
 
@@ -198,6 +198,22 @@ comment, toggle an upvote, and delete content you own. The **Connections** feed
 is intentionally reserved for Shim's peer-connection table; community and
 personal feeds work now without that dependency.
 
+### Test the revision dashboard
+
+Apply the `revision_workspace` migration, sign in and open <http://localhost:3000>.
+Upload a PDF or DOCX first if you have none; it appears under **Sources** once its
+text has been extracted.
+
+1. Open a document from **Sources**. Scroll the reader: the reading progress
+   saves itself, and **Continue reading** at the top returns to the same place.
+2. Hover a passage to highlight it or **Add to note**. Notes autosave and link
+   back to the passage.
+3. Use the subject switcher to create a subject (for example "Database
+   Systems"), then move documents into it with ⋯ on each document.
+4. Open **Study tools** and choose **Find key points**. This uses the content
+   analysis endpoint, so the Python AI service must be running with
+   `AI_SERVICE_INTERNAL_TOKEN` set. Key sentences are then marked in the text.
+
 ### Test the study buddy chat
 
 The chat uses Next.js and Supabase (including Realtime) only. Apply the
@@ -313,7 +329,7 @@ The Next.js application uses MVC with a separate interface/adaptor boundary:
 - **Implementation:** talks to Supabase or FastAPI from `apps/web/src/lib`.
 - **App Router:** `apps/web/src/app` contains only route entry points, layouts and API endpoints.
 
-Read [`apps/web/src/README.md`](apps/web/src/README.md) before adding a new module. The home page is a working MVC example, while the document repository and AI health route demonstrate how external calls cross an interface.
+Read [`apps/web/src/README.md`](apps/web/src/README.md) before adding a new module. The revision dashboard is a complete MVC example, while the document repository and AI health route demonstrate how external calls cross an interface.
 
 ## Initial development order
 
@@ -334,7 +350,7 @@ Build the first five items as one complete end-to-end flow before expanding the 
 - [x] Repository scaffold
 - [x] Next.js web shell
 - [x] MVC web structure and infrastructure interfaces
-- [x] Responsive student home dashboard with preview data
+- [x] Revision dashboard: subjects, reader, highlights, linked notes, reading progress and key points
 - [x] FastAPI health service
 - [x] Supabase local configuration
 - [x] Secure starter migration prepared

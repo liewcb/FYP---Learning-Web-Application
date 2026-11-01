@@ -17,5 +17,10 @@ export interface AiService {
   /** Extract, clean and store the text of an uploaded document. */
   processDocument(documentId: number): Promise<DocumentProcessingResult>;
   analyseContent(request: ContentAnalysisRequest): Promise<ContentAnalysisResult>;
+  /** Analyse a document's sentences and save the result to document_analyses. */
+  analyseAndSaveDocument(
+    documentId: number,
+    request: ContentAnalysisRequest,
+  ): Promise<ContentAnalysisResult>;
   generateQuiz(request: QuizGenerationRequest): Promise<GeneratedQuiz>;
 }
