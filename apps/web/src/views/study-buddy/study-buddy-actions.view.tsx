@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 
+import { chatWithHref } from "@/models/chat/chat.model";
 import type {
   StudyBuddy,
   StudyBuddyActionIntent,
@@ -76,6 +78,13 @@ export function StudyBuddyActions({
             <span className="buddy-status accepted">
               <span aria-hidden="true">✓</span> Study buddies
             </span>
+            <Link
+              className="button button-dark buddy-button"
+              href={chatWithHref(buddy.id)}
+              aria-label={`Message ${buddy.fullName}`}
+            >
+              Message
+            </Link>
             {allowRemove ? (
               <form action={formAction}>
                 <input type="hidden" name="intent" value="remove" />

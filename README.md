@@ -198,6 +198,25 @@ comment, toggle an upvote, and delete content you own. The **Connections** feed
 is intentionally reserved for Shim's peer-connection table; community and
 personal feeds work now without that dependency.
 
+### Test the study buddy chat
+
+The chat uses Next.js and Supabase (including Realtime) only. Apply the
+`study_buddy_chat` migration first, then sign in as two students in two
+different browsers (or one normal and one private window):
+
+1. Make the students study buddies at <http://localhost:3000/study-buddy>
+   (send a request from one account and accept it from the other).
+2. Press **Message** on the buddy card, or open <http://localhost:3000/chats>
+   and use the pencil button.
+3. Send a message. It appears in the other window without refreshing, with
+   ✓ (sent), grey ✓✓ (delivered) and gold ✓✓ (read) ticks, an unread badge on
+   **Chats** in the top bar, and "typing…" while the other student types.
+4. Hover a message to reply or to delete your own message for everyone. Use
+   the paperclip to upload a PDF, DOCX or image (up to 10 MB) or share a file
+   from My Documents.
+
+Removing a study buddy keeps the chat history but makes the chat read-only.
+
 ## Where to write code
 
 | Work | Location |
@@ -329,4 +348,5 @@ Build the first five items as one complete end-to-end flow before expanding the 
 - [x] Interactive quiz answering, scoring, feedback and retry
 - [x] Temporary private PDF/DOCX upload and document listing
 - [x] Forum foundation with posts, comments, upvotes and private attachments
+- [x] Real-time one-to-one chat between study buddies
 - [ ] Automatic document extraction-to-AI integration

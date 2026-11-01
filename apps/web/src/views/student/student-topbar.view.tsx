@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { NavigationItem } from "@/models/home/home.model";
 import { BrandLogo } from "@/views/shared/brand-logo.view";
+import { ChatUnreadBadge } from "@/views/shared/chat-unread-badge.view";
 import { NotificationBell } from "@/views/shared/notification-bell.view";
 import { ThemeToggle } from "@/views/shared/theme-toggle.view";
 
@@ -35,6 +36,7 @@ export function StudentTopbar({
               aria-current={item.active ? "page" : undefined}
             >
               {item.label}
+              {item.href === "/chats" ? <ChatUnreadBadge /> : null}
             </Link>
           ))}
         </nav>

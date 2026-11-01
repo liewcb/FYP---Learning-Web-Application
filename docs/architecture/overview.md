@@ -77,6 +77,37 @@ sign in
 
 Document status is persisted so that failures are visible and processing can later move to a queue without changing the user workflow.
 
+## Study buddy chat
+
+One-to-one chats between accepted study buddies (`chat_conversations`,
+`chat_members`, `chat_messages` and the private `chat-attachments` bucket).
+
+```text
+composer -> sendChatMessageAction -> ChatController -> ChatRepository
+              -> send_chat_message RPC (checks buddy link, length, attachment)
+chat_messages INSERT -> Supabase Realtime (filtered by RLS) -> other member's page
+  -> syncChatAction (new messages, receipts) -> mark_chat_read
+```
+
+- Ticks come from each member's `last_delivered_at` and `last_read_at`, so
+  there are no per-message receipt rows.
+- The Chats badge polls `/api/chats/inbox` every 30 seconds from every student
+  page. That call also records `profiles.last_seen_at` (online / last seen) and
+  marks waiting messages as delivered.
+- Typing uses Realtime broadcast on private `chat:<id>` channels, authorized by
+  policies on `realtime.messages`.
+- The browser-side Realtime adapter (`lib/supabase/realtime`) is created in
+  `app/chats/connected-chat-workspace.tsx` and passed to the view through the
+  `ChatRealtime` interface, so views never import Supabase.
+- All writes go through security-definer functions. Removing a buddy keeps the
+  history readable but refuses new messages.
+- Pin, mute, clear and delete are per-student settings on `chat_members`
+  (`pinned_at`, `muted`, `cleared_at`, `hidden_at`); they never change what the
+  other student sees. Clearing hides older messages from lists, search and
+  shared files; a deleted chat returns when a new message arrives.
+- `chat_blocks` stops both students sending in that chat and hides presence.
+  `chat_reports` stores reports for the admin moderation milestone.
+
 ## Security boundaries
 
 - The browser receives only the Supabase URL and publishable key.

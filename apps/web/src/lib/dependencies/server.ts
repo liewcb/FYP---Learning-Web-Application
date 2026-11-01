@@ -2,6 +2,7 @@ import { AdminController } from "@/controllers/admin/admin.controller";
 import { AiController } from "@/controllers/ai/ai.controller";
 import { ContentAnalysisController } from "@/controllers/analysis/content-analysis.controller";
 import { AuthController } from "@/controllers/auth/auth.controller";
+import { ChatController } from "@/controllers/chat/chat.controller";
 import { PasswordResetController } from "@/controllers/auth/password-reset.controller";
 import { DocumentController } from "@/controllers/documents/document.controller";
 import { ForumController } from "@/controllers/forum/forum.controller";
@@ -11,11 +12,13 @@ import { ProfileController } from "@/controllers/profile/profile.controller";
 import { QuizController } from "@/controllers/quizzes/quiz.controller";
 import { HttpAiService } from "@/lib/ai/http-ai-service";
 import { AfterBackgroundTaskRunner } from "@/lib/next/after-background-task-runner";
+import { SupabaseChatRepository } from "@/lib/supabase/repositories/supabase-chat.repository";
 import { SupabaseDocumentRepository } from "@/lib/supabase/repositories/supabase-document.repository";
 import { SupabaseForumRepository } from "@/lib/supabase/repositories/supabase-forum.repository";
 import { SupabaseNotificationRepository } from "@/lib/supabase/repositories/supabase-notification.repository";
 import { SupabaseProfileRepository } from "@/lib/supabase/repositories/supabase-profile.repository";
 import { SupabaseStudyBuddyRepository } from "@/lib/supabase/repositories/supabase-study-buddy.repository";
+import { SupabaseChatAttachmentStorage } from "@/lib/supabase/storage/supabase-chat-attachment-storage";
 import { SupabaseDocumentStorage } from "@/lib/supabase/storage/supabase-document-storage";
 import { SupabaseForumAttachmentStorage } from "@/lib/supabase/storage/supabase-forum-attachment-storage";
 import { createClient } from "@/lib/supabase/server";
@@ -103,6 +106,17 @@ export async function createStudyBuddyController(): Promise<StudyBuddyController
   return new StudyBuddyController(
     new SupabaseStudyBuddyRepository(supabase),
     new SupabaseProfileRepository(supabase),
+  );
+}
+
+export async function createChatController(): Promise<ChatController> {
+  const supabase = await createClient();
+
+  return new ChatController(
+    new SupabaseChatRepository(supabase),
+    new SupabaseChatAttachmentStorage(supabase),
+    new SupabaseStudyBuddyRepository(supabase),
+    new SupabaseDocumentRepository(supabase),
   );
 }
 
