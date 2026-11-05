@@ -156,5 +156,16 @@ export async function analyseContentAction(
     return { error: "Your session expired. Sign in and try again.", values };
   }
 
-  return createContentAnalysisController().analyse(values);
+  const result = await (await createContentAnalysisController()).analyse(
+    values,
+    documentId(formData),
+  );
+
+  if (result.savedAnalysisId) {
+    revalidatePath("/");
+    revalidatePath("/documents");
+    revalidatePath("/quizzes");
+  }
+
+  return result;
 }

@@ -33,6 +33,34 @@ export interface GeneratedQuiz {
   readonly questions: readonly GeneratedQuizQuestion[];
 }
 
+/** The response from the trusted endpoint after it has saved a quiz and its answer keys. */
+export interface PersistedGeneratedQuiz extends GeneratedQuiz {
+  readonly quiz_id: number;
+}
+
+/** A lightweight entry shown in a student's saved-assessment history. */
+export interface SavedQuizSummary {
+  readonly id: number;
+  readonly documentId: number;
+  readonly title: string;
+  readonly difficulty: QuizDifficulty;
+  readonly questionCount: number;
+  readonly createdAt: string;
+}
+
+/** Stored questions intentionally omit correct answers and explanations. */
+export interface SavedQuizQuestion {
+  readonly id: number;
+  readonly position: number;
+  readonly questionType: QuizQuestionType;
+  readonly prompt: string;
+  readonly options: readonly string[];
+}
+
+export interface SavedQuiz extends SavedQuizSummary {
+  readonly questions: readonly SavedQuizQuestion[];
+}
+
 export interface QuizGenerationFormValues {
   readonly materialTitle: string;
   readonly text: string;
@@ -45,6 +73,8 @@ export interface QuizGenerationFormState {
   readonly error?: string;
   readonly result?: GeneratedQuiz;
   readonly values?: QuizGenerationFormValues;
+  /** Present only when the generated assessment was saved against a document. */
+  readonly savedQuizId?: number;
 }
 
 export type QuizAnswers = Readonly<Record<number, string>>;

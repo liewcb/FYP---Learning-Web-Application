@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-import type { ContentAnalysisFormState } from "@/models/analysis/content-analysis.model";
+import type {
+  ContentAnalysisFormState,
+  SavedContentAnalysis,
+} from "@/models/analysis/content-analysis.model";
 import type {
   DocumentRecord,
   DocumentStudySource,
@@ -28,6 +31,7 @@ interface DocumentsViewProps {
   readonly awaitingExtraction: boolean;
   readonly analysisSource: DocumentStudySource | null;
   readonly availableAnalysisSources: readonly DocumentStudySourceOption[];
+  readonly savedAnalysis: SavedContentAnalysis | null;
   readonly uploadAction: (
     state: DocumentUploadFormState,
     formData: FormData,
@@ -45,6 +49,7 @@ export function DocumentsView({
   awaitingExtraction,
   analysisSource,
   availableAnalysisSources,
+  savedAnalysis,
   uploadAction,
   analysisAction,
   signOutAction,
@@ -124,7 +129,9 @@ export function DocumentsView({
                       {documentTypeLabel(document.mimeType)}
                     </span>
                     <div>
-                      <strong>{document.title}</strong>
+                      <Link className="document-title-link" href={`/documents/${document.id}`}>
+                        <strong>{document.title}</strong>
+                      </Link>
                       <p>
                         {document.status === "ready" && document.content
                           ? formatContentSummary(document.content)
@@ -134,8 +141,8 @@ export function DocumentsView({
                       </p>
                       {document.status === "ready" ? (
                         <div className="document-row-actions">
-                          <Link href={`/documents?documentId=${document.id}#analysis`}>
-                            Analyse this material <span aria-hidden="true">→</span>
+                          <Link href={`/documents/${document.id}`}>
+                            View material <span aria-hidden="true">→</span>
                           </Link>
                           <Link href={`/quizzes?documentId=${document.id}`}>
                             Make a quiz <span aria-hidden="true">→</span>
@@ -164,6 +171,7 @@ export function DocumentsView({
           action={analysisAction}
           source={analysisSource}
           availableSources={availableAnalysisSources}
+          savedAnalysis={savedAnalysis}
         />
       </div>
     </main>

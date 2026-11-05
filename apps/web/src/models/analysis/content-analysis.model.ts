@@ -38,6 +38,19 @@ export interface ContentAnalysisResult {
   };
 }
 
+/** The response from the trusted endpoint after it has written an analysis row. */
+export interface PersistedContentAnalysisResult extends ContentAnalysisResult {
+  readonly analysis_id: number;
+}
+
+/** A completed analysis that belongs to one of the student's documents. */
+export interface SavedContentAnalysis {
+  readonly id: number;
+  readonly documentId: number;
+  readonly result: ContentAnalysisResult;
+  readonly completedAt: string;
+}
+
 export interface ContentAnalysisRequest {
   readonly sentences: readonly string[];
   readonly top_keywords: number;
@@ -56,6 +69,8 @@ export interface ContentAnalysisFormState {
   readonly error?: string;
   readonly result?: ContentAnalysisResult;
   readonly values?: ContentAnalysisFormValues;
+  /** Present only when the analysis was saved against an uploaded document. */
+  readonly savedAnalysisId?: number;
 }
 
 export type PreparedLearningText =

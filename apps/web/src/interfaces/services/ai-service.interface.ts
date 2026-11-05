@@ -1,10 +1,12 @@
 import type {
   ContentAnalysisRequest,
   ContentAnalysisResult,
+  PersistedContentAnalysisResult,
 } from "@/models/analysis/content-analysis.model";
 import type { DocumentProcessingResult } from "@/models/document/document.model";
 import type {
   GeneratedQuiz,
+  PersistedGeneratedQuiz,
   QuizGenerationRequest,
 } from "@/models/quiz/quiz.model";
 
@@ -21,6 +23,12 @@ export interface AiService {
   analyseAndSaveDocument(
     documentId: number,
     request: ContentAnalysisRequest,
-  ): Promise<ContentAnalysisResult>;
+  ): Promise<PersistedContentAnalysisResult>;
   generateQuiz(request: QuizGenerationRequest): Promise<GeneratedQuiz>;
+  /** Generate a quiz linked to a saved document analysis. */
+  generateAndSaveQuiz(
+    documentId: number,
+    analysisId: number,
+    request: QuizGenerationRequest,
+  ): Promise<PersistedGeneratedQuiz>;
 }

@@ -8,10 +8,14 @@ import {
 } from "@/app/documents/actions";
 import {
   createDocumentController,
+  createLearningResultsController,
   createProfileController,
 } from "@/lib/dependencies/server";
 import { adminBasePath } from "@/models/admin/admin.model";
 import { authRoutes } from "@/models/auth/auth-routes";
+import type {
+  SavedContentAnalysis,
+} from "@/models/analysis/content-analysis.model";
 import type {
   DocumentStudySource,
   DocumentStudySourceOption,
@@ -45,6 +49,7 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
   }
 
   const controller = await createDocumentController();
+  const learningResults = await createLearningResultsController();
   const documents = await controller.listAndResumeProcessing();
   const availableAnalysisSources: DocumentStudySourceOption[] = documents
     .filter((document) => document.status === "ready" && document.content)
@@ -60,6 +65,7 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
     (document) => document.id === requestedDocumentId && document.status === "ready",
   );
   let analysisSource: DocumentStudySource | null = null;
+  let savedAnalysis: SavedContentAnalysis | null = null;
 
   if (selectedDocument) {
     const content = await controller.content(selectedDocument.id);
@@ -72,6 +78,7 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
         text: content.sentences.join("\n"),
         sentenceCount: content.sentenceCount,
       };
+      savedAnalysis = await learningResults.latestAnalysis(selectedDocument.id);
     }
   }
 
@@ -83,6 +90,7 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
         document.isAwaitingExtraction(),
       )}
       analysisSource={analysisSource}
+      savedAnalysis={savedAnalysis}
       availableAnalysisSources={availableAnalysisSources}
       uploadAction={uploadDocumentAction}
       analysisAction={analyseContentAction}

@@ -3,13 +3,19 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
-import type { QuizGenerationFormState } from "@/models/quiz/quiz.model";
+import type {
+  QuizGenerationFormState,
+  SavedQuiz,
+  SavedQuizSummary,
+} from "@/models/quiz/quiz.model";
 import type { DocumentStudySource } from "@/models/document/document.model";
 import { InteractiveQuizView } from "@/views/quizzes/interactive-quiz.view";
 
 interface QuizBuilderViewProps {
   readonly source: DocumentStudySource | null;
   readonly sourceNotice?: string;
+  readonly savedQuizzes: readonly SavedQuizSummary[];
+  readonly selectedQuiz: SavedQuiz | null;
   readonly action: (
     state: QuizGenerationFormState,
     formData: FormData,
@@ -30,7 +36,46 @@ const typeLabels = {
   short_answer: "Short answer",
 } as const;
 
-export function QuizBuilderView({ action, source, sourceNotice }: QuizBuilderViewProps) {
+function SavedQuizView({ quiz }: { readonly quiz: SavedQuiz }) {
+  return (
+    <>
+      <div className="result-heading">
+        <div>
+          <p className="section-kicker">Saved assessment</p>
+          <h2>{quiz.title}</h2>
+          <p>{quiz.questionCount} questions · {quiz.difficulty} difficulty</p>
+        </div>
+        <span className="status-chip ready">Saved</span>
+      </div>
+
+      <p className="saved-result-note">
+        This is your saved question set. Generate a new quiz whenever you want fresh practice.
+      </p>
+
+      <ol className="saved-quiz-questions">
+        {quiz.questions.map((question) => (
+          <li key={question.id}>
+            <span>Question {question.position}</span>
+            <strong>{question.prompt}</strong>
+            {question.options.length > 0 ? (
+              <ul>
+                {question.options.map((option) => <li key={option}>{option}</li>)}
+              </ul>
+            ) : <small>Short answer</small>}
+          </li>
+        ))}
+      </ol>
+    </>
+  );
+}
+
+export function QuizBuilderView({
+  action,
+  source,
+  sourceNotice,
+  savedQuizzes,
+  selectedQuiz,
+}: QuizBuilderViewProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const values = state.values ?? {
     ...defaultValues,
@@ -67,6 +112,8 @@ export function QuizBuilderView({ action, source, sourceNotice }: QuizBuilderVie
             <Link href="/documents">Choose another upload</Link>
           </div>
         ) : null}
+
+        {source ? <input type="hidden" name="documentId" value={source.id} /> : null}
 
         {state.error ? (
           <p className="form-alert" role="alert">{state.error}</p>
@@ -149,6 +196,12 @@ export function QuizBuilderView({ action, source, sourceNotice }: QuizBuilderVie
             not submit the form again while it is working.
           </p>
         ) : null}
+
+        {state.savedQuizId ? (
+          <p className="saved-result-note">
+            Quiz saved. <Link href={`/quizzes?quizId=${state.savedQuizId}`}>Open your saved copy</Link>
+          </p>
+        ) : null}
       </form>
 
       <section className="quiz-preview" aria-live="polite" aria-label="Generated quiz">
@@ -157,16 +210,38 @@ export function QuizBuilderView({ action, source, sourceNotice }: QuizBuilderVie
             key={`${result.title}-${result.questions.map((question) => question.prompt).join("|")}`}
             quiz={result}
           />
+        ) : selectedQuiz ? (
+          <SavedQuizView quiz={selectedQuiz} />
         ) : (
           <div className="result-empty">
             <span aria-hidden="true">?</span>
             <h2>Your generated quiz will appear here</h2>
             <p>
-              Choose the settings, paste learning content and generate a small
-              test first. Answers remain hidden until you submit the quiz.
+              Choose the settings and learning material to create a grounded
+              assessment. Answers remain hidden until you submit the quiz.
             </p>
           </div>
         )}
+
+        {savedQuizzes.length > 0 ? (
+          <section className="saved-quiz-history" aria-labelledby="saved-quizzes-title">
+            <div>
+              <p className="section-kicker">Your assessments</p>
+              <h2 id="saved-quizzes-title">Saved quizzes</h2>
+            </div>
+            <ul>
+              {savedQuizzes.map((quiz) => (
+                <li key={quiz.id} className={selectedQuiz?.id === quiz.id ? "selected" : ""}>
+                  <div>
+                    <strong>{quiz.title}</strong>
+                    <span>{quiz.questionCount} questions · {quiz.difficulty}</span>
+                  </div>
+                  <Link href={`/quizzes?quizId=${quiz.id}`}>View</Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
       </section>
     </div>
   );

@@ -5,10 +5,12 @@ import type {
 import type {
   ContentAnalysisRequest,
   ContentAnalysisResult,
+  PersistedContentAnalysisResult,
 } from "@/models/analysis/content-analysis.model";
 import type { DocumentProcessingResult } from "@/models/document/document.model";
 import type {
   GeneratedQuiz,
+  PersistedGeneratedQuiz,
   QuizGenerationRequest,
 } from "@/models/quiz/quiz.model";
 
@@ -73,14 +75,14 @@ export class HttpAiService implements AiService {
   analyseAndSaveDocument(
     documentId: number,
     request: ContentAnalysisRequest,
-  ): Promise<ContentAnalysisResult> {
+  ): Promise<PersistedContentAnalysisResult> {
     if (!this.internalToken) {
       throw new Error(
         "Saved content analysis is not configured. Set AI_SERVICE_INTERNAL_TOKEN for the web server.",
       );
     }
 
-    return this.post<ContentAnalysisResult>(
+    return this.post<PersistedContentAnalysisResult>(
       "/analysis/content-and-save",
       { ...request, document_id: documentId },
       180_000,
@@ -91,6 +93,25 @@ export class HttpAiService implements AiService {
   generateQuiz(request: QuizGenerationRequest): Promise<GeneratedQuiz> {
     // Gemini may retry temporary 429/5xx responses inside the AI service.
     return this.post<GeneratedQuiz>("/quiz/generate", request, 190_000);
+  }
+
+  generateAndSaveQuiz(
+    documentId: number,
+    analysisId: number,
+    request: QuizGenerationRequest,
+  ): Promise<PersistedGeneratedQuiz> {
+    if (!this.internalToken) {
+      throw new Error(
+        "Saved quiz generation is not configured. Set AI_SERVICE_INTERNAL_TOKEN for the web server.",
+      );
+    }
+
+    return this.post<PersistedGeneratedQuiz>(
+      "/quiz/generate-and-save",
+      { ...request, document_id: documentId, analysis_id: analysisId },
+      190_000,
+      { "X-Internal-Token": this.internalToken },
+    );
   }
 
   private async post<T>(

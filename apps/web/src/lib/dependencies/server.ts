@@ -1,6 +1,7 @@
 import { AdminController } from "@/controllers/admin/admin.controller";
 import { AiController } from "@/controllers/ai/ai.controller";
 import { ContentAnalysisController } from "@/controllers/analysis/content-analysis.controller";
+import { LearningResultsController } from "@/controllers/learning-results.controller";
 import { AuthController } from "@/controllers/auth/auth.controller";
 import { ChatController } from "@/controllers/chat/chat.controller";
 import { PasswordResetController } from "@/controllers/auth/password-reset.controller";
@@ -16,6 +17,7 @@ import { AfterBackgroundTaskRunner } from "@/lib/next/after-background-task-runn
 import { SupabaseChatRepository } from "@/lib/supabase/repositories/supabase-chat.repository";
 import { SupabaseDocumentRepository } from "@/lib/supabase/repositories/supabase-document.repository";
 import { SupabaseForumRepository } from "@/lib/supabase/repositories/supabase-forum.repository";
+import { SupabaseLearningResultsRepository } from "@/lib/supabase/repositories/supabase-learning-results.repository";
 import { SupabaseNotificationRepository } from "@/lib/supabase/repositories/supabase-notification.repository";
 import { SupabaseProfileRepository } from "@/lib/supabase/repositories/supabase-profile.repository";
 import { SupabaseRevisionRepository } from "@/lib/supabase/repositories/supabase-revision.repository";
@@ -33,12 +35,29 @@ export function createAiController(): AiController {
   return new AiController(new HttpAiService());
 }
 
-export function createContentAnalysisController(): ContentAnalysisController {
-  return new ContentAnalysisController(new HttpAiService());
+export async function createContentAnalysisController(): Promise<ContentAnalysisController> {
+  const supabase = await createClient();
+
+  return new ContentAnalysisController(
+    new HttpAiService(),
+    new SupabaseDocumentRepository(supabase),
+  );
 }
 
-export function createQuizController(): QuizController {
-  return new QuizController(new HttpAiService());
+export async function createQuizController(): Promise<QuizController> {
+  const supabase = await createClient();
+
+  return new QuizController(
+    new HttpAiService(),
+    new SupabaseDocumentRepository(supabase),
+    new SupabaseLearningResultsRepository(supabase),
+  );
+}
+
+export async function createLearningResultsController(): Promise<LearningResultsController> {
+  const supabase = await createClient();
+
+  return new LearningResultsController(new SupabaseLearningResultsRepository(supabase));
 }
 
 export async function createAuthController(

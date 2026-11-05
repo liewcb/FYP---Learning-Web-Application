@@ -3,7 +3,10 @@
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 
-import type { ContentAnalysisFormState } from "@/models/analysis/content-analysis.model";
+import type {
+  ContentAnalysisFormState,
+  SavedContentAnalysis,
+} from "@/models/analysis/content-analysis.model";
 import type {
   DocumentStudySource,
   DocumentStudySourceOption,
@@ -12,6 +15,7 @@ import type {
 interface ContentAnalysisTesterProps {
   readonly source: DocumentStudySource | null;
   readonly availableSources: readonly DocumentStudySourceOption[];
+  readonly savedAnalysis: SavedContentAnalysis | null;
   readonly action: (
     state: ContentAnalysisFormState,
     formData: FormData,
@@ -29,20 +33,24 @@ export function ContentAnalysisTester({
   action,
   source,
   availableSources,
+  savedAnalysis,
 }: ContentAnalysisTesterProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const router = useRouter();
   const values = state.values ?? { ...defaults, text: source?.text ?? "" };
-  const result = state.result;
+  // After a new sign-in, the Server Action state is empty. The persisted
+  // result restores the newest finished analysis for the selected document.
+  const result = state.result ?? savedAnalysis?.result;
+  const saved = state.savedAnalysisId !== undefined || savedAnalysis !== null;
 
   return (
-    <section id="analysis" className="analysis-workspace" aria-labelledby="analysis-test-title">
+    <section id="analysis" className="analysis-workspace" aria-labelledby="analysis-title">
       <form className="module-card analysis-form" action={formAction} noValidate>
         <div className="module-card-heading">
           <span className="module-icon blue" aria-hidden="true">✦</span>
           <div>
             <p className="section-kicker">Content analysis</p>
-            <h2 id="analysis-test-title">
+            <h2 id="analysis-title">
               {source ? "Analyse extracted material" : "Analyse learning content"}
             </h2>
           </div>
@@ -51,7 +59,7 @@ export function ContentAnalysisTester({
         <p className="module-card-copy">
           {source
             ? `Extracted sentences from “${source.title}” are loaded below. You can review or edit them before running the NLP analysis.`
-            : "Choose a ready document from your uploads, or paste learning content below to test the NLP analysis service."}
+            : "Choose a ready document from your uploads, or add learning content below for analysis."}
         </p>
 
         {source ? (
@@ -60,6 +68,8 @@ export function ContentAnalysisTester({
             <span>{source.fileName} · {source.sentenceCount} extracted sentences</span>
           </div>
         ) : null}
+
+        {source ? <input type="hidden" name="documentId" value={source.id} /> : null}
 
         <div className="form-field document-source-picker">
           <label htmlFor="analysis-document-source">Document to analyse</label>
@@ -75,7 +85,7 @@ export function ContentAnalysisTester({
               );
             }}
           >
-            <option value="">Paste text manually</option>
+            <option value="">Add text manually</option>
             {availableSources.map((document) => (
               <option key={document.id} value={document.id}>
                 {document.title} — {document.sentenceCount} sentences
@@ -162,11 +172,19 @@ export function ContentAnalysisTester({
           <>
             <div className="result-heading">
               <div>
-                <p className="section-kicker">Analysis complete</p>
+                <p className="section-kicker">
+                  {saved ? "Saved analysis" : "Analysis complete"}
+                </p>
                 <h2>{result.sentence_count} sentences understood</h2>
               </div>
-              <span className="status-chip ready">Ready</span>
+              <span className="status-chip ready">{saved ? "Saved" : "Ready"}</span>
             </div>
+
+            {saved ? (
+              <p className="saved-result-note">
+                This analysis is saved with your selected document and will be here next time you sign in.
+              </p>
+            ) : null}
 
             <article className="result-card">
               <h3>Semantic keywords</h3>
@@ -216,8 +234,9 @@ export function ContentAnalysisTester({
             <span aria-hidden="true">◎</span>
             <h2>Your analysis will appear here</h2>
             <p>
-              Run the tester to see semantic keywords, important sentences,
-              topic clusters and concepts returned by the Python service.
+              Select a document or add learning content to identify keywords,
+              key sentences, topics and concepts. Analyses from an uploaded
+              document are saved automatically.
             </p>
           </div>
         )}

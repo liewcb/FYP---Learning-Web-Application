@@ -4,6 +4,7 @@ import { createStudentNavigation } from "@/models/home/home.model";
 import type { Viewer } from "@/models/profile/profile.model";
 import type { DocumentStudySource } from "@/models/document/document.model";
 import type { QuizGenerationFormState } from "@/models/quiz/quiz.model";
+import type { SavedQuiz, SavedQuizSummary } from "@/models/quiz/quiz.model";
 import { QuizBuilderView } from "@/views/quizzes/quiz-builder.view";
 import { StudentTopbar } from "@/views/student/student-topbar.view";
 
@@ -16,6 +17,8 @@ interface QuizzesViewProps {
   readonly signOutAction: () => Promise<void>;
   readonly source: DocumentStudySource | null;
   readonly sourceNotice?: string;
+  readonly savedQuizzes: readonly SavedQuizSummary[];
+  readonly selectedQuiz: SavedQuiz | null;
 }
 
 export function QuizzesView({
@@ -24,6 +27,8 @@ export function QuizzesView({
   signOutAction,
   source,
   sourceNotice,
+  savedQuizzes,
+  selectedQuiz,
 }: QuizzesViewProps) {
   return (
     <main className="student-app">
@@ -65,10 +70,12 @@ export function QuizzesView({
         </section>
 
         <QuizBuilderView
-          key={source?.id ?? "manual-quiz"}
+          key={`${source?.id ?? "manual-quiz"}-${selectedQuiz?.id ?? "new"}`}
           action={generateAction}
           source={source}
           sourceNotice={sourceNotice}
+          savedQuizzes={savedQuizzes}
+          selectedQuiz={selectedQuiz}
         />
       </div>
     </main>

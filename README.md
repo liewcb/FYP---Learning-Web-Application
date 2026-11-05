@@ -185,8 +185,11 @@ PDF/DOCX. The page shows the chosen filename and size before upload, then
 refreshes while extraction runs. Once a document is marked **Ready**, choose
 **Analyse this material** or **Make a quiz** on its row. Both pages load the
 preprocessed sentences from that document; the text remains editable before
-you run the AI request. The standalone analysis and quiz pages also accept
-pasted text for quick tests.
+you run the AI request. Analyses and quizzes created from a selected upload are
+saved to the student's private Supabase records: reopening that document shows
+its latest saved analysis, and **Quizzes** lists saved assessments. Pasted text
+is still available for quick experiments, but is deliberately not saved because
+it is not associated with an uploaded document.
 
 ### Test the forum
 
