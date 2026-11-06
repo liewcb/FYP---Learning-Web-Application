@@ -201,6 +201,26 @@ comment, toggle an upvote, and delete content you own. The **Connections** feed
 is intentionally reserved for Shim's peer-connection table; community and
 personal feeds work now without that dependency.
 
+### Library database foundation
+
+The `library_foundation` migration prepares the moderated shared-learning
+library. It keeps **My Documents** private and adds separate records for
+student submissions, moderation history and administrator audit events. The
+`library-materials` bucket is deliberately private: a later Library download
+route will create short-lived signed URLs only after checking that the material
+is published.
+
+Before building or testing the Library UI, review and apply every pending
+migration from the project root:
+
+```powershell
+pnpm.cmd exec supabase db push --linked --dry-run
+pnpm.cmd exec supabase db push --linked
+```
+
+The second command may include migrations created by your teammate as well as
+the Library migration. Review the displayed list together before confirming.
+
 ### Test the revision dashboard
 
 Apply the `revision_workspace` migration, sign in and open <http://localhost:3000>.
