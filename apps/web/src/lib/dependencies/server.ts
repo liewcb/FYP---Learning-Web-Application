@@ -30,7 +30,9 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { SupabaseAuthService } from "@/lib/supabase/services/supabase-auth.service";
 import { SupabaseLoginAttemptStore } from "@/lib/supabase/services/supabase-login-attempt-store";
 import { SupabaseUsernameDirectory } from "@/lib/supabase/services/supabase-username-directory";
-
+import { LibraryController } from "@/controllers/library/library.controller";
+import { SupabaseLibraryRepository } from "@/lib/supabase/repositories/supabase-library.repository";
+import { SupabaseLibraryStorage } from "@/lib/supabase/storage/supabase-library-storage";
 export function createAiController(): AiController {
   return new AiController(new HttpAiService());
 }
@@ -155,4 +157,14 @@ export async function createNotificationController(): Promise<NotificationContro
   const supabase = await createClient();
 
   return new NotificationController(new SupabaseNotificationRepository(supabase));
+}
+
+export async function createLibraryController(): Promise<LibraryController> {
+  const supabase = await createClient();
+
+  return new LibraryController(
+    new SupabaseLibraryRepository(supabase, createServiceRoleClient),
+    new SupabaseLibraryStorage(createServiceRoleClient),
+    new SupabaseDocumentRepository(supabase),
+  );
 }
