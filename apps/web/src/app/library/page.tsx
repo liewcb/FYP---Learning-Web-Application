@@ -1,56 +1,58 @@
-"use server";
-
-import { revalidatePath } from "next/cache";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { signOutAction } from "@/app/auth/actions";
 import {
   createLibraryController,
   createProfileController,
 } from "@/lib/dependencies/server";
-import type {
-  LibrarySubmitFormState,
-  LibrarySubmitFormValues,
-} from "@/models/library/library.model";
+import { adminBasePath } from "@/models/admin/admin.model";
+import { authRoutes } from "@/models/auth/auth-routes";
+import { parseLibraryFilters, parseLibraryTab } from "@/models/library/library.model";
+import { LibraryPageView } from "@/views/library/library-page.view";
 
-function field(formData: FormData, name: string): string {
-  const value = formData.get(name);
+export const metadata: Metadata = {
+  title: "Library",
+};
 
-  return typeof value === "string" ? value : "";
+type SearchParamValue = string | string[] | undefined;
+
+interface LibraryPageProps {
+  readonly searchParams: Promise<{
+    tab?: SearchParamValue;
+    q?: SearchParamValue;
+    subject?: SearchParamValue;
+    sort?: SearchParamValue;
+    submitted?: SearchParamValue;
+  }>;
 }
 
-export async function submitLibraryMaterialAction(
-  _previous: LibrarySubmitFormState,
-  formData: FormData,
-): Promise<LibrarySubmitFormState> {
-  const values: LibrarySubmitFormValues = {
-    documentId: field(formData, "documentId"),
-    title: field(formData, "title"),
-    description: field(formData, "description"),
-    subjectName: field(formData, "subjectName"),
-    moduleCode: field(formData, "moduleCode"),
-    tags: field(formData, "tags"),
-  };
-
-  // Server Actions are public entry points, so the account is checked here.
+export default async function LibraryPage({ searchParams }: LibraryPageProps) {
   const profiles = await createProfileController();
   const viewer = await profiles.currentViewer();
 
   if (!viewer) {
-    return { error: "Your session expired. Sign in and try again.", values };
+    redirect(authRoutes.signIn);
   }
 
-  if (viewer.role !== "student") {
-    return { error: "Only student accounts can submit library materials.", values };
+  if (viewer.role === "admin") {
+    redirect(adminBasePath);
   }
 
-  const library = await createLibraryController();
-  const result = await library.submit({ viewerId: viewer.id, values });
+  const params = await searchParams;
+  const controller = await createLibraryController();
+  const model = await controller.loadPage({
+    viewerId: viewer.id,
+    tab: parseLibraryTab(params.tab),
+    filters: parseLibraryFilters(params),
+  });
 
-  if (!result.ok) {
-    return result.state;
-  }
-
-  revalidatePath("/library");
-  revalidatePath("/admin/library");
-  redirect("/library?tab=mine&submitted=1");
+  return (
+    <LibraryPageView
+      viewer={viewer}
+      model={model}
+      justSubmitted={params.submitted === "1"}
+      signOutAction={signOutAction}
+    />
+  );
 }
