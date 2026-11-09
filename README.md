@@ -23,7 +23,7 @@ Next.js responsive website
         |
         +-- FastAPI AI service for extraction, analysis and quiz generation
         |
-        +-- Jitsi integration for video meetings (later milestone)
+        +-- LiveKit for video calls of up to five people
 ```
 
 The main web application is a modular monolith. The AI/document-processing service is separated because its Python libraries and workloads differ from the web application.

@@ -1,3 +1,4 @@
+import type { ChatGroupRepository } from "@/interfaces/repositories/chat-group.repository";
 import type { ChatRepository } from "@/interfaces/repositories/chat.repository";
 import type { DocumentRepository } from "@/interfaces/repositories/document.repository";
 import type { StudyBuddyRepository } from "@/interfaces/repositories/study-buddy.repository";
@@ -19,6 +20,8 @@ import {
   type ChatActionState,
   type ChatContact,
   type ChatDeleteState,
+  type ChatGroupInvite,
+  type ChatListRefresh,
   type ChatMessage,
   type ChatMessageRecord,
   type ChatOlderMessages,
@@ -26,6 +29,7 @@ import {
   type ChatProfileDetails,
   type ChatReportState,
   type ChatSearchResult,
+  type ChatSendOutcome,
   type ChatSendState,
   type ChatSettingAction,
   type ChatSummary,
@@ -50,13 +54,31 @@ export interface SendChatInput {
   readonly documentId: number | null;
 }
 
-function isUnread(message: ChatMessageRecord, summary: ChatSummary): boolean {
+function isUnread(message: ChatMessageRecord, summary: ChatSummary, viewerId: string): boolean {
   return (
-    message.senderId === summary.other.id &&
+    message.senderId !== viewerId &&
+    message.event === null &&
     message.deletedAt === null &&
     (summary.myLastReadAt === null ||
       Date.parse(message.createdAt) > Date.parse(summary.myLastReadAt))
   );
+}
+
+/** Why a chat refuses new messages, for the send error. */
+function readOnlyOutcome(summary: ChatSummary): ChatSendOutcome {
+  if (!summary.group) {
+    return "not_buddies";
+  }
+
+  return summary.group.leftReason === null && summary.group.disbanded ? "closed" : "not_member";
+}
+
+/** An invitation list that failed to load should not break the chat page. */
+async function invitesOrEmpty(load: Promise<ChatGroupInvite[]>): Promise<ChatGroupInvite[]> {
+  return load.catch((error: unknown) => {
+    console.error("Loading group invitations failed.", error);
+    return [];
+  });
 }
 
 function attachmentName(fileName: string): string {
@@ -70,6 +92,7 @@ export class ChatController {
     private readonly storage: ChatAttachmentStorage,
     private readonly buddies: StudyBuddyRepository,
     private readonly documents: DocumentRepository,
+    private readonly groups: ChatGroupRepository,
   ) {}
 
   /** Conversation id for chatting with a study buddy, or null. */
@@ -85,10 +108,11 @@ export class ChatController {
     readonly viewerId: string;
     readonly conversationId: number | null;
   }): Promise<ChatPageModel> {
-    const [conversations, connections, documents] = await Promise.all([
+    const [conversations, connections, documents, invites] = await Promise.all([
       this.chats.listConversations(),
       this.buddies.listConnections(),
       this.documents.listForCurrentUser(),
+      invitesOrEmpty(this.groups.listInvites()),
     ]);
 
     let active: ActiveChat | null = null;
@@ -100,7 +124,7 @@ export class ChatController {
         (await this.chats.findConversation(input.conversationId));
 
       if (summary) {
-        active = await this.loadActive(summary);
+        active = await this.loadActive(summary, input.viewerId);
       } else {
         notice = "This chat could not be found.";
       }
@@ -130,6 +154,7 @@ export class ChatController {
       conversations: conversations
         .filter((chat) => isListedChat(chat) || chat.id === active?.summary.id)
         .map((chat) => (chat.id === active?.summary.id ? active.summary : chat)),
+      invites,
       active,
       contacts,
       documents: shareable,
@@ -137,8 +162,14 @@ export class ChatController {
     };
   }
 
-  async listConversations(): Promise<ChatSummary[]> {
-    return (await this.chats.listConversations()).filter(isListedChat);
+  /** The chat list and open group invitations, for the periodic refresh. */
+  async refreshList(): Promise<ChatListRefresh> {
+    const [conversations, invites] = await Promise.all([
+      this.chats.listConversations(),
+      invitesOrEmpty(this.groups.listInvites()),
+    ]);
+
+    return { conversations: conversations.filter(isListedChat), invites };
   }
 
   /** New messages after `afterId` and the latest receipts for an open chat. */
@@ -237,7 +268,8 @@ export class ChatController {
     }
 
     const [profile, records] = await Promise.all([
-      this.chats.findProfile(conversationId),
+      // Groups have no single profile; their members come from listMembers.
+      summary.group ? null : this.chats.findProfile(conversationId),
       this.chats.listAttachments(conversationId, {
         limit: maxSharedFiles,
         clearedAt: summary.clearedAt,
@@ -355,7 +387,7 @@ export class ChatController {
       }
 
       if (!summary.canSend) {
-        return { error: sendOutcomeError("not_buddies")! };
+        return { error: sendOutcomeError(readOnlyOutcome(summary))! };
       }
 
       const attachment = await this.storeAttachment(input);
@@ -440,13 +472,16 @@ export class ChatController {
     return this.storage.createDownloadUrl(message.attachment.path, message.attachment.name);
   }
 
-  private async loadActive(summary: ChatSummary): Promise<ActiveChat> {
-    const records = await this.chats.listMessages(summary.id, {
-      limit: chatRules.pageSize + 1,
-      clearedAt: summary.clearedAt,
-    });
+  private async loadActive(summary: ChatSummary, viewerId: string): Promise<ActiveChat> {
+    const [records, members] = await Promise.all([
+      this.chats.listMessages(summary.id, {
+        limit: chatRules.pageSize + 1,
+        clearedAt: summary.clearedAt,
+      }),
+      summary.group ? this.groups.listMembers(summary.id) : [],
+    ]);
     const page = records.slice(0, chatRules.pageSize).reverse();
-    const firstUnread = page.find((message) => isUnread(message, summary));
+    const firstUnread = page.find((message) => isUnread(message, summary, viewerId));
 
     if (summary.unreadCount > 0) {
       await this.chats.markRead(summary.id).catch((error: unknown) => {
@@ -459,6 +494,7 @@ export class ChatController {
       messages: await this.present(page),
       hasMore: records.length > chatRules.pageSize,
       firstUnreadId: firstUnread?.id ?? null,
+      members,
     };
   }
 

@@ -20,7 +20,7 @@ export interface ListChatMessagesOptions {
   readonly clearedAt?: string | null;
 }
 
-/** One-to-one chats of the signed-in student. */
+/** Direct and group chats of the signed-in student; groups are managed by ChatGroupRepository. */
 export interface ChatRepository {
   /** Existing or new conversation with a study buddy; null when not allowed. */
   openDirectChat(studentId: string): Promise<number | null>;

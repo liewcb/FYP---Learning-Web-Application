@@ -4,6 +4,7 @@ import { ContentAnalysisController } from "@/controllers/analysis/content-analys
 import { LearningResultsController } from "@/controllers/learning-results.controller";
 import { AuthController } from "@/controllers/auth/auth.controller";
 import { ChatController } from "@/controllers/chat/chat.controller";
+import { ChatGroupController } from "@/controllers/chat/chat-group.controller";
 import { PasswordResetController } from "@/controllers/auth/password-reset.controller";
 import { DocumentController } from "@/controllers/documents/document.controller";
 import { ForumController } from "@/controllers/forum/forum.controller";
@@ -12,8 +13,11 @@ import { StudyBuddyController } from "@/controllers/peers/study-buddy.controller
 import { ProfileController } from "@/controllers/profile/profile.controller";
 import { QuizController } from "@/controllers/quizzes/quiz.controller";
 import { RevisionController } from "@/controllers/revision/revision.controller";
+import { VideoCallController } from "@/controllers/video/video-call.controller";
+import { LiveKitVideoRoomService } from "@/lib/livekit/livekit-video-room.service";
 import { HttpAiService } from "@/lib/ai/http-ai-service";
 import { AfterBackgroundTaskRunner } from "@/lib/next/after-background-task-runner";
+import { SupabaseChatGroupRepository } from "@/lib/supabase/repositories/supabase-chat-group.repository";
 import { SupabaseChatRepository } from "@/lib/supabase/repositories/supabase-chat.repository";
 import { SupabaseDocumentRepository } from "@/lib/supabase/repositories/supabase-document.repository";
 import { SupabaseForumRepository } from "@/lib/supabase/repositories/supabase-forum.repository";
@@ -22,6 +26,7 @@ import { SupabaseNotificationRepository } from "@/lib/supabase/repositories/supa
 import { SupabaseProfileRepository } from "@/lib/supabase/repositories/supabase-profile.repository";
 import { SupabaseRevisionRepository } from "@/lib/supabase/repositories/supabase-revision.repository";
 import { SupabaseStudyBuddyRepository } from "@/lib/supabase/repositories/supabase-study-buddy.repository";
+import { SupabaseVideoCallRepository } from "@/lib/supabase/repositories/supabase-video-call.repository";
 import { SupabaseChatAttachmentStorage } from "@/lib/supabase/storage/supabase-chat-attachment-storage";
 import { SupabaseDocumentStorage } from "@/lib/supabase/storage/supabase-document-storage";
 import { SupabaseForumAttachmentStorage } from "@/lib/supabase/storage/supabase-forum-attachment-storage";
@@ -140,7 +145,26 @@ export async function createChatController(): Promise<ChatController> {
     new SupabaseChatAttachmentStorage(supabase),
     new SupabaseStudyBuddyRepository(supabase),
     new SupabaseDocumentRepository(supabase),
+    new SupabaseChatGroupRepository(supabase),
   );
+}
+
+export async function createVideoCallController(): Promise<VideoCallController> {
+  const supabase = await createClient();
+
+  return new VideoCallController(
+    new SupabaseVideoCallRepository(supabase, createServiceRoleClient),
+    new LiveKitVideoRoomService(),
+    new SupabaseStudyBuddyRepository(supabase),
+    new SupabaseDocumentRepository(supabase),
+    () => new SupabaseDocumentStorage(createServiceRoleClient()),
+  );
+}
+
+export async function createChatGroupController(): Promise<ChatGroupController> {
+  const supabase = await createClient();
+
+  return new ChatGroupController(new SupabaseChatGroupRepository(supabase));
 }
 
 export async function createRevisionController(): Promise<RevisionController> {

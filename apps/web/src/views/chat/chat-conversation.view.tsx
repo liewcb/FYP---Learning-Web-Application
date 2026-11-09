@@ -4,22 +4,29 @@ import Link from "next/link";
 import { useRef, useState, type DragEvent, type PointerEvent, type ReactNode } from "react";
 
 import {
+  chatEventText,
+  chatInitials,
+  chatName,
   formatChatTime,
   formatDayLabel,
+  groupMembersLine,
   isSameChatDay,
   presence,
   readOnlyReason,
   tickStatus,
+  type ChatGroupMember,
   type ChatMessage,
   type ChatSummary,
 } from "@/models/chat/chat.model";
 import {
   BackIcon,
   BlockIcon,
+  ExitIcon,
   LockIcon,
   SearchIcon,
   TickIcon,
   UploadIcon,
+  VideoIcon,
 } from "@/views/chat/chat-icons.view";
 import { ChatMessageBubble } from "@/views/chat/chat-message.view";
 
@@ -39,7 +46,12 @@ interface ChatConversationProps {
   readonly hasMore: boolean;
   readonly loadingOlder: boolean;
   readonly firstUnreadId: number | null;
-  readonly typing: boolean;
+  /** Who is typing, or null. */
+  readonly typingName: string | null;
+  /** Group members, for the header line; empty for direct chats. */
+  readonly members: readonly ChatGroupMember[];
+  /** Display name of a message's sender. */
+  readonly nameFor: (userId: string) => string;
   readonly highlightedId: number | null;
   readonly now: number;
   readonly onLoadOlder: () => void;
@@ -55,6 +67,11 @@ interface ChatConversationProps {
   readonly sidePanelOpen: boolean;
   readonly onCloseSidePanel: () => void;
   readonly onUnblock: () => void;
+  /** Removes a group the viewer no longer belongs to from their list. */
+  readonly onDeleteChat: () => void;
+  /** Starts a video call, or joins the one in progress when `start` is false. */
+  readonly onCall: (start: boolean) => void;
+  readonly callBusy: boolean;
   /** Files dragged from the device and dropped on the conversation. */
   readonly onDropFiles: (files: readonly File[]) => void;
   /** Shown only while sending is allowed. */
@@ -63,18 +80,101 @@ interface ChatConversationProps {
   readonly sidePanels: ReactNode;
 }
 
-function statusLine(summary: ChatSummary, typing: boolean, now: number): string {
-  if (typing) {
+function statusLine(
+  summary: ChatSummary,
+  typingName: string | null,
+  members: readonly ChatGroupMember[],
+  viewerId: string,
+  now: number,
+): string {
+  if (summary.group) {
+    if (typingName && summary.canSend) {
+      return `${typingName} is typing…`;
+    }
+
+    return summary.canSend
+      ? groupMembersLine(members, viewerId) || `${summary.group.memberCount} members`
+      : "Group";
+  }
+
+  const other = summary.other;
+
+  if (typingName) {
     return "typing…";
   }
 
-  if (!summary.canSend) {
-    return summary.other.academicLine ?? "";
+  if (!other || !summary.canSend) {
+    return other?.academicLine ?? "";
   }
 
-  const seen = presence(summary.other.lastSeenAt, now);
+  const seen = presence(other.lastSeenAt, now);
 
-  return [seen.label, summary.other.academicLine].filter(Boolean).join(" · ");
+  return [seen.label, other.academicLine].filter(Boolean).join(" · ");
+}
+
+const groupReadOnlyText = {
+  left: "You left this group. You can still read messages from before you left.",
+  removed: "You were removed from this group. You can still read messages from before.",
+  disbanded: "This group was disbanded. Messages can no longer be sent.",
+} as const;
+
+/** Shown instead of the composer when sending is not allowed. */
+function ReadOnlyFooter({
+  summary,
+  onUnblock,
+  onDeleteChat,
+}: {
+  readonly summary: ChatSummary;
+  readonly onUnblock: () => void;
+  readonly onDeleteChat: () => void;
+}) {
+  const name = chatName(summary);
+  const reason = readOnlyReason(summary);
+
+  switch (reason) {
+    case null:
+      return null;
+    case "blocked_by_me":
+      return (
+        <div className="chat-readonly">
+          <BlockIcon />
+          <span>You blocked {name}. Neither of you can send messages in this chat.</span>
+          <button className="text-action" type="button" onClick={onUnblock}>
+            Unblock
+          </button>
+        </div>
+      );
+    case "blocked_me":
+      return (
+        <div className="chat-readonly">
+          <LockIcon />
+          <span>You can no longer send messages in this chat.</span>
+        </div>
+      );
+    case "not_buddies":
+      return (
+        <div className="chat-readonly">
+          <LockIcon />
+          <span>
+            You are no longer study buddies with {name}, so you can read this chat but not send
+            messages.
+          </span>
+          <Link href="/study-buddy">Find study buddies</Link>
+        </div>
+      );
+    case "left":
+    case "removed":
+    case "disbanded":
+      return (
+        <div className="chat-readonly">
+          <ExitIcon />
+          <span>{groupReadOnlyText[reason]}</span>
+          <button className="text-action" type="button" onClick={onDeleteChat}>
+            Delete chat
+          </button>
+        </div>
+      );
+  }
 }
 
 export function ChatConversation({
@@ -85,7 +185,9 @@ export function ChatConversation({
   hasMore,
   loadingOlder,
   firstUnreadId,
-  typing,
+  typingName,
+  members,
+  nameFor,
   highlightedId,
   now,
   onLoadOlder,
@@ -100,11 +202,16 @@ export function ChatConversation({
   sidePanelOpen,
   onCloseSidePanel,
   onUnblock,
+  onDeleteChat,
+  onCall,
+  callBusy,
   onDropFiles,
   composer,
   sidePanels,
 }: ChatConversationProps) {
-  const other = summary.other;
+  const name = chatName(summary);
+  const isGroup = summary.group !== null;
+  const typing = typingName !== null;
   const [dragging, setDragging] = useState(false);
   const dragDepth = useRef(0);
   const unreadCount =
@@ -113,7 +220,8 @@ export function ChatConversation({
       : messages.filter(
           (message) =>
             message.id >= firstUnreadId &&
-            message.senderId === other.id &&
+            message.senderId !== viewerId &&
+            message.event === null &&
             message.deletedAt === null,
         ).length;
 
@@ -143,16 +251,52 @@ export function ChatConversation({
 
     const mine = message.senderId === viewerId;
 
+    if (message.event) {
+      items.push(
+        <li className="chat-event" key={message.id} id={`chat-message-${message.id}`}>
+          <span>
+            {chatEventText(message.event, {
+              actorName: nameFor(message.senderId),
+              targetName: message.eventUserId ? nameFor(message.eventUserId) : null,
+              body: message.body,
+              actorIsViewer: mine,
+              targetIsViewer: message.eventUserId === viewerId,
+            })}
+            {message.event === "call_started" && summary.canSend ? (
+              <button
+                className="text-action chat-event-action"
+                type="button"
+                disabled={callBusy}
+                onClick={() => onCall(false)}
+              >
+                Join
+              </button>
+            ) : null}
+          </span>
+        </li>,
+      );
+      previous = message;
+      continue;
+    }
+
+    const startsGroup =
+      newDay ||
+      previous?.senderId !== message.senderId ||
+      previous.event !== null ||
+      message.id === firstUnreadId;
+    const reply = message.replyTo;
+
     items.push(
       <ChatMessageBubble
         key={message.id}
         message={message}
         mine={mine}
         tick={mine ? tickStatus(message.createdAt, summary.otherReceipt) : null}
-        startsGroup={newDay || previous?.senderId !== message.senderId || message.id === firstUnreadId}
+        startsGroup={startsGroup}
         highlighted={message.id === highlightedId}
-        viewerId={viewerId}
-        otherName={other.fullName}
+        senderName={nameFor(message.senderId)}
+        showSender={isGroup && !mine && startsGroup}
+        replyName={reply ? (reply.senderId === viewerId ? "You" : nameFor(reply.senderId)) : null}
         canAct={summary.canSend}
         saveState={
           savedIds.has(message.id) ? "saved" : savingIds.has(message.id) ? "saving" : "idle"
@@ -165,8 +309,6 @@ export function ChatConversation({
     );
     previous = message;
   }
-
-  const reason = readOnlyReason(summary);
 
   function hasFiles(event: DragEvent<HTMLElement>): boolean {
     return event.dataTransfer.types.includes("Files");
@@ -226,7 +368,7 @@ export function ChatConversation({
   return (
     <section
       className={sidePanelOpen ? "chat-pane panel-open" : "chat-pane"}
-      aria-label={`Chat with ${other.fullName}`}
+      aria-label={isGroup ? `Group chat ${name}` : `Chat with ${name}`}
       onPointerDown={closePanelOnOutsidePointer}
       onDragEnter={dragEnter}
       onDragOver={dragOver}
@@ -242,16 +384,30 @@ export function ChatConversation({
           type="button"
           data-panel-toggle
           onClick={onOpenProfile}
-          aria-label={`Contact info for ${other.fullName}`}
+          aria-label={isGroup ? `Group info for ${name}` : `Contact info for ${name}`}
         >
-          <span className="chat-avatar" aria-hidden="true">{other.initials}</span>
+          <span className={isGroup ? "chat-avatar group" : "chat-avatar"} aria-hidden="true">
+            {chatInitials(summary)}
+          </span>
           <span className="chat-pane-identity">
-            <span className="chat-pane-name">{other.fullName}</span>
+            <span className="chat-pane-name">{name}</span>
             <span className={typing ? "chat-pane-status typing" : "chat-pane-status"}>
-              {statusLine(summary, typing, now)}
+              {statusLine(summary, typingName, members, viewerId, now)}
             </span>
           </span>
         </button>
+        {summary.canSend ? (
+          <button
+            className="chat-icon-button"
+            type="button"
+            onClick={() => onCall(true)}
+            disabled={callBusy}
+            aria-label={isGroup ? "Start or join a group video call" : "Start or join a video call"}
+            title="Video call"
+          >
+            <VideoIcon />
+          </button>
+        ) : null}
         <button
           className="chat-icon-button"
           type="button"
@@ -267,7 +423,7 @@ export function ChatConversation({
       {dragging ? (
         <div className="chat-drop-overlay" aria-hidden="true">
           <UploadIcon />
-          <strong>Drop a file to send to {other.fullName}</strong>
+          <strong>Drop a file to send to {name}</strong>
           <span>PDF, DOCX, PNG, JPG or WebP, up to 10 MB</span>
         </div>
       ) : null}
@@ -289,9 +445,11 @@ export function ChatConversation({
             <li className="chat-notice">
               <span>
                 <LockIcon />
-                {messages.length === 0
-                  ? `You and ${other.fullName} are study buddies. Messages here are visible only to the two of you.`
-                  : `Messages here are visible only to you and ${other.fullName}.`}
+                {isGroup
+                  ? "Messages here are visible only to members of this group, from when they joined."
+                  : messages.length === 0
+                    ? `You and ${name} are study buddies. Messages here are visible only to the two of you.`
+                    : `Messages here are visible only to you and ${name}.`}
               </span>
             </li>
           )}
@@ -314,7 +472,7 @@ export function ChatConversation({
           ))}
 
           {typing ? (
-            <li className="chat-message theirs starts-group" aria-label={`${other.fullName} is typing`}>
+            <li className="chat-message theirs starts-group" aria-label={`${typingName} is typing`}>
               <div className="chat-bubble chat-typing">
                 <span />
                 <span />
@@ -325,35 +483,9 @@ export function ChatConversation({
         </ol>
       </div>
 
-      {reason === null ? composer : null}
+      {summary.canSend ? composer : null}
 
-      {reason === "blocked_by_me" ? (
-        <div className="chat-readonly">
-          <BlockIcon />
-          <span>You blocked {other.fullName}. Neither of you can send messages in this chat.</span>
-          <button className="text-action" type="button" onClick={onUnblock}>
-            Unblock
-          </button>
-        </div>
-      ) : null}
-
-      {reason === "blocked_me" ? (
-        <div className="chat-readonly">
-          <LockIcon />
-          <span>You can no longer send messages in this chat.</span>
-        </div>
-      ) : null}
-
-      {reason === "not_buddies" ? (
-        <div className="chat-readonly">
-          <LockIcon />
-          <span>
-            You are no longer study buddies with {other.fullName}, so you can read this chat but
-            not send messages.
-          </span>
-          <Link href="/study-buddy">Find study buddies</Link>
-        </div>
-      ) : null}
+      <ReadOnlyFooter summary={summary} onUnblock={onUnblock} onDeleteChat={onDeleteChat} />
 
       {sidePanels}
     </section>

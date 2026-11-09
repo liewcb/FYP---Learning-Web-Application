@@ -3,17 +3,18 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
-import { chatWithHref, type ChatContact } from "@/models/chat/chat.model";
-import { BackIcon, SearchIcon } from "@/views/chat/chat-icons.view";
+import { chatGroupRules, chatWithHref, type ChatContact } from "@/models/chat/chat.model";
+import { BackIcon, GroupIcon, SearchIcon } from "@/views/chat/chat-icons.view";
 
 interface NewChatPanelProps {
   readonly open: boolean;
   readonly contacts: readonly ChatContact[];
   readonly onClose: () => void;
+  readonly onNewGroup: () => void;
 }
 
 /** Slides over the chat list, like WhatsApp's New chat drawer. */
-export function NewChatPanel({ open, contacts, onClose }: NewChatPanelProps) {
+export function NewChatPanel({ open, contacts, onClose, onNewGroup }: NewChatPanelProps) {
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   const search = query.trim().toLowerCase();
@@ -79,6 +80,18 @@ export function NewChatPanel({ open, contacts, onClose }: NewChatPanelProps) {
       ) : null}
 
       <div className="chat-new-panel-body">
+        {contacts.length > 0 ? (
+          <button className="chat-contact" type="button" onClick={onNewGroup}>
+            <span className="chat-avatar chat-avatar-action" aria-hidden="true">
+              <GroupIcon />
+            </span>
+            <span className="chat-contact-text">
+              <strong>New group</strong>
+              <small>Study together with up to {chatGroupRules.maxMembers - 1} buddies</small>
+            </span>
+          </button>
+        ) : null}
+
         <Link className="chat-contact" href="/study-buddy">
           <span className="chat-avatar chat-avatar-action" aria-hidden="true">
             <SearchIcon />

@@ -57,7 +57,7 @@ Each module is represented across the MVC folders as needed:
 | `library` | Public materials and approval workflow |
 | `peers` | Search, requests and confirmed connections |
 | `study-groups` | Membership, chat and file sharing |
-| `video` | Jitsi meeting rooms and session metadata |
+| `video` | LiveKit video calls started from direct and group chats |
 | `admin` | Users, moderation and audit history |
 | `monitoring` | Usage, storage and basic system reports |
 
@@ -123,6 +123,72 @@ chat_messages INSERT -> Supabase Realtime (filtered by RLS) -> other member's pa
   shared files; a deleted chat returns when a new message arrives.
 - `chat_blocks` stops both students sending in that chat and hides presence.
   `chat_reports` stores reports for the admin moderation milestone.
+
+## Group chats
+
+Small study groups reuse the chat tables: a `chat_conversations` row of kind
+`group` with a title, an admin and at most five members, including the admin.
+
+```text
+admin creates group -> invites up to 4 study buddies (chat_group_invites)
+invitee accepts -> chat_members row -> "joined" event message
+admin: invite, cancel invite, remove, make admin, rename, disband
+member: exit group (an exiting admin hands over to the earliest member)
+```
+
+- The admin invites their own study buddies, or anyone who left or was removed
+  from the group before. Members plus open invitations never exceed five; the
+  group row is locked while this is checked.
+- Each member reads messages inside their membership window: from `joined_at`,
+  up to `left_at` once they leave or are removed. Former members keep a
+  read-only history. Disbanding refuses new messages but keeps the history.
+- Membership changes are posted as event messages (`chat_messages.event`), so
+  open chats update through the existing Realtime stream; `chat_conversations`
+  is not published because it changes on every message.
+- Policies cannot read `chat_members` from its own policy, so
+  `chat_conversations.member_ids` holds the current members, maintained by a
+  trigger. It authorises member rows, typing channels and attachment uploads.
+- Group receipts are those of the slowest current member. Last-seen times are
+  shown only between study buddies, as in direct chats. Blocking and reporting
+  stay one-to-one.
+- `group_invite` and `group_invite_accepted` notifications come from a trigger
+  on `chat_group_invites`; invitations are answered at the top of the chat list.
+
+## Video calls
+
+Calls use LiveKit (see ADR 0003). A call (`video_calls`) belongs to a direct or
+group chat; at most one is in progress per chat.
+
+```text
+video button in a chat -> openVideoCallAction -> VideoCallController
+  -> open_video_call RPC (may this student use the chat?) -> "call_started" event
+/calls/[id] -> get_video_call RPC (member or invited?) -> LiveKit room (max 5)
+  -> signed join token -> LiveKit call screen in the browser
+```
+
+- Chat members may invite their own study buddies (`video_call_invites`). Chat
+  members plus invitations never exceed five, and the room refuses a sixth.
+- Other members get a `video_call_started` notification (unless muted);
+  invitees get `video_call_invite`. Both link to `/calls/[id]`.
+- `VideoRoomService` (`lib/livekit`) is the only code that talks to LiveKit's
+  server API; the browser call screen is injected into the view by the route.
+- A call whose room has been empty for over a minute is ended by
+  `end_video_call`, which only the service role may run.
+
+### Presenting documents in a call
+
+- Anyone in a call may present one of their own My Documents files
+  (`video_call_shares`, one at a time; presenting another replaces it).
+- The file stays in the presenter's private storage. `/calls/[id]/shared/[shareId]`
+  checks `get_call_share` (may this student join the call?) on every visit and
+  redirects to a signed link that expires within a minute; access ends with the
+  presentation or the call.
+- PDFs render with pdf.js and DOCX files with docx-preview, both loaded only
+  when needed and injected into the view as `DocumentViewers`.
+- The presenter's page (PDF) or scroll position (DOCX) travels over the call's
+  LiveKit data channel (`CallChannel`), not the database. Viewers follow by
+  default, can browse on their own and jump back with "Follow". Late joiners
+  ask the presenter for the position.
 
 ## Security boundaries
 

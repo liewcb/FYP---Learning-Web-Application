@@ -15,4 +15,6 @@ export interface DocumentStorage {
   remove(path: string): Promise<void>;
   /** Short-lived link that downloads the file under its original name. */
   createDownloadUrl(path: string, fileName: string): Promise<string>;
+  /** Short-lived link that opens the file in the browser instead. */
+  createViewUrl(path: string): Promise<string>;
 }

@@ -19,8 +19,11 @@ interface ChatMessageBubbleProps {
   /** First message in a run from the same sender gets the bubble tail. */
   readonly startsGroup: boolean;
   readonly highlighted: boolean;
-  readonly viewerId: string;
-  readonly otherName: string;
+  readonly senderName: string;
+  /** Group chats name the sender above their first bubble in a run. */
+  readonly showSender: boolean;
+  /** Who wrote the quoted message: "You" or their name. */
+  readonly replyName: string | null;
   readonly canAct: boolean;
   readonly saveState: AttachmentSaveState;
   readonly onReply: (message: ChatMessage) => void;
@@ -31,18 +34,16 @@ interface ChatMessageBubbleProps {
 
 function ReplyQuote({
   reply,
-  viewerId,
-  otherName,
+  name,
   onJumpTo,
 }: {
   readonly reply: ChatReplyPreview;
-  readonly viewerId: string;
-  readonly otherName: string;
+  readonly name: string;
   readonly onJumpTo: (messageId: number) => void;
 }) {
   return (
     <button className="chat-quote" type="button" onClick={() => onJumpTo(reply.id)}>
-      <span className="chat-quote-name">{reply.senderId === viewerId ? "You" : otherName}</span>
+      <span className="chat-quote-name">{name}</span>
       <span className={reply.deleted ? "chat-quote-text deleted" : "chat-quote-text"}>
         {replyPreviewText(reply)}
       </span>
@@ -56,8 +57,9 @@ export function ChatMessageBubble({
   tick,
   startsGroup,
   highlighted,
-  viewerId,
-  otherName,
+  senderName,
+  showSender,
+  replyName,
   canAct,
   saveState,
   onReply,
@@ -78,7 +80,12 @@ export function ChatMessageBubble({
   return (
     <li className={classes} id={`chat-message-${message.id}`}>
       <div className={deleted ? "chat-bubble deleted" : "chat-bubble"}>
-        <span className="visually-hidden">{mine ? "You:" : `${otherName}:`}</span>
+        {showSender ? (
+          <span className="chat-sender" aria-hidden="true">
+            {senderName}
+          </span>
+        ) : null}
+        <span className="visually-hidden">{mine ? "You:" : `${senderName}:`}</span>
         {deleted ? (
           <span className="chat-deleted-text">
             {mine ? "You deleted this message" : "This message was deleted"}
@@ -86,12 +93,7 @@ export function ChatMessageBubble({
         ) : (
           <>
             {message.replyTo ? (
-              <ReplyQuote
-                reply={message.replyTo}
-                viewerId={viewerId}
-                otherName={otherName}
-                onJumpTo={onJumpTo}
-              />
+              <ReplyQuote reply={message.replyTo} name={replyName ?? ""} onJumpTo={onJumpTo} />
             ) : null}
             {message.attachment ? (
               <ChatAttachmentView

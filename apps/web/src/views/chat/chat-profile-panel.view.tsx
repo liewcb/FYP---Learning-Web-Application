@@ -4,6 +4,7 @@ import {
   formatDayLabel,
   presence,
   type ChatMessage,
+  type ChatParticipant,
   type ChatProfileDetails,
   type ChatSettingAction,
   type ChatSummary,
@@ -28,6 +29,8 @@ const memberSinceFormatter = new Intl.DateTimeFormat("en-MY", {
 interface ChatProfilePanelProps {
   readonly open: boolean;
   readonly summary: ChatSummary;
+  /** The other student of this direct chat. */
+  readonly other: ChatParticipant;
   readonly details: ChatProfileDetails | null;
   readonly loading: boolean;
   readonly viewerId: string;
@@ -43,6 +46,7 @@ interface ChatProfilePanelProps {
 export function ChatProfilePanel({
   open,
   summary,
+  other,
   details,
   loading,
   viewerId,
@@ -53,7 +57,6 @@ export function ChatProfilePanel({
   onReport,
   onClose,
 }: ChatProfilePanelProps) {
-  const other = summary.other;
   const seen = summary.canSend ? presence(other.lastSeenAt, now) : null;
 
   return (

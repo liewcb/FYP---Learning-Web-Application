@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import {
   createChatController,
+  createChatGroupController,
   createDocumentController,
   createProfileController,
 } from "@/lib/dependencies/server";
@@ -11,15 +12,19 @@ import {
   documentTitleFromFileName,
   isChatSettingAction,
   parseChatId,
+  parseGroupCommand,
   type ChatActionState,
   type ChatDeleteState,
+  type ChatGroupCreateState,
+  type ChatGroupMember,
+  type ChatInviteResponseState,
+  type ChatListRefresh,
   type ChatOlderMessages,
   type ChatProfileDetails,
   type ChatReportState,
   type ChatSaveState,
   type ChatSearchResult,
   type ChatSendState,
-  type ChatSummary,
   type ChatSyncResult,
 } from "@/models/chat/chat.model";
 
@@ -255,7 +260,7 @@ export async function loadChatMessagesFromAction(
   }
 }
 
-export async function refreshChatListAction(): Promise<ChatSummary[] | null> {
+export async function refreshChatListAction(): Promise<ChatListRefresh | null> {
   if (!(await isStudent())) {
     return null;
   }
@@ -263,9 +268,69 @@ export async function refreshChatListAction(): Promise<ChatSummary[] | null> {
   const chats = await createChatController();
 
   try {
-    return await chats.listConversations();
+    return await chats.refreshList();
   } catch (error) {
     console.error("Chat list refresh failed.", error);
     return null;
   }
+}
+
+export async function createGroupChatAction(
+  title: string,
+  memberIds: string[],
+): Promise<ChatGroupCreateState> {
+  if (!(await isStudent())) {
+    return { error: "Your session expired. Sign in and try again." };
+  }
+
+  const groups = await createChatGroupController();
+
+  return groups.create({
+    title: typeof title === "string" ? title : "",
+    memberIds: Array.isArray(memberIds) ? memberIds : [],
+  });
+}
+
+export async function respondToGroupInviteAction(
+  inviteId: number,
+  accept: boolean,
+): Promise<ChatInviteResponseState> {
+  const id = parseChatId(inviteId);
+
+  if (id === null || !(await isStudent())) {
+    return { error: "This invitation is no longer available." };
+  }
+
+  const groups = await createChatGroupController();
+
+  return groups.respond(id, accept === true);
+}
+
+/** Invite, cancel an invitation, remove, make admin, rename, leave or disband. */
+export async function groupCommandAction(
+  groupId: number,
+  command: unknown,
+): Promise<ChatActionState> {
+  const id = parseChatId(groupId);
+  const parsed = parseGroupCommand(command);
+
+  if (id === null || parsed === null || !(await isStudent())) {
+    return { error: "This group could not be updated." };
+  }
+
+  const groups = await createChatGroupController();
+
+  return groups.run(id, parsed);
+}
+
+export async function loadGroupMembersAction(groupId: number): Promise<ChatGroupMember[] | null> {
+  const id = parseChatId(groupId);
+
+  if (id === null || !(await isStudent())) {
+    return null;
+  }
+
+  const groups = await createChatGroupController();
+
+  return groups.members(id);
 }

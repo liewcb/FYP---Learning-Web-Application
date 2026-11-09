@@ -6479,6 +6479,692 @@ a.student-avatar {
   text-align: center;
 }
 
+/* "Join" on a "started a video call" line in the chat. */
+.chat-event-action {
+  margin-left: 8px;
+  color: var(--info);
+  font-size: 0.76rem;
+}
+
+/* Video calls */
+
+.call-app {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  flex-direction: column;
+}
+
+.call-shell {
+  display: flex;
+  width: min(1400px, calc(100% - 40px));
+  min-height: 0;
+  flex: 1;
+  margin-inline: auto;
+  padding-block: 20px 24px;
+}
+
+.call-screen,
+.call-status {
+  display: flex;
+  /*
+   * Without this the screen grows to fit a presented page: overflow: clip
+   * does not reset a flex item's automatic minimum width, so the PDF viewer
+   * would keep measuring a wider frame and drawing a wider page.
+   */
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  overflow: clip;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.call-header {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 16px;
+}
+
+.call-header-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.call-header-text h1 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--heading);
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-header-text p {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-invite-button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 6px;
+}
+
+.call-body {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+}
+
+/* LiveKit's call screen fills the stage and brings its own dark theme. */
+.call-stage {
+  min-width: 0;
+  flex: 1;
+  background: #111;
+}
+
+.call-room {
+  height: 100%;
+}
+
+.call-invite-panel {
+  display: flex;
+  width: min(340px, 100%);
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  border-left: 1px solid var(--line);
+  padding: 12px 12px 16px;
+  background: var(--surface);
+}
+
+.call-invite-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 4px;
+}
+
+.call-invite-panel h2 {
+  margin: 0;
+  color: var(--heading);
+  font-size: 1rem;
+}
+
+.call-invite-panel .chat-contact-list {
+  max-height: none;
+}
+
+.call-invite-notice {
+  margin: 0;
+  padding: 0 4px;
+  color: var(--success);
+  font-size: 0.85rem;
+}
+
+.call-status {
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.call-status h1 {
+  margin: 0;
+  color: var(--heading);
+  font-size: 1.3rem;
+}
+
+.call-status p {
+  max-width: 440px;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.call-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+/* Narrow video column: controls stay on one row, chat covers the video. */
+.call-video .lk-video-conference {
+  position: relative;
+}
+
+.call-compact .lk-control-bar {
+  flex-wrap: nowrap;
+  /* "safe": if it ever overflows, it scrolls instead of clipping the first button. */
+  justify-content: safe center;
+  overflow-x: auto;
+  gap: 0.375rem;
+  padding-inline: 0.5rem;
+}
+
+.call-compact .lk-control-bar .lk-button,
+.call-compact .lk-control-bar .lk-chat-toggle,
+.call-compact .lk-control-bar .lk-disconnect-button {
+  padding: 0.5rem 0.625rem;
+}
+
+.call-compact .lk-chat {
+  position: absolute;
+  z-index: 3;
+  inset: 0 0 var(--lk-control-bar-height) 0;
+  width: auto;
+  max-width: none;
+  border-left: 0;
+}
+
+/* A presented document takes the stage and the video moves to a side column. */
+.call-room-layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.call-video {
+  min-width: 0;
+  flex: 1;
+}
+
+.call-room-layout:has(.call-share) .call-video {
+  /* Wide enough for the icon-only controls (about 300px). */
+  flex: 0 0 clamp(310px, 32%, 360px);
+  border-left: 1px solid #2a2a2a;
+}
+
+.call-share {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.call-share-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  padding: 8px 12px;
+  background: var(--surface);
+}
+
+.call-share-title {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 200px;
+  align-items: center;
+  gap: 10px;
+  color: var(--accent-ink);
+}
+
+.call-share-title > span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.call-share-title strong,
+.call-share-title small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.call-share-title strong {
+  color: var(--heading);
+  font-size: 0.92rem;
+}
+
+.call-share-title small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.call-share-controls,
+.call-share-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.call-share-actions {
+  gap: 8px;
+}
+
+.call-share-next .chat-icon {
+  transform: scaleX(-1);
+}
+
+.call-share-page,
+.call-share-zoom {
+  min-width: 56px;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.call-share-zoom {
+  min-width: 44px;
+}
+
+.call-share-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 12px;
+  font-size: 0.82rem;
+}
+
+.call-share-error {
+  margin: 8px 12px 0;
+}
+
+.call-share-body {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.call-share-message {
+  margin: auto;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* size containment: the page drawn inside can never resize the frame it was measured from. */
+.shared-pdf {
+  min-width: 0;
+  min-height: 0;
+  contain: size;
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+  text-align: center;
+}
+
+.shared-pdf canvas {
+  display: inline-block;
+  max-width: none;
+  background: #fff;
+  box-shadow: 0 2px 10px var(--shadow-tint);
+}
+
+.shared-docx {
+  min-width: 0;
+  min-height: 0;
+  contain: size;
+  flex: 1;
+  overflow: auto;
+}
+
+/* docx-preview draws white pages on a grey wrapper; keep its own colours. */
+.shared-docx .docx-wrapper {
+  padding: 16px;
+}
+
+@media (max-width: 860px) {
+  .call-shell {
+    width: 100%;
+    padding: 0;
+  }
+
+  .call-screen,
+  .call-status {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* Phones stack the document above a short strip of video. */
+  .call-room-layout:has(.call-share) {
+    flex-direction: column;
+  }
+
+  .call-room-layout:has(.call-share) .call-video {
+    flex: 0 0 38%;
+    border-top: 1px solid #2a2a2a;
+    border-left: 0;
+  }
+
+  .shared-pdf {
+    padding: 8px;
+  }
+
+  /* The invite list covers the video on phones instead of squeezing it. */
+  .call-invite-panel {
+    position: absolute;
+    z-index: 5;
+    inset: 0 0 0 auto;
+    width: 100%;
+    border-left: 0;
+  }
+}
+
+/* Group chats */
+
+.chat-avatar.group {
+  border-radius: 14px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.chat-avatar.group.large {
+  border-radius: 28px;
+}
+
+/* Sender name above the first bubble of a run in a group. */
+.chat-sender {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--accent-ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.chat-message.mine .chat-sender {
+  color: var(--chat-out-meta);
+}
+
+/* "Aina added Wei": centred like the day separators. */
+.chat-event {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.chat-event span {
+  max-width: min(480px, 90%);
+  border-radius: 8px;
+  padding: 5px 12px;
+  background: var(--chat-in-bg);
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 1px 1px var(--shadow-tint);
+}
+
+.chat-invites {
+  border-bottom: 1px solid var(--line);
+  padding: 0 8px 8px;
+}
+
+.chat-invites ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  border-radius: 10px;
+  padding: 10px 8px;
+  background: var(--surface-soft);
+}
+
+.chat-invite .chat-avatar {
+  width: 42px;
+  height: 42px;
+  font-size: 0.85rem;
+}
+
+.chat-invite .chat-contact-text {
+  flex: 1;
+}
+
+.chat-invite-actions {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.chat-invite-actions .button {
+  min-height: 34px;
+  padding-inline: 14px;
+}
+
+/* New group drawer */
+
+.chat-new-group {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.chat-new-group-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 16px 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.chat-new-group-title input,
+.chat-group-rename input {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.chat-new-group-title input:focus,
+.chat-group-rename input:focus {
+  border-color: var(--accent);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 0;
+}
+
+.chat-new-group .chat-dialog-note {
+  margin: 0 16px 4px;
+  padding: 0;
+}
+
+.chat-new-group .chat-search {
+  margin: 8px 16px 0;
+}
+
+.chat-pick {
+  cursor: pointer;
+}
+
+.chat-pick:focus-within {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
+}
+
+.chat-pick.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.chat-pick .chat-contact-text {
+  flex: 1;
+}
+
+.chat-pick-box {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  place-items: center;
+  border: 2px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--brand-midnight);
+}
+
+.chat-pick-box.checked {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.chat-pick-box .chat-tick {
+  stroke: currentColor;
+}
+
+.chat-new-group-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 12px 16px 16px;
+}
+
+.chat-new-group-footer .button {
+  width: 100%;
+}
+
+/* Group info panel */
+
+.chat-group-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-group-rename {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-group-rename-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.chat-group-error {
+  margin: 0 20px 12px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+  font-size: 0.85rem;
+}
+
+.chat-group-add {
+  margin: 0 -8px;
+  width: calc(100% + 16px);
+}
+
+.chat-group-members,
+.chat-group-picker {
+  max-height: none;
+  overflow: visible;
+  margin: 0 -8px;
+}
+
+.chat-group-picker {
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+
+.chat-group-member {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.chat-group-member .chat-avatar {
+  width: 42px;
+  height: 42px;
+  font-size: 0.85rem;
+}
+
+.chat-group-member .chat-contact-text {
+  flex: 1;
+}
+
+.chat-group-member.invited .chat-avatar {
+  opacity: 0.6;
+}
+
+.chat-group-member small.online {
+  color: var(--chat-online);
+  font-weight: 600;
+}
+
+.chat-group-badge {
+  flex: none;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.chat-group-message {
+  flex: none;
+}
+
+.chat-group-small-button {
+  min-height: 32px;
+  flex: none;
+  padding-inline: 12px;
+}
+
+/* Member menus sit inside the panel, so keep them visible at its edge. */
+.chat-group-member .chat-row-menu {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  opacity: 1;
+}
+
+.chat-group-member .chat-menu {
+  min-width: 210px;
+}
+
 .chat-search-results {
   margin: 0;
   padding: 0;

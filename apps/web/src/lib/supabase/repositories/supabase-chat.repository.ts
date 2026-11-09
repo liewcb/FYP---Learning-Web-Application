@@ -8,6 +8,8 @@ import {
   academicLine,
   chatDeleteOutcomes,
   chatSendOutcomes,
+  groupInitials,
+  isChatEvent,
   participantInitials,
   participantName,
   type ChatDeleteOutcome,
@@ -52,8 +54,14 @@ function likePattern(query: string): string {
 
 interface ChatSummaryRow {
   conversation_id: number;
-  other_id: string;
-  other_full_name: string;
+  kind: string;
+  group_title: string | null;
+  group_admin_id: string | null;
+  group_member_count: number | null;
+  group_disbanded: boolean;
+  my_left_reason: "left" | "removed" | null;
+  other_id: string | null;
+  other_full_name: string | null;
   other_username: string | null;
   other_academic_major: string | null;
   other_year_of_study: number | null;
@@ -71,9 +79,13 @@ interface ChatSummaryRow {
   hidden: boolean;
   last_message_id: number | null;
   last_message_sender_id: string | null;
+  last_message_sender_name: string | null;
   last_message_body: string | null;
   last_message_attachment_name: string | null;
   last_message_deleted: boolean | null;
+  last_message_event: string | null;
+  last_message_event_user_id: string | null;
+  last_message_event_user_name: string | null;
   last_message_at: string | null;
   unread_count: number;
   created_at: string;
@@ -89,12 +101,14 @@ interface ChatMessageRow {
   attachment_name: string | null;
   attachment_type: string | null;
   attachment_size: number | null;
+  event: string | null;
+  event_user_id: string | null;
   created_at: string;
   deleted_at: string | null;
 }
 
 const messageColumns =
-  "id, conversation_id, sender_id, body, reply_to_id, attachment_path, attachment_name, attachment_type, attachment_size, created_at, deleted_at";
+  "id, conversation_id, sender_id, body, reply_to_id, attachment_path, attachment_name, attachment_type, attachment_size, event, event_user_id, created_at, deleted_at";
 
 const sendOutcomes = new Set<ChatSendOutcome>(chatSendOutcomes);
 const deleteOutcomes = new Set<ChatDeleteOutcome>(chatDeleteOutcomes);
@@ -113,16 +127,32 @@ function firstRow<T>(data: unknown): T | null {
 }
 
 function toSummary(row: ChatSummaryRow): ChatSummary {
+  const isGroup = row.kind === "group";
+
   return {
     id: row.conversation_id,
-    other: {
-      id: row.other_id,
-      fullName: participantName(row.other_full_name, row.other_username),
-      username: row.other_username,
-      initials: participantInitials(row.other_full_name, row.other_username),
-      academicLine: academicLine(row.other_academic_major, row.other_year_of_study),
-      lastSeenAt: row.other_last_seen_at,
-    },
+    kind: isGroup ? "group" : "direct",
+    other:
+      isGroup || row.other_id === null
+        ? null
+        : {
+            id: row.other_id,
+            fullName: participantName(row.other_full_name ?? "", row.other_username),
+            username: row.other_username,
+            initials: participantInitials(row.other_full_name ?? "", row.other_username),
+            academicLine: academicLine(row.other_academic_major, row.other_year_of_study),
+            lastSeenAt: row.other_last_seen_at,
+          },
+    group: isGroup
+      ? {
+          title: row.group_title ?? "Group",
+          initials: groupInitials(row.group_title ?? "Group"),
+          adminId: row.group_admin_id,
+          memberCount: row.group_member_count ?? 0,
+          disbanded: row.group_disbanded,
+          leftReason: row.my_left_reason,
+        }
+      : null,
     canSend: row.can_send,
     isBuddy: row.is_buddy,
     blockedByMe: row.blocked_by_me,
@@ -142,9 +172,13 @@ function toSummary(row: ChatSummaryRow): ChatSummary {
         : {
             id: row.last_message_id,
             senderId: row.last_message_sender_id,
+            senderName: row.last_message_sender_name ?? "Student",
             body: row.last_message_body ?? "",
             attachmentName: row.last_message_attachment_name,
             deleted: row.last_message_deleted ?? false,
+            event: isChatEvent(row.last_message_event) ? row.last_message_event : null,
+            eventUserId: row.last_message_event_user_id,
+            eventUserName: row.last_message_event_user_name,
             createdAt: row.last_message_at ?? row.created_at,
           },
     unreadCount: row.unread_count,
@@ -186,6 +220,8 @@ function toRecord(
           sizeBytes: Number(row.attachment_size),
         }
       : null,
+    event: isChatEvent(row.event) ? row.event : null,
+    eventUserId: row.event_user_id,
     createdAt: row.created_at,
     deletedAt: row.deleted_at,
   };
@@ -302,6 +338,7 @@ export class SupabaseChatRepository implements ChatRepository {
       .select("id, sender_id, body, created_at")
       .eq("conversation_id", conversationId)
       .is("deleted_at", null)
+      .is("event", null)
       .ilike("body", likePattern(text))
       .order("id", { ascending: false })
       .limit(options.limit);

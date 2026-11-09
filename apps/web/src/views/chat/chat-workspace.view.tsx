@@ -2,20 +2,29 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   ChatRealtime,
   ChatTypingChannel,
 } from "@/interfaces/services/chat-realtime.interface";
 import {
+  chatHref,
+  chatName,
   chatRules,
   chatsChangedEvent,
   compareChats,
+  memberNames,
   normaliseChatBody,
   type ChatActionState,
   type ChatDeleteState,
+  type ChatGroupCommand,
+  type ChatGroupCreateState,
+  type ChatGroupInvite,
+  type ChatGroupMember,
+  type ChatInviteResponseState,
   type ChatLastMessage,
+  type ChatListRefresh,
   type ChatMessage,
   type ChatOlderMessages,
   type ChatPageModel,
@@ -29,6 +38,7 @@ import {
   type ChatSummary,
   type ChatSyncResult,
 } from "@/models/chat/chat.model";
+import { videoCallHref, type VideoCallOpenState } from "@/models/video/video-call.model";
 import type { AttachmentSaveState } from "@/views/chat/chat-attachment.view";
 import {
   ChatComposer,
@@ -43,6 +53,7 @@ import {
   ChatConversation,
   type PendingChatMessage,
 } from "@/views/chat/chat-conversation.view";
+import { ChatGroupPanel } from "@/views/chat/chat-group-panel.view";
 import { ChatBubbleIcon, CloseIcon } from "@/views/chat/chat-icons.view";
 import { ChatList } from "@/views/chat/chat-list.view";
 import { ChatProfilePanel } from "@/views/chat/chat-profile-panel.view";
@@ -56,7 +67,7 @@ export interface ChatActions {
   sync(conversationId: number, afterId: number, markRead: boolean): Promise<ChatSyncResult | null>;
   loadOlder(conversationId: number, beforeId: number): Promise<ChatOlderMessages | null>;
   loadFrom(conversationId: number, messageId: number): Promise<ChatOlderMessages | null>;
-  refreshList(): Promise<ChatSummary[] | null>;
+  refreshList(): Promise<ChatListRefresh | null>;
   saveToDocuments(messageId: number): Promise<ChatSaveState>;
   applySetting(conversationId: number, action: ChatSettingAction): Promise<ChatActionState>;
   report(
@@ -67,27 +78,37 @@ export interface ChatActions {
   ): Promise<ChatReportState>;
   loadDetails(conversationId: number): Promise<ChatProfileDetails | null>;
   search(conversationId: number, query: string): Promise<ChatSearchResult[] | null>;
+  createGroup(title: string, memberIds: string[]): Promise<ChatGroupCreateState>;
+  respondToInvite(inviteId: number, accept: boolean): Promise<ChatInviteResponseState>;
+  groupCommand(groupId: number, command: ChatGroupCommand): Promise<ChatActionState>;
+  loadMembers(groupId: number): Promise<ChatGroupMember[] | null>;
+  openCall(conversationId: number, start: boolean): Promise<VideoCallOpenState>;
 }
 
 type SidePanel = "profile" | "search" | null;
 
+type ConfirmCopy = Omit<ChatConfirmRequest, "onConfirm">;
+
 /** Confirmation copy for the actions that change or hide history. */
-function confirmCopy(
-  action: ChatSettingAction,
-  name: string,
-): Omit<ChatConfirmRequest, "onConfirm"> | null {
+function confirmCopy(chat: ChatSummary, action: ChatSettingAction): ConfirmCopy | null {
+  const name = chatName(chat);
+
   switch (action) {
     case "clear":
       return {
         title: "Clear this chat?",
-        body: `Messages with ${name} will be removed for you only. ${name} will still see them.`,
+        body: chat.group
+          ? `Messages in ${name} will be removed for you only. Other members will still see them.`
+          : `Messages with ${name} will be removed for you only. ${name} will still see them.`,
         confirmLabel: "Clear chat",
         danger: true,
       };
     case "delete":
       return {
         title: "Delete this chat?",
-        body: `The chat with ${name} and its messages will be removed for you only. It comes back if ${name} sends a new message.`,
+        body: chat.group
+          ? `${name} and its messages will be removed for you only.`
+          : `The chat with ${name} and its messages will be removed for you only. It comes back if ${name} sends a new message.`,
         confirmLabel: "Delete chat",
         danger: true,
       };
@@ -96,6 +117,50 @@ function confirmCopy(
         title: `Block ${name}?`,
         body: `Neither of you will be able to send messages in this chat, and ${name} will no longer see when you are online. You can unblock at any time.`,
         confirmLabel: "Block",
+        danger: true,
+      };
+    default:
+      return null;
+  }
+}
+
+/** Confirmation copy for group changes that cannot simply be undone. */
+function groupConfirmCopy(
+  chat: ChatSummary,
+  command: ChatGroupCommand,
+  memberName: (userId: string) => string,
+): ConfirmCopy | null {
+  const name = chatName(chat);
+
+  switch (command.type) {
+    case "remove":
+      return {
+        title: `Remove ${memberName(command.studentId)}?`,
+        body: `${memberName(command.studentId)} will no longer see new messages in ${name}. You can invite them again later.`,
+        confirmLabel: "Remove",
+        danger: true,
+      };
+    case "make_admin":
+      return {
+        title: `Make ${memberName(command.studentId)} the group admin?`,
+        body: "There is one admin per group, so you will become a regular member.",
+        confirmLabel: "Make admin",
+      };
+    case "leave":
+      return {
+        title: `Exit ${name}?`,
+        body:
+          chat.group?.memberCount === 1
+            ? "You are the last member, so the group will be disbanded."
+            : "You will stop receiving new messages. If you are the admin, the member who joined earliest takes over.",
+        confirmLabel: "Exit group",
+        danger: true,
+      };
+    case "disband":
+      return {
+        title: `Disband ${name}?`,
+        body: "Nobody will be able to send messages any more. Members can still read the history.",
+        confirmLabel: "Disband group",
         danger: true,
       };
     default:
@@ -194,13 +259,17 @@ function upsertChat(list: readonly ChatSummary[], chat: ChatSummary): ChatSummar
   return sortChats([...list.filter((item) => item.id !== chat.id), chat]);
 }
 
-function toLastMessage(message: ChatMessage): ChatLastMessage {
+function toLastMessage(message: ChatMessage, senderName: string): ChatLastMessage {
   return {
     id: message.id,
     senderId: message.senderId,
+    senderName,
     body: message.body,
     attachmentName: message.attachment?.name ?? null,
     deleted: message.deletedAt !== null,
+    event: message.event,
+    eventUserId: message.eventUserId,
+    eventUserName: null,
     createdAt: message.createdAt,
   };
 }
@@ -217,18 +286,22 @@ function notifyChatsChanged() {
 export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) {
   const { viewerId, active } = model;
   const activeId = active?.summary.id ?? null;
-  const otherId = active?.summary.other.id ?? null;
+  const activeIsGroup = active?.summary.group != null;
+  // Direct chats only show the other student typing; groups any current member.
+  const otherId = active?.summary.other?.id ?? null;
 
   const [conversations, setConversations] = useState<readonly ChatSummary[]>(
     model.conversations,
   );
+  const [invites, setInvites] = useState<readonly ChatGroupInvite[]>(model.invites);
   const [summary, setSummary] = useState<ChatSummary | null>(active?.summary ?? null);
+  const [members, setMembers] = useState<readonly ChatGroupMember[]>(active?.members ?? []);
   const [messages, setMessages] = useState<readonly ChatMessage[]>(active?.messages ?? []);
   const [hasMore, setHasMore] = useState(active?.hasMore ?? false);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [pending, setPending] = useState<readonly PendingChatMessage[]>([]);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
-  const [typing, setTyping] = useState(false);
+  const [typingUserId, setTypingUserId] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<number | null>(null);
   const [notice, setNotice] = useState<ChatNotice | null>(
     model.notice ? { text: model.notice } : null,
@@ -240,6 +313,7 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [confirm, setConfirm] = useState<ChatConfirmRequest | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [callBusy, setCallBusy] = useState(false);
   // Starts from the server's clock so the first render matches hydration.
   const [now, setNow] = useState(() => Date.parse(model.generatedAt));
   const router = useRouter();
@@ -247,6 +321,7 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
 
   const messagesRef = useRef<readonly ChatMessage[]>(messages);
   const conversationsRef = useRef<readonly ChatSummary[]>(conversations);
+  const membersRef = useRef<readonly ChatGroupMember[]>(members);
   const typingChannelRef = useRef<ChatTypingChannel | null>(null);
   const lastTypingSentRef = useRef(0);
   const pendingKeyRef = useRef(0);
@@ -261,6 +336,25 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
   useEffect(() => {
     conversationsRef.current = conversations;
   }, [conversations]);
+
+  useEffect(() => {
+    membersRef.current = members;
+  }, [members]);
+
+  const names = useMemo(() => memberNames(members), [members]);
+  const otherName = summary?.other?.fullName ?? null;
+
+  /** Display name of a message's sender in the open chat. */
+  const nameFor = useCallback(
+    (userId: string) => {
+      if (userId === otherId && otherName) {
+        return otherName;
+      }
+
+      return names.get(userId) ?? "Former member";
+    },
+    [names, otherId, otherName],
+  );
 
   // Opening a chat marks it read on the server, so the badge can drop.
   useEffect(() => {
@@ -324,9 +418,9 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
           messagesRef.current = mergeMessages(messagesRef.current, result.messages);
           setMessages((current) => mergeMessages(current, result.messages));
 
-          if (result.messages.some((message) => message.senderId !== viewerId)) {
-            setTyping(false);
-          }
+          // Whoever was typing has sent their message.
+          const senders = new Set(result.messages.map((message) => message.senderId));
+          setTypingUserId((current) => (current && senders.has(current) ? null : current));
         }
       } while (syncAgainRef.current);
     } finally {
@@ -334,16 +428,32 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
     }
 
     notifyChatsChanged();
-  }, [actions, activeId, viewerId]);
+  }, [actions, activeId]);
 
-  const refreshList = useCallback(async () => {
-    const list = await actions.refreshList();
-
-    if (!list) {
+  /** Reloads the open group's members after a membership event. */
+  const reloadMembers = useCallback(async () => {
+    if (activeId === null || !activeIsGroup) {
       return;
     }
 
+    const list = await actions.loadMembers(activeId);
+
+    if (list) {
+      setMembers(list);
+    }
+  }, [actions, activeId, activeIsGroup]);
+
+  const refreshList = useCallback(async () => {
+    const result = await actions.refreshList();
+
+    if (!result) {
+      return;
+    }
+
+    const list = result.conversations;
+
     setNow(Date.now());
+    setInvites(result.invites);
     setConversations((current) => {
       const fresh = list.map((chat) => (chat.id === activeId ? { ...chat, unreadCount: 0 } : chat));
       const openChat = current.find((chat) => chat.id === activeId);
@@ -358,6 +468,17 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
   useEffect(() => {
     return realtime.watchInbox({
       onMessageInserted(event) {
+        // Membership events change the group itself (name, admin, members).
+        if (event.event !== null) {
+          if (event.conversationId === activeId) {
+            void syncActive();
+            void reloadMembers();
+          }
+
+          void refreshList();
+          return;
+        }
+
         if (event.conversationId === activeId) {
           void syncActive();
           return;
@@ -365,7 +486,9 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
 
         notifyChatsChanged();
 
-        if (!conversationsRef.current.some((chat) => chat.id === event.conversationId)) {
+        const known = conversationsRef.current.find((chat) => chat.id === event.conversationId);
+
+        if (!known) {
           void refreshList();
           return;
         }
@@ -379,9 +502,18 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
                     lastMessage: {
                       id: event.id,
                       senderId: event.senderId,
+                      // An unknown group sender's name arrives with the next list
+                      // refresh; fetching it now would cost a query per message.
+                      senderName:
+                        chat.lastMessage?.senderId === event.senderId
+                          ? chat.lastMessage.senderName
+                          : (chat.other?.fullName ?? ""),
                       body: event.body,
                       attachmentName: event.attachmentName,
                       deleted: event.deletedAt !== null,
+                      event: null,
+                      eventUserId: null,
+                      eventUserName: null,
                       createdAt: event.createdAt,
                     },
                     unreadCount:
@@ -465,22 +597,27 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
         void refreshList();
       },
     });
-  }, [realtime, activeId, viewerId, syncActive, refreshList]);
+  }, [realtime, activeId, viewerId, syncActive, refreshList, reloadMembers]);
 
   useEffect(() => {
-    if (activeId === null || otherId === null) {
+    if (activeId === null || (otherId === null && !activeIsGroup)) {
       return;
     }
 
     let hideTimer: number | undefined;
     const channel = realtime.joinConversation(activeId, (userId) => {
-      if (userId !== otherId) {
+      const allowed = activeIsGroup
+        ? userId !== viewerId &&
+          membersRef.current.some((member) => member.id === userId && member.status === "member")
+        : userId === otherId;
+
+      if (!allowed) {
         return;
       }
 
-      setTyping(true);
+      setTypingUserId(userId);
       window.clearTimeout(hideTimer);
-      hideTimer = window.setTimeout(() => setTyping(false), chatRules.typingVisibleMs);
+      hideTimer = window.setTimeout(() => setTypingUserId(null), chatRules.typingVisibleMs);
     });
 
     typingChannelRef.current = channel;
@@ -490,7 +627,7 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
       channel.leave();
       typingChannelRef.current = null;
     };
-  }, [realtime, activeId, otherId]);
+  }, [realtime, activeId, activeIsGroup, otherId, viewerId]);
 
   // Safety net for missed events, and keeps "online" / "last seen" current.
   useEffect(() => {
@@ -579,7 +716,7 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
         const chat = list.find((item) => item.id === activeId) ?? summary;
 
         return chat
-          ? upsertChat(list, { ...chat, lastMessage: toLastMessage(message), unreadCount: 0 })
+          ? upsertChat(list, { ...chat, lastMessage: toLastMessage(message, "You"), unreadCount: 0 })
           : list;
       });
 
@@ -799,7 +936,7 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
 
   /** List-menu and contact-info actions; the destructive ones ask first. */
   function requestSetting(chat: ChatSummary, action: ChatSettingAction) {
-    const copy = confirmCopy(action, chat.other.fullName);
+    const copy = confirmCopy(chat, action);
 
     if (!copy) {
       void runSetting(chat.id, action);
@@ -809,7 +946,113 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
     setConfirm({ ...copy, onConfirm: () => void runSetting(chat.id, action) });
   }
 
-  /** Toggles Contact info; reloads it each time so newly shared files appear. */
+  /** Runs a group command, then refreshes what it changed. */
+  async function runGroupCommand(chatId: number, command: ChatGroupCommand): Promise<string | null> {
+    const result = await actions.groupCommand(chatId, command);
+
+    if (result.error) {
+      return result.error;
+    }
+
+    // The event message also arrives through Realtime; refreshing now shows
+    // the change straight away to the student who made it.
+    if (chatId === activeId) {
+      void syncActive();
+      void reloadMembers();
+    }
+
+    void refreshList();
+    notifyChatsChanged();
+
+    return null;
+  }
+
+  /** Group info and list-menu commands; removing, leaving and disbanding ask first. */
+  function requestGroupCommand(chat: ChatSummary, command: ChatGroupCommand): Promise<string | null> {
+    const copy = groupConfirmCopy(chat, command, nameFor);
+
+    if (!copy) {
+      return runGroupCommand(chat.id, command);
+    }
+
+    setConfirm({
+      ...copy,
+      onConfirm: () => {
+        void runGroupCommand(chat.id, command).then((error) => {
+          if (error) {
+            setNotice({ text: error });
+          }
+        });
+      },
+    });
+
+    return Promise.resolve(null);
+  }
+
+  /** Opens the call page for this chat's call, starting one if asked to. */
+  async function openCall(start: boolean) {
+    if (activeId === null) {
+      return;
+    }
+
+    setCallBusy(true);
+
+    try {
+      const result = await actions.openCall(activeId, start);
+
+      if (result.callId !== undefined) {
+        router.push(videoCallHref(result.callId));
+        return;
+      }
+
+      setNotice({
+        text: start ? (result.error ?? "The call could not be started.") : "This call has ended. Use the video button to start a new one.",
+      });
+    } catch {
+      setNotice({ text: "The call could not be opened. Please try again." });
+    } finally {
+      setCallBusy(false);
+    }
+  }
+
+  async function createGroup(title: string, memberIds: string[]): Promise<string | null> {
+    try {
+      const result = await actions.createGroup(title, memberIds);
+
+      if (result.groupId === undefined) {
+        return result.error ?? "The group could not be created. Please try again.";
+      }
+
+      router.push(chatHref(result.groupId));
+      return null;
+    } catch {
+      return "The group could not be created. Please try again.";
+    }
+  }
+
+  async function respondToInvite(invite: ChatGroupInvite, accept: boolean) {
+    try {
+      const result = await actions.respondToInvite(invite.id, accept);
+
+      if (result.error) {
+        setNotice({ text: result.error });
+        void refreshList();
+        return;
+      }
+
+      setInvites((list) => list.filter((item) => item.id !== invite.id));
+
+      if (accept && result.groupId !== undefined) {
+        router.push(chatHref(result.groupId));
+      } else if (result.notice) {
+        setNotice({ text: result.notice });
+      }
+    } catch {
+      setNotice({ text: "The invitation could not be answered. Please try again." });
+    }
+  }
+
+  /** Toggles Contact or Group info; reloads it each time so newly shared files appear. */
   async function openProfile() {
     if (sidePanel === "profile") {
       setSidePanel(null);
@@ -821,6 +1064,8 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
     if (activeId === null || detailsLoading) {
       return;
     }
+
+    void reloadMembers();
 
     setDetailsLoading(true);
 
@@ -886,20 +1131,25 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
   const reply =
     replyTo && summary
       ? {
-          name: replyTo.senderId === viewerId ? "yourself" : summary.other.fullName,
+          name: replyTo.senderId === viewerId ? "yourself" : nameFor(replyTo.senderId),
           text: replyTo.body.trim() || replyTo.attachment?.name || "Attachment",
         }
       : null;
+  const typingName = typingUserId && summary?.canSend ? nameFor(typingUserId) : null;
 
   return (
     <div className={activeId === null ? "chat-layout" : "chat-layout has-active"}>
       <ChatList
         viewerId={viewerId}
         conversations={conversations}
+        invites={invites}
         activeId={activeId}
         contacts={model.contacts}
         now={now}
         onAction={requestSetting}
+        onLeaveGroup={(chat) => void requestGroupCommand(chat, { type: "leave" })}
+        onRespondInvite={respondToInvite}
+        onCreateGroup={createGroup}
       />
 
       {summary ? (
@@ -911,7 +1161,9 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
           hasMore={hasMore}
           loadingOlder={loadingOlder}
           firstUnreadId={active?.firstUnreadId ?? null}
-          typing={typing && summary.canSend}
+          typingName={typingName}
+          members={members}
+          nameFor={nameFor}
           highlightedId={highlightedId}
           now={now}
           onLoadOlder={() => void loadOlder()}
@@ -926,6 +1178,9 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
           sidePanelOpen={sidePanel !== null}
           onCloseSidePanel={() => setSidePanel(null)}
           onUnblock={() => void runSetting(summary.id, "unblock")}
+          onDeleteChat={() => requestSetting(summary, "delete")}
+          onCall={(start) => void openCall(start)}
+          callBusy={callBusy}
           onDropFiles={dropFiles}
           composer={
             <ChatComposer
@@ -939,23 +1194,43 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
           }
           sidePanels={
             <>
-              <ChatProfilePanel
-                open={sidePanel === "profile"}
-                summary={summary}
-                details={details}
-                loading={detailsLoading}
-                viewerId={viewerId}
-                now={now}
-                saveStateFor={saveStateFor}
-                onSaveToDocuments={(message) => void saveToDocuments(message)}
-                onAction={(action) => requestSetting(summary, action)}
-                onReport={() => setReportOpen(true)}
-                onClose={() => setSidePanel(null)}
-              />
+              {summary.group ? (
+                <ChatGroupPanel
+                  open={sidePanel === "profile"}
+                  summary={summary}
+                  members={members}
+                  contacts={model.contacts}
+                  details={details}
+                  loading={detailsLoading}
+                  viewerId={viewerId}
+                  now={now}
+                  saveStateFor={saveStateFor}
+                  onSaveToDocuments={(message) => void saveToDocuments(message)}
+                  onCommand={(command) => requestGroupCommand(summary, command)}
+                  onAction={(action) => requestSetting(summary, action)}
+                  onClose={() => setSidePanel(null)}
+                />
+              ) : summary.other ? (
+                <ChatProfilePanel
+                  open={sidePanel === "profile"}
+                  summary={summary}
+                  other={summary.other}
+                  details={details}
+                  loading={detailsLoading}
+                  viewerId={viewerId}
+                  now={now}
+                  saveStateFor={saveStateFor}
+                  onSaveToDocuments={(message) => void saveToDocuments(message)}
+                  onAction={(action) => requestSetting(summary, action)}
+                  onReport={() => setReportOpen(true)}
+                  onClose={() => setSidePanel(null)}
+                />
+              ) : null}
               <ChatSearchPanel
                 open={sidePanel === "search"}
-                otherName={summary.other.fullName}
+                scope={summary.group ? `in ${summary.group.title}` : `with ${chatName(summary)}`}
                 viewerId={viewerId}
+                nameFor={nameFor}
                 now={now}
                 onSearch={(query) => actions.search(summary.id, query)}
                 onSelect={selectSearchResult}
@@ -969,15 +1244,15 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
           <ChatBubbleIcon />
           <h2>Your study buddy chats</h2>
           <p>
-            Pick a chat on the left, or use the pencil button to message one of your study
-            buddies.
+            Pick a chat on the left, or use the pencil button to message a study buddy or start a
+            small study group.
           </p>
         </section>
       )}
 
       <ChatConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
 
-      {summary ? (
+      {summary?.other ? (
         <ChatReportDialog
           open={reportOpen}
           otherName={summary.other.fullName}

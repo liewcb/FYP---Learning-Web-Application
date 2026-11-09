@@ -64,4 +64,16 @@ export class SupabaseDocumentStorage implements DocumentStorage {
 
     return data.signedUrl;
   }
+
+  async createViewUrl(path: string): Promise<string> {
+    const { data, error } = await this.supabase.storage
+      .from(learningMaterialsBucket)
+      .createSignedUrl(path, downloadUrlLifetimeSeconds);
+
+    if (error) {
+      throw new Error(`Unable to open document: ${error.message}`);
+    }
+
+    return data.signedUrl;
+  }
 }
