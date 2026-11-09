@@ -190,6 +190,55 @@ export function FlagIcon() {
   );
 }
 
+export function GroupIcon({ size = 20 }: { readonly size?: number }) {
+  return (
+    <Icon size={size}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8" />
+      <path d="M18 14a6.5 6.5 0 0 1 3.5 6" />
+    </Icon>
+  );
+}
+
+export function AddPersonIcon() {
+  return (
+    <Icon size={18}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <path d="M19 8v6M16 11h6" />
+    </Icon>
+  );
+}
+
+export function ExitIcon() {
+  return (
+    <Icon size={18}>
+      <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
+      <path d="m9 16-4-4 4-4" />
+      <path d="M5 12h11" />
+    </Icon>
+  );
+}
+
+export function ShieldIcon() {
+  return (
+    <Icon size={18}>
+      <path d="M12 3 5 6v5c0 4.5 3 8.3 7 10 4-1.7 7-5.5 7-10V6Z" />
+      <path d="m9 12 2 2 4-4" />
+    </Icon>
+  );
+}
+
+export function VideoIcon() {
+  return (
+    <Icon>
+      <rect x="2.5" y="6" width="13" height="12" rx="2.5" />
+      <path d="m15.5 10.5 6-3.5v10l-6-3.5" />
+    </Icon>
+  );
+}
+
 export function ChatBubbleIcon() {
   return (
     <Icon size={40}>

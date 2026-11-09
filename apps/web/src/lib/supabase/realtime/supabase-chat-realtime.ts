@@ -5,7 +5,11 @@ import type {
   ChatRealtime,
   ChatTypingChannel,
 } from "@/interfaces/services/chat-realtime.interface";
-import type { ChatMessageEvent, ChatReceiptEvent } from "@/models/chat/chat.model";
+import {
+  isChatEvent,
+  type ChatMessageEvent,
+  type ChatReceiptEvent,
+} from "@/models/chat/chat.model";
 
 type Row = Record<string, unknown>;
 
@@ -31,6 +35,7 @@ function toMessageEvent(row: Row): ChatMessageEvent | null {
     senderId: text(row.sender_id),
     body: text(row.body),
     attachmentName: nullableText(row.attachment_name),
+    event: isChatEvent(row.event) ? row.event : null,
     createdAt: text(row.created_at),
     deletedAt: nullableText(row.deleted_at),
   };
@@ -54,7 +59,7 @@ function toReceiptEvent(row: Row): ChatReceiptEvent | null {
 /**
  * Database changes arrive through Postgres Changes, filtered by the chat
  * tables' row-level security. Typing uses private broadcast channels that
- * only the two members may join (see the study_buddy_chat migration).
+ * only the chat's current members may join (see the group_chats migration).
  */
 export class SupabaseChatRealtime implements ChatRealtime {
   constructor(private readonly supabase: SupabaseClient) {}

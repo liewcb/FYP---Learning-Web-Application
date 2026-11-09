@@ -1,6 +1,13 @@
+import { chatHref } from "@/models/chat/chat.model";
+import { videoCallHref } from "@/models/video/video-call.model";
+
 export const notificationTypes = [
   "study_buddy_request",
   "study_buddy_accepted",
+  "group_invite",
+  "group_invite_accepted",
+  "video_call_started",
+  "video_call_invite",
 ] as const;
 
 export type NotificationType = (typeof notificationTypes)[number];
@@ -9,6 +16,10 @@ export interface AppNotification {
   readonly id: number;
   readonly type: NotificationType;
   readonly actorName: string;
+  /** The group chat a group notification is about. */
+  readonly conversationId: number | null;
+  /** The call a video call notification links to. */
+  readonly videoCallId: number | null;
   readonly read: boolean;
   readonly createdAt: string;
 }
@@ -33,6 +44,14 @@ export function notificationMessage(notification: AppNotification): string {
       return `${notification.actorName} sent you a study buddy request.`;
     case "study_buddy_accepted":
       return `${notification.actorName} accepted your study buddy request.`;
+    case "group_invite":
+      return `${notification.actorName} invited you to a study group chat.`;
+    case "group_invite_accepted":
+      return `${notification.actorName} joined your study group chat.`;
+    case "video_call_started":
+      return `${notification.actorName} started a video call in your chat.`;
+    case "video_call_invite":
+      return `${notification.actorName} invited you to a video call.`;
   }
 }
 
@@ -42,6 +61,14 @@ export function notificationHref(notification: AppNotification): string {
       return "/study-buddy?tab=requests";
     case "study_buddy_accepted":
       return "/study-buddy?tab=buddies";
+    // Invitations are answered at the top of the chat list.
+    case "group_invite":
+      return "/chats";
+    case "group_invite_accepted":
+      return notification.conversationId === null ? "/chats" : chatHref(notification.conversationId);
+    case "video_call_started":
+    case "video_call_invite":
+      return notification.videoCallId === null ? "/chats" : videoCallHref(notification.videoCallId);
   }
 }
 

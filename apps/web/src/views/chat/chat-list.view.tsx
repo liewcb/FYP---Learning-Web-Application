@@ -5,11 +5,15 @@ import { useEffect, useRef, useState } from "react";
 
 import {
   chatHref,
+  chatInitials,
+  chatName,
   formatListTime,
+  isActiveGroupMember,
   lastMessagePreview,
   presence,
   tickStatus,
   type ChatContact,
+  type ChatGroupInvite,
   type ChatSettingAction,
   type ChatSummary,
 } from "@/models/chat/chat.model";
@@ -17,6 +21,7 @@ import {
   ChevronDownIcon,
   ComposeIcon,
   EraseIcon,
+  ExitIcon,
   FileIcon,
   MuteIcon,
   PinIcon,
@@ -26,25 +31,92 @@ import {
   TrashIcon,
 } from "@/views/chat/chat-icons.view";
 import { NewChatPanel } from "@/views/chat/new-chat-panel.view";
+import { NewGroupPanel } from "@/views/chat/new-group-panel.view";
 
 type ChatFilter = "all" | "unread";
 
 interface ChatListProps {
   readonly viewerId: string;
   readonly conversations: readonly ChatSummary[];
+  readonly invites: readonly ChatGroupInvite[];
   readonly activeId: number | null;
   readonly contacts: readonly ChatContact[];
   readonly now: number;
   readonly onAction: (chat: ChatSummary, action: ChatSettingAction) => void;
+  readonly onLeaveGroup: (chat: ChatSummary) => void;
+  readonly onRespondInvite: (invite: ChatGroupInvite, accept: boolean) => Promise<void>;
+  /** Resolves to an error message, or null once the group exists. */
+  readonly onCreateGroup: (title: string, memberIds: string[]) => Promise<string | null>;
 }
 
-/** The ▾ button on a chat row: pin, mute, clear or delete that chat. */
+/** Group invitations waiting for an answer, above the chat list. */
+function GroupInvites({
+  invites,
+  onRespond,
+}: {
+  readonly invites: readonly ChatGroupInvite[];
+  readonly onRespond: (invite: ChatGroupInvite, accept: boolean) => Promise<void>;
+}) {
+  const [busyId, setBusyId] = useState<number | null>(null);
+
+  async function respond(invite: ChatGroupInvite, accept: boolean) {
+    setBusyId(invite.id);
+
+    try {
+      await onRespond(invite, accept);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <section className="chat-invites" aria-label="Group invitations">
+      <p className="chat-new-panel-section">Group invitations</p>
+      <ul>
+        {invites.map((invite) => (
+          <li className="chat-invite" key={invite.id}>
+            <span className="chat-avatar group" aria-hidden="true">{invite.initials}</span>
+            <span className="chat-contact-text">
+              <strong>{invite.title}</strong>
+              <small>
+                {invite.inviterName} invited you · {invite.memberCount} member
+                {invite.memberCount === 1 ? "" : "s"}
+              </small>
+            </span>
+            <span className="chat-invite-actions">
+              <button
+                className="button button-outline"
+                type="button"
+                disabled={busyId !== null}
+                onClick={() => void respond(invite, false)}
+              >
+                Decline
+              </button>
+              <button
+                className="button button-dark"
+                type="button"
+                disabled={busyId !== null}
+                onClick={() => void respond(invite, true)}
+              >
+                {busyId === invite.id ? "Joining..." : "Join"}
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The ▾ button on a chat row: pin, mute, clear, delete or exit that chat. */
 function ChatRowMenu({
   chat,
   onAction,
+  onLeaveGroup,
 }: {
   readonly chat: ChatSummary;
   readonly onAction: (chat: ChatSummary, action: ChatSettingAction) => void;
+  readonly onLeaveGroup: (chat: ChatSummary) => void;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -90,7 +162,7 @@ function ChatRowMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        aria-label={`Options for chat with ${chat.other.fullName}`}
+        aria-label={`Options for ${chat.group ? "group" : "chat with"} ${chatName(chat)}`}
       >
         <ChevronDownIcon />
       </button>
@@ -109,10 +181,25 @@ function ChatRowMenu({
             <EraseIcon />
             Clear chat
           </button>
-          <button type="button" role="menuitem" className="danger" onClick={() => choose("delete")}>
-            <TrashIcon />
-            Delete chat
-          </button>
+          {isActiveGroupMember(chat) ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="danger"
+              onClick={() => {
+                setOpen(false);
+                onLeaveGroup(chat);
+              }}
+            >
+              <ExitIcon />
+              Exit group
+            </button>
+          ) : (
+            <button type="button" role="menuitem" className="danger" onClick={() => choose("delete")}>
+              <TrashIcon />
+              Delete chat
+            </button>
+          )}
         </div>
       ) : null}
     </div>
@@ -125,18 +212,22 @@ function ChatRow({
   active,
   now,
   onAction,
+  onLeaveGroup,
 }: {
   readonly chat: ChatSummary;
   readonly viewerId: string;
   readonly active: boolean;
   readonly now: number;
   readonly onAction: (chat: ChatSummary, action: ChatSettingAction) => void;
+  readonly onLeaveGroup: (chat: ChatSummary) => void;
 }) {
   const last = chat.lastMessage;
-  const mine = last !== null && last.senderId === viewerId && !last.deleted;
-  const online = chat.canSend && presence(chat.other.lastSeenAt, now).online;
+  const isGroup = chat.group !== null;
+  const mine = last !== null && last.senderId === viewerId && !last.deleted && last.event === null;
+  const online = chat.canSend && chat.other !== null && presence(chat.other.lastSeenAt, now).online;
   const unread = active ? 0 : chat.unreadCount;
-  const showFileIcon = last !== null && !last.deleted && !last.body.trim() && last.attachmentName;
+  const showFileIcon =
+    last !== null && !last.deleted && last.event === null && !last.body.trim() && last.attachmentName;
 
   return (
     <li className="chat-row-item">
@@ -146,12 +237,14 @@ function ChatRow({
         aria-current={active ? "page" : undefined}
       >
         <span className="chat-avatar-wrap">
-          <span className="chat-avatar" aria-hidden="true">{chat.other.initials}</span>
+          <span className={isGroup ? "chat-avatar group" : "chat-avatar"} aria-hidden="true">
+            {chatInitials(chat)}
+          </span>
           {online ? <span className="chat-online-dot" aria-label="Online" /> : null}
         </span>
         <span className="chat-row-text">
           <span className="chat-row-top">
-            <strong>{chat.other.fullName}</strong>
+            <strong>{chatName(chat)}</strong>
             {last ? (
               <time className={unread > 0 ? "unread" : undefined} dateTime={last.createdAt}>
                 {formatListTime(last.createdAt, now)}
@@ -162,7 +255,7 @@ function ChatRow({
             <span className={last?.deleted ? "chat-row-preview deleted" : "chat-row-preview"}>
               {mine ? <TickIcon status={tickStatus(last.createdAt, chat.otherReceipt)} /> : null}
               {showFileIcon ? <FileIcon /> : null}
-              <span>{lastMessagePreview(last, viewerId, chat.clearedAt !== null)}</span>
+              <span>{lastMessagePreview(last, viewerId, chat.clearedAt !== null, isGroup)}</span>
             </span>
             <span className="chat-row-badges">
               {chat.muted ? (
@@ -187,7 +280,7 @@ function ChatRow({
           </span>
         </span>
       </Link>
-      <ChatRowMenu chat={chat} onAction={onAction} />
+      <ChatRowMenu chat={chat} onAction={onAction} onLeaveGroup={onLeaveGroup} />
     </li>
   );
 }
@@ -195,14 +288,19 @@ function ChatRow({
 export function ChatList({
   viewerId,
   conversations,
+  invites,
   activeId,
   contacts,
   now,
   onAction,
+  onLeaveGroup,
+  onRespondInvite,
+  onCreateGroup,
 }: ChatListProps) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ChatFilter>("all");
   const [newChatOpen, setNewChatOpen] = useState(false);
+  const [newGroupOpen, setNewGroupOpen] = useState(false);
   const newChatButtonRef = useRef<HTMLButtonElement>(null);
   const search = query.trim().toLowerCase();
   const unreadChats = conversations.filter(
@@ -212,13 +310,13 @@ export function ChatList({
     (chat) =>
       (filter === "all" || chat.unreadCount > 0 || chat.id === activeId) &&
       (!search ||
-        chat.other.fullName.toLowerCase().includes(search) ||
-        chat.other.username?.toLowerCase().includes(search)),
+        chatName(chat).toLowerCase().includes(search) ||
+        chat.other?.username?.toLowerCase().includes(search)),
   );
 
   return (
     <aside className="chat-sidebar" aria-label="Chats">
-      <div className="chat-sidebar-main" inert={newChatOpen}>
+      <div className="chat-sidebar-main" inert={newChatOpen || newGroupOpen}>
         <header className="chat-sidebar-header">
           <h1>Chats</h1>
           <button
@@ -241,7 +339,7 @@ export function ChatList({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search buddies"
+            placeholder="Search chats"
             autoComplete="off"
           />
         </label>
@@ -265,6 +363,10 @@ export function ChatList({
           </button>
         </div>
 
+        {invites.length > 0 && !search ? (
+          <GroupInvites invites={invites} onRespond={onRespondInvite} />
+        ) : null}
+
         {visible.length > 0 ? (
           <ul className="chat-rows">
             {visible.map((chat) => (
@@ -275,10 +377,11 @@ export function ChatList({
                 active={chat.id === activeId}
                 now={now}
                 onAction={onAction}
+                onLeaveGroup={onLeaveGroup}
               />
             ))}
           </ul>
-        ) : (
+        ) : invites.length > 0 && !search ? null : (
           <div className="chat-sidebar-empty">
             {conversations.length === 0 ? (
               contacts.length > 0 ? (
@@ -302,6 +405,28 @@ export function ChatList({
         onClose={() => {
           setNewChatOpen(false);
           newChatButtonRef.current?.focus();
+        }}
+        onNewGroup={() => {
+          setNewChatOpen(false);
+          setNewGroupOpen(true);
+        }}
+      />
+
+      <NewGroupPanel
+        open={newGroupOpen}
+        contacts={contacts}
+        onClose={() => {
+          setNewGroupOpen(false);
+          newChatButtonRef.current?.focus();
+        }}
+        onCreate={async (title, memberIds) => {
+          const error = await onCreateGroup(title, memberIds);
+
+          if (!error) {
+            setNewGroupOpen(false);
+          }
+
+          return error;
         }}
       />
     </aside>

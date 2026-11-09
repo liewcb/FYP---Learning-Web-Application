@@ -12,8 +12,10 @@ import { CloseIcon, SearchIcon } from "@/views/chat/chat-icons.view";
 
 interface ChatSearchPanelProps {
   readonly open: boolean;
-  readonly otherName: string;
+  /** "with Aina" or "in Calculus revision". */
+  readonly scope: string;
   readonly viewerId: string;
+  readonly nameFor: (userId: string) => string;
   readonly now: number;
   readonly onSearch: (query: string) => Promise<ChatSearchResult[] | null>;
   readonly onSelect: (messageId: number) => void;
@@ -54,8 +56,9 @@ function Highlighted({ text, query }: { readonly text: string; readonly query: s
 /** "Search messages": slides in from the right, like WhatsApp. */
 export function ChatSearchPanel({
   open,
-  otherName,
+  scope,
   viewerId,
+  nameFor,
   now,
   onSearch,
   onSelect,
@@ -151,7 +154,7 @@ export function ChatSearchPanel({
 
       <label className="chat-search">
         <SearchIcon />
-        <span className="visually-hidden">Search messages with {otherName}</span>
+        <span className="visually-hidden">Search messages {scope}</span>
         <input
           ref={inputRef}
           type="search"
@@ -166,7 +169,7 @@ export function ChatSearchPanel({
       <div className="chat-side-panel-body" aria-live="polite">
         {query.trim().length < chatSearchRules.minLength ? (
           <p className="chat-profile-muted chat-search-hint">
-            Search for messages with {otherName}.
+            Search for messages {scope}.
           </p>
         ) : loading ? (
           <p className="chat-profile-muted chat-search-hint">Searching...</p>
@@ -184,7 +187,7 @@ export function ChatSearchPanel({
               <li key={result.messageId}>
                 <button type="button" onClick={() => onSelect(result.messageId)}>
                   <span className="chat-search-meta">
-                    <span>{result.senderId === viewerId ? "You" : otherName}</span>
+                    <span>{result.senderId === viewerId ? "You" : nameFor(result.senderId)}</span>
                     <time dateTime={result.createdAt}>
                       {formatListTime(result.createdAt, now)}
                       {formatListTime(result.createdAt, now) === formatChatTime(result.createdAt)

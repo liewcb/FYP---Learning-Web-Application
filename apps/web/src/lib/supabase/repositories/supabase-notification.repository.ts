@@ -14,6 +14,8 @@ interface ActorRow {
 interface NotificationRow {
   id: number;
   type: string;
+  conversation_id: number | null;
+  video_call_id: number | null;
   read_at: string | null;
   created_at: string;
   actor: ActorRow | ActorRow[] | null;
@@ -30,6 +32,8 @@ function toNotification(row: NotificationRow): AppNotification | null {
     id: row.id,
     type: row.type,
     actorName: actor?.full_name.trim() || actor?.username || "A student",
+    conversationId: row.conversation_id,
+    videoCallId: row.video_call_id,
     read: row.read_at !== null,
     createdAt: row.created_at,
   };
@@ -43,7 +47,7 @@ export class SupabaseNotificationRepository implements NotificationRepository {
     const { data, error } = await this.supabase
       .from("notifications")
       .select(
-        "id, type, read_at, created_at, actor:profiles!notifications_actor_id_fkey(full_name, username)",
+        "id, type, conversation_id, video_call_id, read_at, created_at, actor:profiles!notifications_actor_id_fkey(full_name, username)",
       )
       .order("created_at", { ascending: false })
       .limit(limit);

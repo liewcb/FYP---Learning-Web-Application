@@ -54,20 +54,69 @@ export interface ChatReceipt {
   readonly lastReadAt: string | null;
 }
 
+/** Membership changes posted into a group as event messages. */
+export const chatEvents = [
+  "group_created",
+  "member_joined",
+  "member_left",
+  "member_removed",
+  "group_renamed",
+  "admin_changed",
+  "group_disbanded",
+  "call_started",
+] as const;
+
+export type ChatEvent = (typeof chatEvents)[number];
+
+export function isChatEvent(value: unknown): value is ChatEvent {
+  return typeof value === "string" && (chatEvents as readonly string[]).includes(value);
+}
+
 export interface ChatLastMessage {
   readonly id: number;
   readonly senderId: string;
+  /** Shown before group messages ("Aina: …"). */
+  readonly senderName: string;
   readonly body: string;
   readonly attachmentName: string | null;
   readonly deleted: boolean;
+  readonly event: ChatEvent | null;
+  readonly eventUserId: string | null;
+  readonly eventUserName: string | null;
   readonly createdAt: string;
+}
+
+export type ChatKind = "direct" | "group";
+
+export const chatGroupRules = {
+  /** Including the admin. */
+  maxMembers: 5,
+  maxTitleLength: 60,
+} as const;
+
+export interface ChatGroup {
+  readonly title: string;
+  readonly initials: string;
+  readonly adminId: string | null;
+  /** Current members, including the viewer while they belong to it. */
+  readonly memberCount: number;
+  readonly disbanded: boolean;
+  /** Why the viewer is no longer a member, or null while they are. */
+  readonly leftReason: "left" | "removed" | null;
 }
 
 /** One row of the chat list. */
 export interface ChatSummary {
   readonly id: number;
-  readonly other: ChatParticipant;
-  /** False once the students are no longer study buddies, or either blocked the other. */
+  readonly kind: ChatKind;
+  /** The other student of a direct chat; null for groups. */
+  readonly other: ChatParticipant | null;
+  /** Null for direct chats. */
+  readonly group: ChatGroup | null;
+  /**
+   * Direct: false once the students are no longer study buddies, or either
+   * blocked the other. Group: false once the viewer left or it was disbanded.
+   */
   readonly canSend: boolean;
   readonly isBuddy: boolean;
   readonly blockedByMe: boolean;
@@ -79,9 +128,38 @@ export interface ChatSummary {
   /** Deleted by the viewer and no newer message since. */
   readonly hidden: boolean;
   readonly myLastReadAt: string | null;
+  /** In a group, the receipt of the slowest current member. */
   readonly otherReceipt: ChatReceipt;
   readonly lastMessage: ChatLastMessage | null;
   readonly unreadCount: number;
+  readonly createdAt: string;
+}
+
+/** A member, former member or invited student of a group. */
+export interface ChatGroupMember {
+  readonly id: string;
+  readonly fullName: string;
+  readonly username: string | null;
+  readonly initials: string;
+  readonly academicLine: string | null;
+  /** Shared between study buddies only. */
+  readonly lastSeenAt: string | null;
+  readonly isBuddy: boolean;
+  readonly status: "member" | "left" | "removed" | "invited";
+  /** Set for invited students, so the admin can cancel the invitation. */
+  readonly inviteId: number | null;
+  /** When they joined, or were invited. */
+  readonly since: string;
+}
+
+/** An invitation waiting for the viewer's answer. */
+export interface ChatGroupInvite {
+  readonly id: number;
+  readonly groupId: number;
+  readonly title: string;
+  readonly initials: string;
+  readonly inviterName: string;
+  readonly memberCount: number;
   readonly createdAt: string;
 }
 
@@ -109,6 +187,10 @@ export interface ChatMessage {
   readonly body: string;
   readonly replyTo: ChatReplyPreview | null;
   readonly attachment: ChatAttachment | null;
+  /** Set on group membership events; the sender is who acted. */
+  readonly event: ChatEvent | null;
+  /** The student an event is about, e.g. who was removed. */
+  readonly eventUserId: string | null;
   readonly createdAt: string;
   readonly deletedAt: string | null;
 }
@@ -125,6 +207,8 @@ export interface ActiveChat {
   readonly hasMore: boolean;
   /** The first message that was unread when the chat was opened. */
   readonly firstUnreadId: number | null;
+  /** Group members, former members and invitations; empty for direct chats. */
+  readonly members: readonly ChatGroupMember[];
 }
 
 /** A study buddy who can be messaged from the New chat dialog. */
@@ -149,6 +233,7 @@ export interface ChatPageModel {
   readonly viewerId: string;
   readonly generatedAt: string;
   readonly conversations: readonly ChatSummary[];
+  readonly invites: readonly ChatGroupInvite[];
   readonly active: ActiveChat | null;
   readonly contacts: readonly ChatContact[];
   readonly documents: readonly ShareableDocument[];
@@ -158,6 +243,11 @@ export interface ChatPageModel {
 export interface ChatSyncResult {
   readonly summary: ChatSummary;
   readonly messages: readonly ChatMessage[];
+}
+
+export interface ChatListRefresh {
+  readonly conversations: readonly ChatSummary[];
+  readonly invites: readonly ChatGroupInvite[];
 }
 
 export interface ChatOlderMessages {
@@ -221,6 +311,114 @@ export const chatReportDetailsMaxLength = 1000;
 
 export type ChatReportOutcome = "reported" | "duplicate" | "invalid" | "not_found" | "unauthenticated";
 
+/** Group management requests from the group info panel. */
+export type ChatGroupCommand =
+  | { readonly type: "invite"; readonly studentId: string }
+  | { readonly type: "cancel_invite"; readonly inviteId: number }
+  | { readonly type: "remove"; readonly studentId: string }
+  | { readonly type: "make_admin"; readonly studentId: string }
+  | { readonly type: "rename"; readonly title: string }
+  | { readonly type: "leave" }
+  | { readonly type: "disband" };
+
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isStudentId(value: unknown): value is string {
+  return typeof value === "string" && uuidPattern.test(value);
+}
+
+/** Validates a command received by a Server Action. */
+export function parseGroupCommand(value: unknown): ChatGroupCommand | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+
+  const command = value as Record<string, unknown>;
+
+  switch (command.type) {
+    case "invite":
+    case "remove":
+    case "make_admin":
+      return isStudentId(command.studentId)
+        ? { type: command.type, studentId: command.studentId }
+        : null;
+    case "cancel_invite": {
+      const inviteId = parseChatId(command.inviteId);
+      return inviteId === null ? null : { type: "cancel_invite", inviteId };
+    }
+    case "rename":
+      return typeof command.title === "string" ? { type: "rename", title: command.title } : null;
+    case "leave":
+    case "disband":
+      return { type: command.type };
+    default:
+      return null;
+  }
+}
+
+export interface ChatGroupCreateState {
+  readonly groupId?: number;
+  readonly error?: string;
+}
+
+export interface ChatInviteResponseState {
+  readonly groupId?: number;
+  readonly notice?: string;
+  readonly error?: string;
+}
+
+/** Checks a group name before it is sent; null when it is fine. */
+export function validateGroupTitle(title: string): string | null {
+  const trimmed = title.trim();
+
+  if (!trimmed) {
+    return "Give the group a name.";
+  }
+
+  return trimmed.length > chatGroupRules.maxTitleLength
+    ? `Group names can be up to ${chatGroupRules.maxTitleLength} characters.`
+    : null;
+}
+
+/** Error text for a group database outcome, or null on success. */
+export function groupOutcomeError(outcome: string): string | null {
+  switch (outcome) {
+    case "created":
+    case "invited":
+    case "cancelled":
+    case "joined":
+    case "declined":
+    case "left":
+    case "done":
+      return null;
+    case "invalid_title":
+      return validateGroupTitle("") ?? "Choose a different group name.";
+    case "no_members":
+      return "Choose at least one study buddy to invite.";
+    case "too_many":
+    case "full":
+      return `Groups can have up to ${chatGroupRules.maxMembers} members, including invitations.`;
+    case "not_buddies":
+      return "You can invite your own study buddies, or students who were in this group before.";
+    case "already_member":
+      return "This student is already in the group.";
+    case "already_invited":
+      return "This student has already been invited.";
+    case "recently_declined":
+      return "This student declined recently. Try again tomorrow.";
+    case "not_admin":
+      return "Only the group admin can do that.";
+    case "closed":
+      return "This group has been disbanded.";
+    case "rate_limited":
+      return "You have created several groups recently. Wait a while and try again.";
+    case "unauthenticated":
+      return "Your session expired. Sign in and try again.";
+    default:
+      return "This group could not be updated.";
+  }
+}
+
 export interface ChatReportState {
   readonly notice?: string;
   readonly error?: string;
@@ -274,6 +472,8 @@ export type ChatSendOutcome =
   | "not_found"
   | "not_buddies"
   | "blocked"
+  | "not_member"
+  | "closed"
   | "empty"
   | "too_long"
   | "invalid_attachment"
@@ -288,6 +488,8 @@ export const chatSendOutcomes: readonly ChatSendOutcome[] = [
   "not_found",
   "not_buddies",
   "blocked",
+  "not_member",
+  "closed",
   "empty",
   "too_long",
   "invalid_attachment",
@@ -312,6 +514,10 @@ export function sendOutcomeError(outcome: ChatSendOutcome): string | null {
       return "You can only message students who are your study buddies.";
     case "blocked":
       return "Messages cannot be sent in this chat.";
+    case "not_member":
+      return "You are no longer a member of this group.";
+    case "closed":
+      return "This group has been disbanded.";
     case "empty":
       return "Type a message or attach a file.";
     case "too_long":
@@ -334,6 +540,7 @@ export interface ChatMessageEvent {
   readonly senderId: string;
   readonly body: string;
   readonly attachmentName: string | null;
+  readonly event: ChatEvent | null;
   readonly createdAt: string;
   readonly deletedAt: string | null;
 }
@@ -394,12 +601,44 @@ export function isListedChat(chat: ChatSummary): boolean {
   return !chat.hidden && (chat.lastMessage !== null || chat.clearedAt !== null);
 }
 
+/** The name shown for a chat: the other student, or the group. */
+export function chatName(chat: ChatSummary): string {
+  return chat.group?.title ?? chat.other?.fullName ?? "Chat";
+}
+
+export function chatInitials(chat: ChatSummary): string {
+  return chat.group?.initials ?? chat.other?.initials ?? "";
+}
+
+export function groupInitials(title: string): string {
+  return participantInitials(title, null);
+}
+
+export function isGroupAdmin(chat: ChatSummary, viewerId: string): boolean {
+  return chat.group !== null && chat.group.adminId === viewerId && chat.canSend;
+}
+
+/** A current member of a group that still exists. */
+export function isActiveGroupMember(chat: ChatSummary): boolean {
+  return chat.group !== null && chat.group.leftReason === null && !chat.group.disbanded;
+}
+
+export type ReadOnlyReason =
+  | "blocked_by_me"
+  | "blocked_me"
+  | "not_buddies"
+  | "left"
+  | "removed"
+  | "disbanded";
+
 /** Why the composer is replaced by a notice, or null when sending is allowed. */
-export function readOnlyReason(
-  chat: ChatSummary,
-): "blocked_by_me" | "blocked_me" | "not_buddies" | null {
+export function readOnlyReason(chat: ChatSummary): ReadOnlyReason | null {
   if (chat.canSend) {
     return null;
+  }
+
+  if (chat.group) {
+    return chat.group.leftReason ?? "disbanded";
   }
 
   if (chat.blockedByMe) {
@@ -407,6 +646,71 @@ export function readOnlyReason(
   }
 
   return chat.blockedMe ? "blocked_me" : "not_buddies";
+}
+
+/** Current members first (admin on top), then invitations, then former members. */
+export function sortGroupMembers(
+  members: readonly ChatGroupMember[],
+  adminId: string | null,
+): ChatGroupMember[] {
+  const rank = (member: ChatGroupMember) =>
+    member.status === "member" ? (member.id === adminId ? 0 : 1) : member.status === "invited" ? 2 : 3;
+
+  return [...members].sort(
+    (a, b) => rank(a) - rank(b) || Date.parse(a.since) - Date.parse(b.since),
+  );
+}
+
+/** Looks up display names for the senders of a group's messages. */
+export function memberNames(members: readonly ChatGroupMember[]): ReadonlyMap<string, string> {
+  return new Map(
+    members.filter((member) => member.status !== "invited").map((member) => [member.id, member.fullName]),
+  );
+}
+
+/** "You, Aina, Wei" under the group name. */
+export function groupMembersLine(
+  members: readonly ChatGroupMember[],
+  viewerId: string,
+): string {
+  const current = members.filter((member) => member.status === "member");
+  const others = current.filter((member) => member.id !== viewerId).map((member) => member.fullName);
+
+  return (current.some((member) => member.id === viewerId) ? ["You", ...others] : others).join(", ");
+}
+
+/** "Aina removed Wei" for an event message. */
+export function chatEventText(
+  event: ChatEvent,
+  options: {
+    readonly actorName: string;
+    readonly targetName: string | null;
+    readonly body: string;
+    readonly actorIsViewer: boolean;
+    readonly targetIsViewer: boolean;
+  },
+): string {
+  const actor = options.actorIsViewer ? "You" : options.actorName;
+  const target = options.targetIsViewer ? "you" : (options.targetName ?? "a member");
+
+  switch (event) {
+    case "group_created":
+      return `${actor} created the group “${options.body}”`;
+    case "member_joined":
+      return `${actor} joined`;
+    case "member_left":
+      return `${actor} left`;
+    case "member_removed":
+      return `${actor} removed ${target}`;
+    case "group_renamed":
+      return `${actor} renamed the group to “${options.body}”`;
+    case "admin_changed":
+      return options.targetIsViewer ? "You are now the group admin" : `${options.targetName ?? "A member"} is now the group admin`;
+    case "group_disbanded":
+      return `${actor} disbanded the group`;
+    case "call_started":
+      return `${actor} started a video call`;
+  }
 }
 
 export type TickStatus = "sent" | "delivered" | "read";
@@ -544,16 +848,32 @@ export function lastMessagePreview(
   message: ChatLastMessage | null,
   viewerId: string,
   cleared = false,
+  isGroup = false,
 ): string {
   if (!message) {
-    return cleared ? "" : "You are now study buddies. Say hi!";
+    return cleared || isGroup ? "" : "You are now study buddies. Say hi!";
+  }
+
+  const mine = message.senderId === viewerId;
+
+  if (message.event) {
+    return chatEventText(message.event, {
+      actorName: message.senderName,
+      targetName: message.eventUserName,
+      body: message.body,
+      actorIsViewer: mine,
+      targetIsViewer: message.eventUserId === viewerId,
+    });
   }
 
   if (message.deleted) {
-    return message.senderId === viewerId ? "You deleted this message" : "This message was deleted";
+    return mine ? "You deleted this message" : "This message was deleted";
   }
 
-  return message.body.trim() || message.attachmentName || "Attachment";
+  const text = message.body.trim() || message.attachmentName || "Attachment";
+
+  // Groups say who wrote it; the viewer's own messages already show ticks.
+  return isGroup && !mine && message.senderName ? `${message.senderName}: ${text}` : text;
 }
 
 export function replyPreviewText(reply: ChatReplyPreview): string {
