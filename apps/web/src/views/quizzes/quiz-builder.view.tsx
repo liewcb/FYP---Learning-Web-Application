@@ -4,18 +4,34 @@ import Link from "next/link";
 import { useActionState } from "react";
 
 import type {
+  QuizAnswers,
   QuizGenerationFormState,
   SavedQuiz,
   SavedQuizSummary,
 } from "@/models/quiz/quiz.model";
+import {
+  gradeGeneratedQuizLocally,
+  questionsFromGeneratedQuiz,
+  type QuizAttemptOutcome,
+  type QuizAttemptSummary,
+} from "@/models/quiz/quiz-attempt.model";
 import type { DocumentStudySource } from "@/models/document/document.model";
 import { InteractiveQuizView } from "@/views/quizzes/interactive-quiz.view";
+import { formatAttemptDate } from "@/views/quizzes/quiz-display";
+
+export type SubmitQuizAttempt = (
+  quizId: number,
+  answers: Record<string, string>,
+  startedAt: string | null,
+) => Promise<QuizAttemptOutcome>;
 
 interface QuizBuilderViewProps {
   readonly source: DocumentStudySource | null;
   readonly sourceNotice?: string;
   readonly savedQuizzes: readonly SavedQuizSummary[];
   readonly selectedQuiz: SavedQuiz | null;
+  readonly selectedQuizAttempts: readonly QuizAttemptSummary[];
+  readonly submitAttemptAction: SubmitQuizAttempt;
   readonly action: (
     state: QuizGenerationFormState,
     formData: FormData,
@@ -36,36 +52,37 @@ const typeLabels = {
   short_answer: "Short answer",
 } as const;
 
-function SavedQuizView({ quiz }: { readonly quiz: SavedQuiz }) {
+function toAnswerRecord(answers: QuizAnswers): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(answers).map(([position, answer]) => [position, answer]),
+  );
+}
+
+function PastAttempts({ attempts }: { readonly attempts: readonly QuizAttemptSummary[] }) {
+  if (attempts.length === 0) {
+    return null;
+  }
+
   return (
-    <>
-      <div className="result-heading">
-        <div>
-          <p className="section-kicker">Saved assessment</p>
-          <h2>{quiz.title}</h2>
-          <p>{quiz.questionCount} questions · {quiz.difficulty} difficulty</p>
-        </div>
-        <span className="status-chip ready">Saved</span>
+    <section className="saved-quiz-history" aria-labelledby="past-attempts-title">
+      <div>
+        <p className="section-kicker">This quiz</p>
+        <h2 id="past-attempts-title">Your previous attempts</h2>
       </div>
-
-      <p className="saved-result-note">
-        This is your saved question set. Generate a new quiz whenever you want fresh practice.
-      </p>
-
-      <ol className="saved-quiz-questions">
-        {quiz.questions.map((question) => (
-          <li key={question.id}>
-            <span>Question {question.position}</span>
-            <strong>{question.prompt}</strong>
-            {question.options.length > 0 ? (
-              <ul>
-                {question.options.map((option) => <li key={option}>{option}</li>)}
-              </ul>
-            ) : <small>Short answer</small>}
+      <ul>
+        {attempts.map((attempt) => (
+          <li key={attempt.id}>
+            <div>
+              <strong>{attempt.percentage}%</strong>
+              <span>
+                {attempt.score}/{attempt.maxScore} correct · {formatAttemptDate(attempt.submittedAt)}
+              </span>
+            </div>
+            <Link href={`/quizzes/attempts/${attempt.id}`}>Review</Link>
           </li>
         ))}
-      </ol>
-    </>
+      </ul>
+    </section>
   );
 }
 
@@ -75,6 +92,8 @@ export function QuizBuilderView({
   sourceNotice,
   savedQuizzes,
   selectedQuiz,
+  selectedQuizAttempts,
+  submitAttemptAction,
 }: QuizBuilderViewProps) {
   const [state, formAction, pending] = useActionState(action, {});
   const values = state.values ?? {
@@ -83,6 +102,7 @@ export function QuizBuilderView({
     text: source?.text ?? "",
   };
   const result = state.result;
+  const savedQuizId = state.savedQuizId;
 
   return (
     <div className="quiz-workspace">
@@ -207,18 +227,42 @@ export function QuizBuilderView({
       <section className="quiz-preview" aria-live="polite" aria-label="Generated quiz">
         {result ? (
           <InteractiveQuizView
-            key={`${result.title}-${result.questions.map((question) => question.prompt).join("|")}`}
-            quiz={result}
+            key={`${savedQuizId ?? "local"}-${result.questions.map((question) => question.prompt).join("|")}`}
+            kicker="Generated assessment"
+            title={result.title}
+            subtitle={`${result.questions.length} questions · ${result.difficulty} difficulty`}
+            questions={questionsFromGeneratedQuiz(result)}
+            recordsAttempts={savedQuizId !== undefined}
+            footnote={`Generated with ${result.model}`}
+            grade={async (answers, startedAt) =>
+              savedQuizId !== undefined
+                ? submitAttemptAction(savedQuizId, toAnswerRecord(answers), startedAt)
+                : { ok: true, result: gradeGeneratedQuizLocally(result, answers) }
+            }
           />
         ) : selectedQuiz ? (
-          <SavedQuizView quiz={selectedQuiz} />
+          <>
+            <InteractiveQuizView
+              key={selectedQuiz.id}
+              kicker="Saved assessment"
+              title={selectedQuiz.title}
+              subtitle={`${selectedQuiz.questionCount} questions · ${selectedQuiz.difficulty} difficulty`}
+              questions={selectedQuiz.questions}
+              recordsAttempts
+              grade={(answers, startedAt) =>
+                submitAttemptAction(selectedQuiz.id, toAnswerRecord(answers), startedAt)
+              }
+            />
+            <PastAttempts attempts={selectedQuizAttempts} />
+          </>
         ) : (
           <div className="result-empty">
             <span aria-hidden="true">?</span>
             <h2>Your generated quiz will appear here</h2>
             <p>
               Choose the settings and learning material to create a grounded
-              assessment. Answers remain hidden until you submit the quiz.
+              assessment, or pick a saved quiz below to practise again. Answers
+              stay hidden until you submit.
             </p>
           </div>
         )}
@@ -228,6 +272,9 @@ export function QuizBuilderView({
             <div>
               <p className="section-kicker">Your assessments</p>
               <h2 id="saved-quizzes-title">Saved quizzes</h2>
+              <Link className="text-action" href="/quizzes/attempts">
+                Attempt history <span aria-hidden="true">→</span>
+              </Link>
             </div>
             <ul>
               {savedQuizzes.map((quiz) => (
@@ -236,7 +283,9 @@ export function QuizBuilderView({
                     <strong>{quiz.title}</strong>
                     <span>{quiz.questionCount} questions · {quiz.difficulty}</span>
                   </div>
-                  <Link href={`/quizzes?quizId=${quiz.id}`}>View</Link>
+                  <Link href={`/quizzes?quizId=${quiz.id}`}>
+                    {selectedQuiz?.id === quiz.id ? "Open" : "Take quiz"}
+                  </Link>
                 </li>
               ))}
             </ul>

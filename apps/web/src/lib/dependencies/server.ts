@@ -12,6 +12,7 @@ import { NotificationController } from "@/controllers/notifications/notification
 import { StudyBuddyController } from "@/controllers/peers/study-buddy.controller";
 import { ProfileController } from "@/controllers/profile/profile.controller";
 import { QuizController } from "@/controllers/quizzes/quiz.controller";
+import { QuizAttemptController } from "@/controllers/quizzes/quiz-attempt.controller";
 import { RevisionController } from "@/controllers/revision/revision.controller";
 import { VideoCallController } from "@/controllers/video/video-call.controller";
 import { LiveKitVideoRoomService } from "@/lib/livekit/livekit-video-room.service";
@@ -22,6 +23,7 @@ import { SupabaseChatRepository } from "@/lib/supabase/repositories/supabase-cha
 import { SupabaseDocumentRepository } from "@/lib/supabase/repositories/supabase-document.repository";
 import { SupabaseForumRepository } from "@/lib/supabase/repositories/supabase-forum.repository";
 import { SupabaseLearningResultsRepository } from "@/lib/supabase/repositories/supabase-learning-results.repository";
+import { SupabaseQuizAttemptRepository } from "@/lib/supabase/repositories/supabase-quiz-attempt.repository";
 import { SupabaseNotificationRepository } from "@/lib/supabase/repositories/supabase-notification.repository";
 import { SupabaseProfileRepository } from "@/lib/supabase/repositories/supabase-profile.repository";
 import { SupabaseRevisionRepository } from "@/lib/supabase/repositories/supabase-revision.repository";
@@ -59,6 +61,12 @@ export async function createQuizController(): Promise<QuizController> {
     new SupabaseDocumentRepository(supabase),
     new SupabaseLearningResultsRepository(supabase),
   );
+}
+
+export async function createQuizAttemptController(): Promise<QuizAttemptController> {
+  const supabase = await createClient();
+
+  return new QuizAttemptController(new SupabaseQuizAttemptRepository(supabase));
 }
 
 export async function createLearningResultsController(): Promise<LearningResultsController> {

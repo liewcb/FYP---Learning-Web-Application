@@ -58,11 +58,32 @@ export interface ContentAnalysisRequest {
   readonly max_topics: number;
 }
 
+export type ContentAnalysisLimits = Omit<ContentAnalysisRequest, "sentences">;
+
+/** Pasted text is the only value a student supplies; the system sizes the analysis. */
 export interface ContentAnalysisFormValues {
   readonly text: string;
-  readonly topKeywords: string;
-  readonly topSentences: string;
-  readonly maxTopics: string;
+}
+
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+/**
+ * Scales the analysis to the material so students never have to guess how
+ * many keywords, key sentences or topics a document contains. Longer
+ * material earns more keywords and highlights, with ceilings that keep the
+ * results readable. max_topics is only an upper bound: the analyser picks
+ * the number of coherent topics itself.
+ */
+export function automaticAnalysisLimits(sentenceCount: number): ContentAnalysisLimits {
+  const count = Math.max(1, sentenceCount);
+
+  return {
+    top_keywords: clamp(Math.round(4 + Math.sqrt(count) * 1.2), 5, 20),
+    top_sentences: clamp(Math.ceil(count * 0.08), 3, 12),
+    max_topics: 10,
+  };
 }
 
 export interface ContentAnalysisFormState {

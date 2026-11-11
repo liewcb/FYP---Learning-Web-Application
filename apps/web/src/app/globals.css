@@ -9382,3 +9382,293 @@ a.student-avatar {
     grid-template-columns: 1fr;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Content analysis: one-click source picker (no tuning inputs).        */
+/* ------------------------------------------------------------------ */
+.analysis-form [hidden] {
+  display: none !important;
+}
+
+.source-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 4px;
+  background: var(--surface-soft);
+}
+
+.source-switch button {
+  border: 0;
+  border-radius: 9px;
+  padding: 9px 12px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.source-switch button:hover {
+  color: var(--heading);
+}
+
+.source-switch button.active {
+  background: var(--surface);
+  box-shadow: 0 1px 4px var(--shadow-tint);
+  color: var(--heading);
+}
+
+.source-switch button:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.analysis-form .document-source-callout {
+  display: grid;
+  gap: 4px;
+}
+
+.document-source-callout .analysis-state {
+  justify-self: start;
+  margin-top: 4px;
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.document-source-callout .analysis-state.done {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.analysis-no-sources {
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 14px;
+  padding: 16px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.analysis-no-sources strong {
+  color: var(--heading);
+}
+
+.analysis-no-sources p {
+  margin: 4px 0 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Quiz attempts: stored grading, history and review.                   */
+/* ------------------------------------------------------------------ */
+.quiz-score-summary.needs-work {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: var(--accent-soft);
+}
+
+.quiz-score-summary.needs-work .quiz-score-value {
+  border-right-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.quiz-score-summary.needs-work .quiz-score-value strong {
+  color: var(--accent-ink);
+}
+
+ul.quiz-review-options {
+  list-style: none;
+}
+
+.quiz-review-options .quiz-answer-option {
+  cursor: default;
+}
+
+.quiz-review-tag {
+  margin-left: 8px;
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.quiz-review-response {
+  margin: 0 0 4px;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.quiz-local-note {
+  margin: 0 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.saved-quiz-history > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: 12px;
+}
+
+.saved-quiz-history > div:first-child .section-kicker {
+  flex-basis: 100%;
+}
+
+.attempt-history-card {
+  margin-top: 4px;
+}
+
+.attempt-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attempt-list li {
+  display: grid;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.attempt-score {
+  display: grid;
+  min-width: 64px;
+  place-items: center;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.attempt-score.steady {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.attempt-score.weak {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.attempt-score strong {
+  font-size: 1.05rem;
+}
+
+.attempt-score span {
+  color: var(--muted);
+  font-size: 0.66rem;
+}
+
+.attempt-main {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.attempt-main strong {
+  overflow: hidden;
+  color: var(--heading);
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attempt-main > span {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.attempt-bar {
+  height: 6px;
+  overflow: hidden;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+}
+
+.attempt-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.attempt-actions {
+  display: flex;
+  gap: 14px;
+}
+
+.attempt-actions a,
+.attempt-back {
+  color: var(--primary-dark);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.attempt-actions a:hover,
+.attempt-back:hover {
+  text-decoration: underline;
+}
+
+.attempt-review {
+  min-height: 0;
+}
+
+.attempt-back {
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .attempt-list li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .attempt-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
+
+.quiz-summary-strip.attempt-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.attempt-stats strong {
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.attempt-stats small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+@media (max-width: 760px) {
+  .quiz-summary-strip.attempt-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

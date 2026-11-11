@@ -1,7 +1,7 @@
 import type { DocumentRepository } from "@/interfaces/repositories/document.repository";
 import type { AiService } from "@/interfaces/services/ai-service.interface";
 import {
-  parseBoundedInteger,
+  automaticAnalysisLimits,
   prepareLearningText,
   type ContentAnalysisFormState,
   type ContentAnalysisFormValues,
@@ -17,20 +17,7 @@ export class ContentAnalysisController {
     values: ContentAnalysisFormValues,
     documentId: number | null = null,
   ): Promise<ContentAnalysisFormState> {
-    const prepared = prepareLearningText(values.text);
-
-    if (!prepared.ok) {
-      return { error: prepared.error, values };
-    }
-
     try {
-      const request = {
-        sentences: prepared.sentences,
-        top_keywords: parseBoundedInteger(values.topKeywords, 10, 1, 30),
-        top_sentences: parseBoundedInteger(values.topSentences, 5, 1, 20),
-        max_topics: parseBoundedInteger(values.maxTopics, 5, 1, 10),
-      };
-
       if (documentId !== null) {
         // The AI service uses a server-only key, so confirm ownership with the
         // current session before asking it to save data for this document.
@@ -43,12 +30,36 @@ export class ContentAnalysisController {
           };
         }
 
-        const result = await this.aiService.analyseAndSaveDocument(documentId, request);
+        // Analyse the stored, preprocessed sentences rather than text posted
+        // by the browser, so the saved analysis always matches the upload.
+        const content = await this.documents.findContent(documentId);
+
+        if (!content || content.sentences.length === 0) {
+          return {
+            error: "No readable text was found in this document.",
+            values,
+          };
+        }
+
+        const sentences = content.sentences.slice(0, 500);
+        const result = await this.aiService.analyseAndSaveDocument(documentId, {
+          sentences,
+          ...automaticAnalysisLimits(sentences.length),
+        });
 
         return { result, values, savedAnalysisId: result.analysis_id };
       }
 
-      const result = await this.aiService.analyseContent(request);
+      const prepared = prepareLearningText(values.text);
+
+      if (!prepared.ok) {
+        return { error: prepared.error, values };
+      }
+
+      const result = await this.aiService.analyseContent({
+        sentences: prepared.sentences,
+        ...automaticAnalysisLimits(prepared.sentences.length),
+      });
 
       return { result, values };
     } catch (error) {

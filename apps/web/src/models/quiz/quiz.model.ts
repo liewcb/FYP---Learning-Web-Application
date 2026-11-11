@@ -85,12 +85,16 @@ export interface QuizScore {
   readonly percentage: number;
 }
 
-function normaliseAnswer(value: string): string {
+/**
+ * Mirrors private.normalise_quiz_answer() so local and stored grades agree.
+ * Punctuation becomes a space, so "fault-tree" matches "fault tree".
+ */
+export function normaliseAnswer(value: string): string {
   return value
-    .trim()
     .toLocaleLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, "")
-    .replace(/\s+/g, " ");
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** Grades generated answers consistently without requiring another AI request. */
@@ -98,7 +102,9 @@ export function isCorrectQuizAnswer(
   question: GeneratedQuizQuestion,
   answer: string | undefined,
 ): boolean {
-  return normaliseAnswer(answer ?? "") === normaliseAnswer(question.correct_answer);
+  const given = normaliseAnswer(answer ?? "");
+
+  return given !== "" && given === normaliseAnswer(question.correct_answer);
 }
 
 export function calculateQuizScore(

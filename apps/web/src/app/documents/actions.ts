@@ -145,9 +145,6 @@ export async function analyseContentAction(
 ): Promise<ContentAnalysisFormState> {
   const values: ContentAnalysisFormValues = {
     text: field(formData, "text"),
-    topKeywords: field(formData, "topKeywords"),
-    topSentences: field(formData, "topSentences"),
-    maxTopics: field(formData, "maxTopics"),
   };
 
   const profiles = await createProfileController();

@@ -2,16 +2,18 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { signOutAction } from "@/app/auth/actions";
-import { generateQuizAction } from "@/app/quizzes/actions";
+import { generateQuizAction, submitQuizAttemptAction } from "@/app/quizzes/actions";
 import {
   createDocumentController,
   createLearningResultsController,
   createProfileController,
+  createQuizAttemptController,
 } from "@/lib/dependencies/server";
 import { adminBasePath } from "@/models/admin/admin.model";
 import { authRoutes } from "@/models/auth/auth-routes";
 import type { DocumentStudySource } from "@/models/document/document.model";
 import type { SavedQuiz } from "@/models/quiz/quiz.model";
+import type { QuizAttemptSummary } from "@/models/quiz/quiz-attempt.model";
 import { QuizzesView } from "@/views/quizzes/quizzes.view";
 
 export const metadata: Metadata = {
@@ -44,9 +46,14 @@ export default async function QuizzesPage({ searchParams }: QuizzesPageProps) {
   const requestedDocumentId = parseDocumentId(params.documentId);
   const requestedQuizId = parseDocumentId(params.quizId);
   const learningResults = await createLearningResultsController();
-  const [savedQuizzes, selectedQuiz] = await Promise.all([
+  const attempts = await createQuizAttemptController();
+  const [savedQuizzes, selectedQuiz, selectedQuizAttempts, history] = await Promise.all([
     learningResults.savedQuizzes(),
     requestedQuizId ? learningResults.savedQuiz(requestedQuizId) : Promise.resolve<SavedQuiz | null>(null),
+    requestedQuizId
+      ? attempts.forQuiz(requestedQuizId)
+      : Promise.resolve<QuizAttemptSummary[]>([]),
+    attempts.history(),
   ]);
   let quizSource: DocumentStudySource | null = null;
   let sourceNotice: string | undefined;
@@ -81,6 +88,9 @@ export default async function QuizzesPage({ searchParams }: QuizzesPageProps) {
       sourceNotice={sourceNotice}
       savedQuizzes={savedQuizzes}
       selectedQuiz={selectedQuiz}
+      selectedQuizAttempts={selectedQuizAttempts}
+      attemptCount={history.performance.attemptCount}
+      submitAttemptAction={submitQuizAttemptAction}
     />
   );
 }

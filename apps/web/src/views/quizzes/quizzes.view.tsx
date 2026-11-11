@@ -5,7 +5,12 @@ import type { Viewer } from "@/models/profile/profile.model";
 import type { DocumentStudySource } from "@/models/document/document.model";
 import type { QuizGenerationFormState } from "@/models/quiz/quiz.model";
 import type { SavedQuiz, SavedQuizSummary } from "@/models/quiz/quiz.model";
-import { QuizBuilderView } from "@/views/quizzes/quiz-builder.view";
+import type { QuizAttemptSummary } from "@/models/quiz/quiz-attempt.model";
+import {
+  QuizBuilderView,
+  type SubmitQuizAttempt,
+} from "@/views/quizzes/quiz-builder.view";
+import { QuizTabs } from "@/views/quizzes/quiz-tabs.view";
 import { StudentTopbar } from "@/views/student/student-topbar.view";
 
 interface QuizzesViewProps {
@@ -19,6 +24,9 @@ interface QuizzesViewProps {
   readonly sourceNotice?: string;
   readonly savedQuizzes: readonly SavedQuizSummary[];
   readonly selectedQuiz: SavedQuiz | null;
+  readonly selectedQuizAttempts: readonly QuizAttemptSummary[];
+  readonly attemptCount: number;
+  readonly submitAttemptAction: SubmitQuizAttempt;
 }
 
 export function QuizzesView({
@@ -29,6 +37,9 @@ export function QuizzesView({
   sourceNotice,
   savedQuizzes,
   selectedQuiz,
+  selectedQuizAttempts,
+  attemptCount,
+  submitAttemptAction,
 }: QuizzesViewProps) {
   return (
     <main className="student-app">
@@ -54,6 +65,8 @@ export function QuizzesView({
           </Link>
         </header>
 
+        <QuizTabs active="practise" attemptCount={attemptCount} />
+
         <section className="quiz-summary-strip" aria-label="Quiz workflow status">
           <div>
             <span>Source</span>
@@ -76,6 +89,8 @@ export function QuizzesView({
           sourceNotice={sourceNotice}
           savedQuizzes={savedQuizzes}
           selectedQuiz={selectedQuiz}
+          selectedQuizAttempts={selectedQuizAttempts}
+          submitAttemptAction={submitAttemptAction}
         />
       </div>
     </main>

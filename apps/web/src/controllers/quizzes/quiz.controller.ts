@@ -2,6 +2,7 @@ import type { DocumentRepository } from "@/interfaces/repositories/document.repo
 import type { LearningResultsRepository } from "@/interfaces/repositories/learning-results.repository";
 import type { AiService } from "@/interfaces/services/ai-service.interface";
 import {
+  automaticAnalysisLimits,
   parseBoundedInteger,
   prepareLearningText,
 } from "@/models/analysis/content-analysis.model";
@@ -73,9 +74,7 @@ export class QuizController {
         if (!analysis) {
           const savedAnalysis = await this.aiService.analyseAndSaveDocument(documentId, {
             sentences: prepared.sentences,
-            top_keywords: 10,
-            top_sentences: 5,
-            max_topics: 5,
+            ...automaticAnalysisLimits(prepared.sentences.length),
           });
 
           analysis = {
