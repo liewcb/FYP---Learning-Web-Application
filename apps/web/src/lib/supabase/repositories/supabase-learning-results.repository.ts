@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LearningResultsRepository } from "@/interfaces/repositories/learning-results.repository";
 import type {
   AnalysisConcept,
+  AnalysisSelection,
   AnalysisTopic,
   ContentAnalysisResult,
   ImportantSentence,
@@ -122,6 +123,32 @@ function concepts(value: unknown): AnalysisConcept[] {
   });
 }
 
+function selection(value: unknown): AnalysisSelection | undefined {
+  if (typeof value !== "object" || value === null) {
+    return undefined;
+  }
+
+  const item = value as Record<string, unknown>;
+  const count = (key: string) =>
+    typeof item[key] === "number" ? (item[key] as number) : null;
+  const keywords = count("keyword_count");
+  const sentences = count("important_sentence_count");
+  const topicCount = count("topic_count");
+
+  if (keywords === null || sentences === null || topicCount === null) {
+    return undefined;
+  }
+
+  return {
+    automatic: item.automatic === true,
+    keyword_count: keywords,
+    important_sentence_count: sentences,
+    topic_count: topicCount,
+    topic_silhouette: count("topic_silhouette"),
+    notes: strings(item.notes),
+  };
+}
+
 function analysisResult(row: AnalysisRow): ContentAnalysisResult {
   const model =
     typeof row.model_info === "object" && row.model_info !== null
@@ -146,6 +173,7 @@ function analysisResult(row: AnalysisRow): ContentAnalysisResult {
         typeof model.concept_method === "string" ? model.concept_method : "Saved analysis",
       trained_for_this_project: model.trained_for_this_project === true,
     },
+    selection: selection(model.selection),
   };
 }
 

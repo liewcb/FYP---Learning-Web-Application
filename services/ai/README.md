@@ -95,10 +95,7 @@ Start the service, open <http://127.0.0.1:8000/docs>, expand `POST /analysis/con
     "Database normalization reduces duplicated data.",
     "Functional dependencies describe relationships between attributes.",
     "Third Normal Form removes transitive dependencies."
-  ],
-  "top_keywords": 10,
-  "top_sentences": 3,
-  "max_topics": 3
+  ]
 }
 ```
 
@@ -110,8 +107,17 @@ FastAPI route and Pydantic request/response models. It sends a real HTTP request
 when **Execute** is selected; the JSON under **Server response > Response body**
 is the real result, while JSON shown under **Schemas** is only an example.
 
-`max_topics` is an upper limit rather than a required count. The analyser may
-return fewer topics when an additional cluster would contain only one sentence.
+Only `sentences` is required. The analyser sizes its output from the material
+and explains each choice in the response's `selection` object:
+
+| Output | Automatic rule (when the limit is omitted) |
+|---|---|
+| Keywords (5-20) | Keep KeyBERT terms while they score at least 60% of the strongest term, stopping early at a sharp drop in scores (the "knee"). |
+| Important sentences (3-12) | Maximal marginal relevance with at least one sentence per topic; stop when the next sentence scores below 70% of the first pick, capped at about 10% of the material. |
+| Topics (up to 10) | Try 2 to about the square root of the sentence count, reject groupings with tiny topics, keep the highest silhouette score (ties go to more topics). |
+
+`top_keywords`, `top_sentences` and `max_topics` can still be sent to fix the
+counts. `max_topics` stays an upper limit rather than a required count.
 
 ## Configure Gemini quiz generation
 

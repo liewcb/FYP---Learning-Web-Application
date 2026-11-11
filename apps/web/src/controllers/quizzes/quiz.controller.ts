@@ -2,9 +2,10 @@ import type { DocumentRepository } from "@/interfaces/repositories/document.repo
 import type { LearningResultsRepository } from "@/interfaces/repositories/learning-results.repository";
 import type { AiService } from "@/interfaces/services/ai-service.interface";
 import {
-  automaticAnalysisLimits,
   parseBoundedInteger,
   prepareLearningText,
+  selectRepresentativeSentences,
+  trimmedMaterialNotice,
 } from "@/models/analysis/content-analysis.model";
 import {
   isQuizDifficulty,
@@ -25,7 +26,6 @@ export class QuizController {
     documentId: number | null = null,
   ): Promise<QuizGenerationFormState> {
     const materialTitle = values.materialTitle.trim();
-    const prepared = prepareLearningText(values.text);
     const questionTypes = validQuestionTypes(values.questionTypes);
 
     if (!materialTitle) {
@@ -36,25 +36,18 @@ export class QuizController {
       return { error: "Keep the material title under 200 characters.", values };
     }
 
-    if (!prepared.ok) {
-      return { error: prepared.error, values };
-    }
-
     if (questionTypes.length === 0) {
       return { error: "Select at least one question type.", values };
     }
 
-    try {
-      const request = {
-        material_title: materialTitle,
-        sentences: prepared.sentences,
-        question_count: parseBoundedInteger(values.questionCount, 3, 1, 20),
-        difficulty: isQuizDifficulty(values.difficulty)
-          ? values.difficulty
-          : "mixed",
-        question_types: questionTypes,
-      };
+    const settings = {
+      material_title: materialTitle,
+      question_count: parseBoundedInteger(values.questionCount, 3, 1, 20),
+      difficulty: isQuizDifficulty(values.difficulty) ? values.difficulty : "mixed",
+      question_types: questionTypes,
+    } as const;
 
+    try {
       if (documentId !== null) {
         // The document lookup runs with the student's session and therefore
         // prevents a forged form field from saving a quiz for somebody else.
@@ -67,14 +60,22 @@ export class QuizController {
           };
         }
 
+        // Use the stored, preprocessed sentences rather than text posted by
+        // the browser, so long uploads work without manual trimming.
+        const content = await this.documents.findContent(documentId);
+
+        if (!content || content.sentences.length === 0) {
+          return { error: "No readable text was found in this document.", values };
+        }
+
+        const selection = selectRepresentativeSentences(content.sentences);
         let analysis = await this.results.findLatestReadyAnalysis(documentId);
 
         // A quiz can start directly from an upload. In that case, save the
         // analysis first so the quiz has an auditable document-analysis link.
         if (!analysis) {
           const savedAnalysis = await this.aiService.analyseAndSaveDocument(documentId, {
-            sentences: prepared.sentences,
-            ...automaticAnalysisLimits(prepared.sentences.length),
+            sentences: selection.sentences,
           });
 
           analysis = {
@@ -88,15 +89,30 @@ export class QuizController {
         const result = await this.aiService.generateAndSaveQuiz(
           documentId,
           analysis.id,
-          request,
+          { ...settings, sentences: selection.sentences },
         );
 
-        return { result, values, savedQuizId: result.quiz_id };
+        return {
+          result,
+          values,
+          savedQuizId: result.quiz_id,
+          notice: trimmedMaterialNotice(selection),
+        };
       }
 
-      const result = await this.aiService.generateQuiz(request);
+      const prepared = prepareLearningText(values.text);
 
-      return { result, values };
+      if (!prepared.ok) {
+        return { error: prepared.error, values };
+      }
+
+      const selection = selectRepresentativeSentences(prepared.sentences);
+      const result = await this.aiService.generateQuiz({
+        ...settings,
+        sentences: selection.sentences,
+      });
+
+      return { result, values, notice: trimmedMaterialNotice(selection) };
     } catch (error) {
       return {
         error:

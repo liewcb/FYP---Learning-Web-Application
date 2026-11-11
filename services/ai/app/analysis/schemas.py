@@ -21,25 +21,34 @@ class ContentAnalysisRequest(BaseModel):
         max_length=500,
         description="Clean, ordered sentences from one learning material.",
     )
-    top_keywords: int = Field(
-        default=10,
+    # All three limits are optional. When omitted, the analyser sizes each
+    # output from the material itself (see AnalysisSelection in the response).
+    # Sending a value keeps the original fixed-size behaviour.
+    top_keywords: int | None = Field(
+        default=None,
         ge=1,
         le=30,
-        description="Maximum number of baseline and semantic keywords.",
+        description=(
+            "Optional fixed keyword count. Omit it to keep keywords until their "
+            "scores drop off (between 5 and 20)."
+        ),
     )
-    top_sentences: int = Field(
-        default=5,
+    top_sentences: int | None = Field(
+        default=None,
         ge=1,
         le=20,
-        description="Maximum number of important sentences to return.",
+        description=(
+            "Optional fixed number of important sentences. Omit it to keep adding "
+            "sentences while they still add new, relevant content (between 3 and 12)."
+        ),
     )
-    max_topics: int = Field(
-        default=5,
+    max_topics: int | None = Field(
+        default=None,
         ge=1,
         le=10,
         description=(
-            "Maximum topic count. The analyser may return fewer topics to avoid "
-            "weak or one-sentence clusters."
+            "Optional upper bound on topics. Omit it to let the silhouette score "
+            "choose the clearest number of topics (up to 10)."
         ),
     )
 
@@ -51,9 +60,6 @@ class ContentAnalysisRequest(BaseModel):
                     "Hazard analysis identifies causes and mitigation strategies.",
                     "Software reliability measures operation without failure.",
                 ],
-                "top_keywords": 10,
-                "top_sentences": 3,
-                "max_topics": 3,
             }
         }
     )
@@ -98,6 +104,28 @@ class AnalysisModelInfo(BaseModel):
     trained_for_this_project: bool = False
 
 
+class AnalysisSelection(BaseModel):
+    """How many results were returned and why, for display and reporting."""
+
+    automatic: bool = Field(
+        description="True when the request left every limit to the analyser."
+    )
+    keyword_count: int
+    important_sentence_count: int
+    topic_count: int
+    topic_silhouette: float | None = Field(
+        default=None,
+        description=(
+            "Silhouette score (-1 to 1) of the chosen topic grouping. Higher means "
+            "sentences sit more clearly in their own topic. None for one topic."
+        ),
+    )
+    notes: list[str] = Field(
+        default_factory=list,
+        description="Plain-language reasons for each chosen count.",
+    )
+
+
 class ContentAnalysisResponse(BaseModel):
     sentence_count: int
     baseline_keywords: list[KeywordScore]
@@ -106,6 +134,7 @@ class ContentAnalysisResponse(BaseModel):
     topics: list[TopicResult]
     concepts: list[ConceptResult]
     model: AnalysisModelInfo
+    selection: AnalysisSelection | None = None
 
 
 class PersistedContentAnalysisRequest(ContentAnalysisRequest):

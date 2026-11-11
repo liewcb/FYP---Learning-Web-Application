@@ -1,8 +1,9 @@
 import type { DocumentRepository } from "@/interfaces/repositories/document.repository";
 import type { AiService } from "@/interfaces/services/ai-service.interface";
 import {
-  automaticAnalysisLimits,
   prepareLearningText,
+  selectRepresentativeSentences,
+  trimmedMaterialNotice,
   type ContentAnalysisFormState,
   type ContentAnalysisFormValues,
 } from "@/models/analysis/content-analysis.model";
@@ -41,13 +42,17 @@ export class ContentAnalysisController {
           };
         }
 
-        const sentences = content.sentences.slice(0, 500);
+        const selection = selectRepresentativeSentences(content.sentences);
         const result = await this.aiService.analyseAndSaveDocument(documentId, {
-          sentences,
-          ...automaticAnalysisLimits(sentences.length),
+          sentences: selection.sentences,
         });
 
-        return { result, values, savedAnalysisId: result.analysis_id };
+        return {
+          result,
+          values,
+          savedAnalysisId: result.analysis_id,
+          notice: trimmedMaterialNotice(selection),
+        };
       }
 
       const prepared = prepareLearningText(values.text);
@@ -56,12 +61,12 @@ export class ContentAnalysisController {
         return { error: prepared.error, values };
       }
 
+      const selection = selectRepresentativeSentences(prepared.sentences);
       const result = await this.aiService.analyseContent({
-        sentences: prepared.sentences,
-        ...automaticAnalysisLimits(prepared.sentences.length),
+        sentences: selection.sentences,
       });
 
-      return { result, values };
+      return { result, values, notice: trimmedMaterialNotice(selection) };
     } catch (error) {
       return {
         error:

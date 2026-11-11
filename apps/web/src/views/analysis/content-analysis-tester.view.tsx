@@ -106,6 +106,10 @@ export function ContentAnalysisTester({
           <p className="form-alert" role="alert">{state.error}</p>
         ) : null}
 
+        {state.notice ? (
+          <p className="quiz-local-note" role="status">{state.notice}</p>
+        ) : null}
+
         {mode === "upload" ? (
           availableSources.length > 0 ? (
             <>
@@ -213,6 +217,22 @@ export function ContentAnalysisTester({
               </div>
               <span className="status-chip ready">{saved ? "Saved" : "Ready"}</span>
             </div>
+
+            {result.selection ? (
+              <details className="analysis-selection">
+                <summary>
+                  {result.selection.keyword_count} key terms ·{" "}
+                  {result.selection.important_sentence_count} key sentences ·{" "}
+                  {result.selection.topic_count}{" "}
+                  {result.selection.topic_count === 1 ? "topic" : "topics"}
+                  {result.selection.automatic ? ", sized automatically" : ""}
+                  <span>How were these chosen?</span>
+                </summary>
+                <ul>
+                  {result.selection.notes.map((note) => <li key={note}>{note}</li>)}
+                </ul>
+              </details>
+            ) : null}
 
             {saved ? (
               <p className="saved-result-note">

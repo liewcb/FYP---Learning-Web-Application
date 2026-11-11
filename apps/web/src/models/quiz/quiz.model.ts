@@ -75,6 +75,8 @@ export interface QuizGenerationFormState {
   readonly values?: QuizGenerationFormValues;
   /** Present only when the generated assessment was saved against a document. */
   readonly savedQuizId?: number;
+  /** Explains when a long document was sampled to fit the model limits. */
+  readonly notice?: string;
 }
 
 export type QuizAnswers = Readonly<Record<number, string>>;

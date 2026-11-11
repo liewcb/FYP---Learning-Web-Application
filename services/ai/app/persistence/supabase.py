@@ -197,7 +197,16 @@ class SupabasePersistence:
                 ],
                 "topics": [item.model_dump(mode="json") for item in result.topics],
                 "concepts": [item.model_dump(mode="json") for item in result.concepts],
-                "model_info": result.model.model_dump(mode="json"),
+                # The automatic sizing decision is stored with the model details
+                # so saved analyses can explain their counts without a schema change.
+                "model_info": {
+                    **result.model.model_dump(mode="json"),
+                    **(
+                        {"selection": result.selection.model_dump(mode="json")}
+                        if result.selection is not None
+                        else {}
+                    ),
+                },
                 "error_message": None,
                 "completed_at": self._now(),
             },

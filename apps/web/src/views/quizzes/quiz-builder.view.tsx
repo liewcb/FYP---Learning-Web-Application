@@ -117,7 +117,7 @@ export function QuizBuilderView({
 
         <p className="module-card-copy">
           {source
-            ? `Extracted sentences from “${source.title}” are loaded below. Gemini will generate questions grounded in that text.`
+            ? `Questions will be generated from the text extracted from “${source.title}”. Long documents are handled automatically.`
             : "Choose a ready upload from My Documents or paste learning content. Gemini will ground questions in the supplied sentences."}
         </p>
 
@@ -151,23 +151,24 @@ export function QuizBuilderView({
           />
         </div>
 
-        <div className="form-field">
-          <label htmlFor="quiz-text">Learning content</label>
-          <textarea
-            id="quiz-text"
-            name="text"
-            rows={12}
-            defaultValue={values.text}
-            maxLength={100_000}
-            placeholder="Paste several complete sentences from your notes..."
-            required
-          />
-          <p className="field-hint">
-            {source
-              ? "Review or edit the extracted text before generating the quiz."
-              : "You can also choose a ready document from My Documents to fill this automatically."}
-          </p>
-        </div>
+        {source ? null : (
+          <div className="form-field">
+            <label htmlFor="quiz-text">Learning content</label>
+            <textarea
+              id="quiz-text"
+              name="text"
+              rows={10}
+              defaultValue={values.text}
+              maxLength={100_000}
+              placeholder="Paste a few paragraphs from your notes..."
+              required
+            />
+            <p className="field-hint">
+              Or pick a Ready document from My Documents and choose
+              &ldquo;Make a quiz&rdquo; &mdash; no copying needed.
+            </p>
+          </div>
+        )}
 
         <div className="quiz-settings-grid">
           <div className="form-field">
@@ -215,6 +216,10 @@ export function QuizBuilderView({
             Gemini can take a minute or longer when demand is high. Please do
             not submit the form again while it is working.
           </p>
+        ) : null}
+
+        {state.notice ? (
+          <p className="quiz-local-note" role="status">{state.notice}</p>
         ) : null}
 
         {state.savedQuizId ? (

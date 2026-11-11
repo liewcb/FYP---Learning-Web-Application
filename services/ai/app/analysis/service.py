@@ -12,9 +12,11 @@ from sentence_transformers import SentenceTransformer
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+from sklearn.metrics import silhouette_score
 
 from .schemas import (
     AnalysisModelInfo,
+    AnalysisSelection,
     ConceptResult,
     ContentAnalysisRequest,
     ContentAnalysisResponse,
@@ -27,6 +29,29 @@ from .schemas import (
 DEFAULT_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 DEFAULT_SPACY_MODEL = "en_core_web_sm"
 CUSTOM_STOP_WORDS = frozenset({"overall"})
+
+# Automatic sizing. These bounds keep results readable; inside them the counts
+# are decided by the material's own scores rather than fixed numbers.
+AUTO_MIN_KEYWORDS = 5
+AUTO_MAX_KEYWORDS = 20
+# Keep a keyword while it scores at least this share of the strongest one.
+KEYWORD_RELATIVE_FLOOR = 0.60
+# A drop this many times the typical gap between neighbouring scores marks
+# the "knee" where keywords stop being strongly related to the material.
+KNEE_GAP_FACTOR = 2.0
+
+AUTO_MIN_SENTENCES = 3
+AUTO_MAX_SENTENCES = 12
+# Upper size of the highlight set as a share of the material (10%).
+SENTENCE_SHARE = 0.10
+# Stop adding sentences once the next one is worth less than this share of
+# the first pick (it would mostly repeat what is already selected).
+SENTENCE_RELATIVE_FLOOR = 0.70
+
+AUTO_MAX_TOPICS = 10
+# Silhouette scores within this distance count as a tie; the tie goes to the
+# more detailed grouping because a single broad topic is less useful to study.
+SILHOUETTE_TIE_TOLERANCE = 0.01
 
 
 class ContentAnalyzer:
@@ -59,44 +84,150 @@ class ContentAnalyzer:
         # Parse the material once because both keyword and concept extraction
         # use spaCy's noun phrases and named entities.
         parsed_document = self.nlp(document_text)
-        topic_labels = self._cluster_labels(embeddings, request.max_topics)
+        topic_labels, silhouette = self._choose_topic_labels(
+            embeddings, request.max_topics
+        )
+
+        semantic_keywords = self._semantic_keywords(
+            document_text, parsed_document, request.top_keywords
+        )
+        # The TF-IDF baseline mirrors the semantic list length so the two
+        # methods can be compared like for like.
+        baseline_limit = request.top_keywords or max(
+            len(semantic_keywords), AUTO_MIN_KEYWORDS
+        )
+        important_sentences = self._important_sentences(
+            sentences, embeddings, topic_labels, request.top_sentences
+        )
+        topics = self._topics(sentences, topic_labels)
 
         return ContentAnalysisResponse(
             sentence_count=len(sentences),
             baseline_keywords=self._tfidf_keywords(
-                sentences, request.top_keywords, method="tfidf"
+                sentences, baseline_limit, method="tfidf"
             ),
-            semantic_keywords=self._semantic_keywords(
-                document_text, parsed_document, request.top_keywords
-            ),
-            important_sentences=self._important_sentences(
-                sentences, embeddings, topic_labels, request.top_sentences
-            ),
-            topics=self._topics(sentences, topic_labels),
+            semantic_keywords=semantic_keywords,
+            important_sentences=important_sentences,
+            topics=topics,
             concepts=self._concepts(document_text, parsed_document),
             model=AnalysisModelInfo(
                 embedding_model=self.model_name,
                 keyword_method=(
-                    "KeyBERT with spaCy phrase candidates and maximal marginal relevance"
+                    "KeyBERT with spaCy phrase candidates, maximal marginal relevance "
+                    "and an adaptive score cut-off"
                 ),
                 topic_method=(
-                    "adaptive agglomerative clustering with TF-IDF labels"
+                    "Ward agglomerative clustering; topic count chosen by silhouette "
+                    "score; TF-IDF labels"
                 ),
                 concept_method=(
                     f"ranked and cleaned spaCy {DEFAULT_SPACY_MODEL} noun phrases "
                     "and entities"
                 ),
             ),
+            selection=self._selection_summary(
+                request,
+                keyword_count=len(semantic_keywords),
+                sentence_count=len(important_sentences),
+                topic_count=len(topics),
+                silhouette=silhouette,
+            ),
         )
 
+    @staticmethod
+    def _selection_summary(
+        request: ContentAnalysisRequest,
+        *,
+        keyword_count: int,
+        sentence_count: int,
+        topic_count: int,
+        silhouette: float | None,
+    ) -> AnalysisSelection:
+        notes = [
+            (
+                f"Kept {keyword_count} keywords: the requested number."
+                if request.top_keywords is not None
+                else f"Kept {keyword_count} keywords: later candidates scored below "
+                f"{round(KEYWORD_RELATIVE_FLOOR * 100)}% of the strongest keyword or "
+                "after a sharp drop in scores."
+            ),
+            (
+                f"Selected {sentence_count} important sentences: the requested number."
+                if request.top_sentences is not None
+                else f"Selected {sentence_count} important sentences: at least one per "
+                "topic, stopping when the next sentence mostly repeated earlier ones "
+                f"(about {round(SENTENCE_SHARE * 100)}% of the material at most)."
+            ),
+            (
+                f"Found {topic_count} topic: the material did not split into "
+                "clearly separate groups."
+                if topic_count == 1
+                else f"Found {topic_count} topics: this grouping had the best "
+                f"silhouette score ({silhouette:.2f})."
+            ),
+        ]
+
+        return AnalysisSelection(
+            automatic=(
+                request.top_keywords is None
+                and request.top_sentences is None
+                and request.max_topics is None
+            ),
+            keyword_count=keyword_count,
+            important_sentence_count=sentence_count,
+            topic_count=topic_count,
+            topic_silhouette=None if silhouette is None else round(silhouette, 4),
+            notes=notes,
+        )
+
+    @staticmethod
+    def _adaptive_count(
+        scores: list[float],
+        minimum: int,
+        maximum: int,
+        relative_floor: float = KEYWORD_RELATIVE_FLOOR,
+    ) -> int:
+        """How many leading items of a descending score list are worth keeping.
+
+        Two simple, explainable rules are combined and the stricter one wins:
+        a relative floor (keep items scoring at least ``relative_floor`` of the
+        best) and a knee (stop at a drop much sharper than the typical gap
+        between neighbouring scores). The result is clamped to the bounds.
+        """
+
+        available = len(scores)
+        if available <= minimum:
+            return available
+
+        upper = min(maximum, available)
+        top = scores[0]
+        if top <= 0:
+            return minimum
+
+        keep = sum(1 for score in scores[:upper] if score >= relative_floor * top)
+
+        gaps = [scores[index] - scores[index + 1] for index in range(upper - 1)]
+        typical_gap = float(np.median(gaps)) if gaps else 0.0
+        # Only drops after the minimum may end the list.
+        candidate_gaps = gaps[minimum - 1 :]
+        if candidate_gaps:
+            largest = max(candidate_gaps)
+            if largest > 0 and largest >= KNEE_GAP_FACTOR * typical_gap:
+                keep = min(keep, minimum + candidate_gaps.index(largest))
+
+        return max(minimum, min(keep, upper))
+
     def _semantic_keywords(
-        self, text: str, document: Any, limit: int
+        self, text: str, document: Any, limit: int | None
     ) -> list[KeywordScore]:
         # Supplying noun phrases prevents KeyBERT from inventing awkward
         # adjacent word combinations such as "operate failure defined".
         candidates = self._phrase_candidates(document)
         if not candidates:
             return []
+
+        # In automatic mode collect up to the maximum, then cut adaptively.
+        collect_limit = AUTO_MAX_KEYWORDS if limit is None else limit
 
         extracted = self.keyword_model.extract_keywords(
             text,
@@ -109,7 +240,7 @@ class ContentAnalyzer:
             diversity=0.35,
             # Ask for extra candidates because low-quality or duplicate terms
             # are removed below before the public limit is applied.
-            top_n=min(limit * 2, len(candidates)),
+            top_n=min(collect_limit * 2, len(candidates)),
         )
         results: list[KeywordScore] = []
         seen: set[str] = set()
@@ -122,9 +253,21 @@ class ContentAnalyzer:
             results.append(
                 KeywordScore(term=clean_term, score=float(score), method="keybert")
             )
-            if len(results) == limit:
+            if len(results) == collect_limit:
                 break
-        return results
+
+        if limit is not None:
+            return results
+
+        # KeyBERT already returns candidates best-first, but MMR may reorder
+        # slightly, so rank by score before looking for the drop-off.
+        results.sort(key=lambda keyword: -keyword.score)
+        count = self._adaptive_count(
+            [keyword.score for keyword in results],
+            AUTO_MIN_KEYWORDS,
+            AUTO_MAX_KEYWORDS,
+        )
+        return results[:count]
 
     @staticmethod
     def _tfidf_keywords(
@@ -164,9 +307,14 @@ class ContentAnalyzer:
         sentences: list[str],
         embeddings: np.ndarray,
         topic_labels: np.ndarray,
-        limit: int,
+        limit: int | None,
     ) -> list[ImportantSentence]:
-        """Rank central sentences while avoiding near-duplicate selections."""
+        """Rank central sentences while avoiding near-duplicate selections.
+
+        With a fixed ``limit`` exactly that many are returned. Without one,
+        the set grows while each new sentence still adds relevant, non-repeated
+        content: at least one per topic, at most about 10% of the material.
+        """
 
         centroid = embeddings.mean(axis=0)
         centroid_norm = np.linalg.norm(centroid)
@@ -174,7 +322,28 @@ class ContentAnalyzer:
             centroid = centroid / centroid_norm
 
         relevance_scores = embeddings @ centroid
-        selection_limit = min(limit, len(sentences))
+        sentence_total = len(sentences)
+        topic_ids = sorted({int(label) for label in topic_labels})
+        automatic = limit is None
+
+        if automatic:
+            share_limit = ceil(sentence_total * SENTENCE_SHARE)
+            selection_limit = min(
+                sentence_total,
+                max(
+                    AUTO_MIN_SENTENCES,
+                    min(AUTO_MAX_SENTENCES, max(share_limit, len(topic_ids))),
+                ),
+            )
+            minimum = min(
+                selection_limit, max(AUTO_MIN_SENTENCES, len(topic_ids))
+            )
+            guaranteed_per_topic = 1 if selection_limit >= len(topic_ids) else 0
+        else:
+            selection_limit = min(limit, sentence_total)
+            minimum = selection_limit
+            guaranteed_per_topic = min(2, selection_limit // len(topic_ids))
+
         selected: list[int] = []
         topic_selection_counts: dict[int, int] = {}
 
@@ -192,20 +361,21 @@ class ContentAnalyzer:
                 + 0.10 * coverage_bonus
             )
 
-        def select_best(candidate_indexes: list[int]) -> None:
+        def best_candidate(candidate_indexes: list[int]) -> tuple[int, float]:
             best_index = max(
                 candidate_indexes,
                 key=lambda index: (candidate_score(index), -index),
             )
-            selected.append(best_index)
-            label = int(topic_labels[best_index])
+            return best_index, candidate_score(best_index)
+
+        def take(index: int) -> None:
+            selected.append(index)
+            label = int(topic_labels[index])
             topic_selection_counts[label] = topic_selection_counts.get(label, 0) + 1
 
         # Maximal marginal relevance balances document relevance, novelty and
         # coverage of the detected topics.  This avoids returning many nearly
         # identical sentences from only the dominant topic.
-        topic_ids = sorted({int(label) for label in topic_labels})
-        guaranteed_per_topic = min(2, selection_limit // len(topic_ids))
         for _round in range(guaranteed_per_topic):
             for topic_id in topic_ids:
                 candidates = [
@@ -214,12 +384,25 @@ class ContentAnalyzer:
                     if int(label) == topic_id and index not in selected
                 ]
                 if candidates and len(selected) < selection_limit:
-                    select_best(candidates)
+                    take(best_candidate(candidates)[0])
 
+        first_score: float | None = None
         while len(selected) < selection_limit:
-            select_best(
-                [index for index in range(len(sentences)) if index not in selected]
-            )
+            remaining = [index for index in range(sentence_total) if index not in selected]
+            index, score = best_candidate(remaining)
+            if first_score is None:
+                # Benchmark: the best sentence on offer once coverage is met.
+                first_score = score
+            # Diminishing returns: the next sentence mostly repeats earlier
+            # picks or is far less central, so the highlight set is complete.
+            if (
+                automatic
+                and len(selected) >= minimum
+                and first_score > 0
+                and score < SENTENCE_RELATIVE_FLOOR * first_score
+            ):
+                break
+            take(index)
 
         return [
             ImportantSentence(
@@ -235,16 +418,35 @@ class ContentAnalyzer:
     @staticmethod
     def _cluster_labels(
         embeddings: np.ndarray,
-        max_topics: int,
+        max_topics: int | None,
     ) -> np.ndarray:
-        """Choose up to max_topics coherent clusters without tiny outliers."""
+        """Topic label per sentence. See _choose_topic_labels."""
+
+        return ContentAnalyzer._choose_topic_labels(embeddings, max_topics)[0]
+
+    @staticmethod
+    def _choose_topic_labels(
+        embeddings: np.ndarray,
+        max_topics: int | None,
+    ) -> tuple[np.ndarray, float | None]:
+        """Pick the number of topics whose clusters separate most clearly.
+
+        Every grouping from two topics up to about the square root of the
+        sentence count is tried. Groupings with tiny outlier topics are
+        rejected, and the remaining one with the highest silhouette score
+        (how much closer sentences are to their own topic than to the next
+        one) wins. Returns the labels and that score (None for one topic).
+        """
 
         sentence_count = len(embeddings)
-        if sentence_count < 2 or max_topics == 1:
-            return np.zeros(sentence_count, dtype=int)
+        upper_bound = AUTO_MAX_TOPICS if max_topics is None else max_topics
+        single_topic = (np.zeros(sentence_count, dtype=int), None)
+        # The silhouette score needs at least one more sentence than topics.
+        if sentence_count < 3 or upper_bound == 1:
+            return single_topic
 
         candidate_limit = min(
-            max_topics,
+            upper_bound,
             max(2, round(sqrt(sentence_count))),
             sentence_count - 1,
         )
@@ -255,7 +457,8 @@ class ContentAnalyzer:
         minimum_topic_size = 1 if sentence_count < 6 else max(
             2, ceil(sentence_count * 0.10)
         )
-        for topic_count in range(candidate_limit, 1, -1):
+        scored: list[tuple[int, float, np.ndarray]] = []
+        for topic_count in range(2, candidate_limit + 1):
             labels = AgglomerativeClustering(
                 n_clusters=topic_count,
                 metric="euclidean",
@@ -263,12 +466,26 @@ class ContentAnalyzer:
             ).fit_predict(embeddings)
             cluster_sizes = np.bincount(labels)
 
-            # max_topics is an upper bound. Try fewer clusters until every
-            # topic contains enough evidence to be useful to a learner.
-            if int(cluster_sizes.min()) >= minimum_topic_size:
-                return labels
+            # Every topic must contain enough evidence to be useful.
+            if len(cluster_sizes) < 2 or int(cluster_sizes.min()) < minimum_topic_size:
+                continue
 
-        return np.zeros(sentence_count, dtype=int)
+            score = float(silhouette_score(embeddings, labels, metric="euclidean"))
+            scored.append((topic_count, score, labels))
+
+        if not scored:
+            return single_topic
+
+        best_score = max(score for _count, score, _labels in scored)
+        _count, score, labels = max(
+            (
+                item
+                for item in scored
+                if item[1] >= best_score - SILHOUETTE_TIE_TOLERANCE
+            ),
+            key=lambda item: item[0],
+        )
+        return labels, score
 
     def _topics(
         self,

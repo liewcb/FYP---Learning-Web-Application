@@ -22,6 +22,16 @@ export interface AnalysisConcept {
   readonly kind: string;
 }
 
+/** How many results the analyser chose and why. Absent on older analyses. */
+export interface AnalysisSelection {
+  readonly automatic: boolean;
+  readonly keyword_count: number;
+  readonly important_sentence_count: number;
+  readonly topic_count: number;
+  readonly topic_silhouette: number | null;
+  readonly notes: readonly string[];
+}
+
 export interface ContentAnalysisResult {
   readonly sentence_count: number;
   readonly baseline_keywords: readonly KeywordScore[];
@@ -36,6 +46,7 @@ export interface ContentAnalysisResult {
     readonly concept_method: string;
     readonly trained_for_this_project: boolean;
   };
+  readonly selection?: AnalysisSelection;
 }
 
 /** The response from the trusted endpoint after it has written an analysis row. */
@@ -51,39 +62,21 @@ export interface SavedContentAnalysis {
   readonly completedAt: string;
 }
 
+/**
+ * Only the sentences are required. Leaving the limits out lets the AI service
+ * choose the counts from the material (keyword score drop-off, diminishing
+ * returns for key sentences and silhouette score for topics).
+ */
 export interface ContentAnalysisRequest {
   readonly sentences: readonly string[];
-  readonly top_keywords: number;
-  readonly top_sentences: number;
-  readonly max_topics: number;
+  readonly top_keywords?: number;
+  readonly top_sentences?: number;
+  readonly max_topics?: number;
 }
 
-export type ContentAnalysisLimits = Omit<ContentAnalysisRequest, "sentences">;
-
-/** Pasted text is the only value a student supplies; the system sizes the analysis. */
+/** Pasted text is the only value a student supplies; the AI service sizes the analysis. */
 export interface ContentAnalysisFormValues {
   readonly text: string;
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.min(maximum, Math.max(minimum, value));
-}
-
-/**
- * Scales the analysis to the material so students never have to guess how
- * many keywords, key sentences or topics a document contains. Longer
- * material earns more keywords and highlights, with ceilings that keep the
- * results readable. max_topics is only an upper bound: the analyser picks
- * the number of coherent topics itself.
- */
-export function automaticAnalysisLimits(sentenceCount: number): ContentAnalysisLimits {
-  const count = Math.max(1, sentenceCount);
-
-  return {
-    top_keywords: clamp(Math.round(4 + Math.sqrt(count) * 1.2), 5, 20),
-    top_sentences: clamp(Math.ceil(count * 0.08), 3, 12),
-    max_topics: 10,
-  };
 }
 
 export interface ContentAnalysisFormState {
@@ -92,6 +85,8 @@ export interface ContentAnalysisFormState {
   readonly values?: ContentAnalysisFormValues;
   /** Present only when the analysis was saved against an uploaded document. */
   readonly savedAnalysisId?: number;
+  /** Explains when a long document was sampled to fit the model limits. */
+  readonly notice?: string;
 }
 
 export type PreparedLearningText =
@@ -127,10 +122,6 @@ export function prepareLearningText(text: string): PreparedLearningText {
     return { ok: false, error: "No usable sentences were found in the text." };
   }
 
-  if (sentences.length > 500) {
-    return { ok: false, error: "Use 500 sentences or fewer for this test." };
-  }
-
   if (sentences.some((sentence) => sentence.length > 2_000)) {
     return {
       ok: false,
@@ -139,6 +130,67 @@ export function prepareLearningText(text: string): PreparedLearningText {
   }
 
   return { ok: true, sentences };
+}
+
+/** Request limits enforced by the AI service for analysis and quiz generation. */
+export const maxModelSentences = 500;
+export const maxModelCharacters = 100_000;
+
+export interface SentenceSelection {
+  readonly sentences: readonly string[];
+  readonly originalCount: number;
+  readonly trimmed: boolean;
+}
+
+function evenlySpaced<T>(items: readonly T[], count: number): T[] {
+  if (count >= items.length) {
+    return [...items];
+  }
+
+  return Array.from({ length: count }, (_value, index) =>
+    items[Math.floor((index * items.length) / count)],
+  );
+}
+
+function characterCount(sentences: readonly string[]): number {
+  return sentences.reduce((total, sentence) => total + sentence.length, 0);
+}
+
+/**
+ * Fits a long document into the AI service's request limits without making
+ * the student cut text by hand. Short fragments (slide headings, labels) are
+ * dropped first; if the material is still too long, sentences are sampled
+ * evenly so the whole document is still covered, in its original order.
+ */
+export function selectRepresentativeSentences(
+  sentences: readonly string[],
+  limit = maxModelSentences,
+  characterLimit = maxModelCharacters,
+): SentenceSelection {
+  const originalCount = sentences.length;
+
+  if (originalCount <= limit && characterCount(sentences) <= characterLimit) {
+    return { sentences, originalCount, trimmed: false };
+  }
+
+  const informative = sentences.filter(
+    (sentence) => sentence.split(/\s+/).length >= 5,
+  );
+  const pool = informative.length >= Math.min(limit, 20) ? informative : [...sentences];
+  let selected = evenlySpaced(pool, limit);
+
+  while (selected.length > 1 && characterCount(selected) > characterLimit) {
+    const ratio = characterLimit / characterCount(selected);
+    selected = evenlySpaced(pool, Math.max(1, Math.floor(selected.length * ratio * 0.95)));
+  }
+
+  return { sentences: selected, originalCount, trimmed: true };
+}
+
+export function trimmedMaterialNotice(selection: SentenceSelection): string | undefined {
+  return selection.trimmed
+    ? `This material is long (${selection.originalCount} sentences), so ${selection.sentences.length} sentences spread across the whole document were used.`
+    : undefined;
 }
 
 export function parseBoundedInteger(
