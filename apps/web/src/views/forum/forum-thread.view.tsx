@@ -4,6 +4,10 @@ import type {
 } from "@/models/forum/forum.model";
 import { isImageAttachment } from "@/models/forum/forum.model";
 import { CommentFormView } from "@/views/forum/comment-form.view";
+import {
+  ReportContentView,
+  type ForumReportAction,
+} from "@/views/forum/report-content.view";
 import { ConfirmSubmitButton } from "@/views/shared/confirm-submit-button.view";
 
 interface ForumThreadViewProps {
@@ -15,6 +19,7 @@ interface ForumThreadViewProps {
   readonly toggleUpvoteAction: (formData: FormData) => Promise<void>;
   readonly deleteThreadAction: (formData: FormData) => Promise<void>;
   readonly deleteCommentAction: (formData: FormData) => Promise<void>;
+  readonly reportAction: ForumReportAction;
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en-MY", {
@@ -39,6 +44,7 @@ export function ForumThreadView({
   toggleUpvoteAction,
   deleteThreadAction,
   deleteCommentAction,
+  reportAction,
 }: ForumThreadViewProps) {
   return (
     <article className="forum-thread">
@@ -120,7 +126,9 @@ export function ForumThreadView({
               Delete post
             </ConfirmSubmitButton>
           </form>
-        ) : null}
+        ) : (
+          <ReportContentView action={reportAction} threadId={thread.id} />
+        )}
       </div>
 
       <details className="forum-comment-section" open={thread.comments.length > 0}>
@@ -146,7 +154,9 @@ export function ForumThreadView({
                           Delete
                         </ConfirmSubmitButton>
                       </form>
-                    ) : null}
+                    ) : (
+                      <ReportContentView action={reportAction} commentId={comment.id} />
+                    )}
                   </div>
                   <p>{comment.content}</p>
                 </div>

@@ -1,4 +1,8 @@
 import { AdminController } from "@/controllers/admin/admin.controller";
+import { AdminUsersController } from "@/controllers/admin/admin-users.controller";
+import { AuditLogController } from "@/controllers/admin/audit-log.controller";
+import { ForumModerationController } from "@/controllers/admin/forum-moderation.controller";
+import { SystemMonitoringController } from "@/controllers/admin/system-monitoring.controller";
 import { AiController } from "@/controllers/ai/ai.controller";
 import { ContentAnalysisController } from "@/controllers/analysis/content-analysis.controller";
 import { LearningResultsController } from "@/controllers/learning-results.controller";
@@ -34,6 +38,12 @@ import { SupabaseDocumentStorage } from "@/lib/supabase/storage/supabase-documen
 import { SupabaseForumAttachmentStorage } from "@/lib/supabase/storage/supabase-forum-attachment-storage";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { SupabaseAdminUsersRepository } from "@/lib/supabase/repositories/supabase-admin-users.repository";
+import { SupabaseAuditLogRepository } from "@/lib/supabase/repositories/supabase-audit-log.repository";
+import { SupabaseForumModerationRepository } from "@/lib/supabase/repositories/supabase-forum-moderation.repository";
+import { SupabaseSystemMonitoringRepository } from "@/lib/supabase/repositories/supabase-system-monitoring.repository";
+import { SupabaseAccountAccessService } from "@/lib/supabase/services/supabase-account-access.service";
+import { defaultPlatformStorageCapacityBytes } from "@/models/admin/system-monitoring.model";
 import { SupabaseAuthService } from "@/lib/supabase/services/supabase-auth.service";
 import { SupabaseLoginAttemptStore } from "@/lib/supabase/services/supabase-login-attempt-store";
 import { SupabaseUsernameDirectory } from "@/lib/supabase/services/supabase-username-directory";
@@ -112,6 +122,44 @@ export async function createAdminController(): Promise<AdminController> {
   return new AdminController(
     new SupabaseAuthService(supabase),
     new SupabaseProfileRepository(supabase),
+  );
+}
+
+// Admin modules run with the admin's own session: every admin_* database
+// function re-checks the caller's role, so a stolen form post cannot act as
+// an administrator. Only the Auth ban uses the secret key.
+export async function createAdminUsersController(): Promise<AdminUsersController> {
+  const supabase = await createClient();
+
+  return new AdminUsersController(
+    new SupabaseAdminUsersRepository(supabase),
+    new SupabaseAccountAccessService(createServiceRoleClient),
+  );
+}
+
+export async function createForumModerationController(): Promise<ForumModerationController> {
+  return new ForumModerationController(
+    new SupabaseForumModerationRepository(await createClient()),
+  );
+}
+
+export async function createAuditLogController(): Promise<AuditLogController> {
+  return new AuditLogController(new SupabaseAuditLogRepository(await createClient()));
+}
+
+function platformStorageCapacityBytes(): number {
+  const configured = Number(process.env.PLATFORM_STORAGE_CAPACITY_BYTES);
+
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : defaultPlatformStorageCapacityBytes;
+}
+
+export async function createSystemMonitoringController(): Promise<SystemMonitoringController> {
+  return new SystemMonitoringController(
+    new SupabaseSystemMonitoringRepository(await createClient()),
+    new HttpAiService(),
+    platformStorageCapacityBytes(),
   );
 }
 

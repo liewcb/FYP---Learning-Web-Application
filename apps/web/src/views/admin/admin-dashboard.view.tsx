@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { adminBasePath, type AdminDashboardModel } from "@/models/admin/admin.model";
+import { MonitoringAlerts } from "@/views/admin/admin-monitoring.view";
 
 interface AdminDashboardViewProps {
   readonly model: AdminDashboardModel;
@@ -17,6 +18,12 @@ export function AdminDashboardView({ model }: AdminDashboardViewProps) {
           smoothly.
         </p>
       </section>
+
+      {model.loadError ? (
+        <p className="form-alert" role="alert">{model.loadError}</p>
+      ) : null}
+
+      <MonitoringAlerts alerts={model.alerts} />
 
       <section className="admin-stats" aria-label="Platform overview">
         {model.stats.map((stat) => (
@@ -44,7 +51,7 @@ export function AdminDashboardView({ model }: AdminDashboardViewProps) {
               </span>
               <strong>{section.label}</strong>
               <span>{section.description}</span>
-              <span className="coming-soon">Coming soon</span>
+              {section.ready ? null : <span className="coming-soon">Coming soon</span>}
             </Link>
           ))}
         </div>

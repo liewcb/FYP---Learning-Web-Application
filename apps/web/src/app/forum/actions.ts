@@ -8,6 +8,7 @@ import {
 } from "@/lib/dependencies/server";
 import type {
   ForumCommentFormState,
+  ForumReportFormState,
   ForumThreadFormState,
   ForumThreadFormValues,
 } from "@/models/forum/forum.model";
@@ -124,4 +125,29 @@ export async function deleteForumCommentAction(formData: FormData): Promise<void
   const forum = await createForumController();
   await forum.deleteComment(commentId);
   revalidatePath("/forum");
+}
+
+export async function reportForumContentAction(
+  _previous: ForumReportFormState,
+  formData: FormData,
+): Promise<ForumReportFormState> {
+  const viewer = await currentViewer();
+
+  if (!viewer) {
+    return { error: "Your session expired. Sign in and try again." };
+  }
+
+  const forum = await createForumController();
+  const state = await forum.report({
+    reporterId: viewer.id,
+    threadId: positiveId(formData, "threadId"),
+    commentId: positiveId(formData, "commentId"),
+    reason: field(formData, "reason"),
+  });
+
+  if (state.notice) {
+    revalidatePath("/admin/forum");
+  }
+
+  return state;
 }

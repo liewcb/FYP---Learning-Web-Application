@@ -10,6 +10,7 @@ import type {
 } from "@/models/forum/forum.model";
 import { CreateThreadView } from "@/views/forum/create-thread.view";
 import { ForumThreadView } from "@/views/forum/forum-thread.view";
+import type { ForumReportAction } from "@/views/forum/report-content.view";
 import { StudentTopbar } from "@/views/student/student-topbar.view";
 
 interface ForumPageViewProps {
@@ -27,6 +28,7 @@ interface ForumPageViewProps {
   readonly toggleUpvoteAction: (formData: FormData) => Promise<void>;
   readonly deleteThreadAction: (formData: FormData) => Promise<void>;
   readonly deleteCommentAction: (formData: FormData) => Promise<void>;
+  readonly reportAction: ForumReportAction;
   readonly signOutAction: () => Promise<void>;
 }
 
@@ -49,6 +51,7 @@ export function ForumPageView({
   toggleUpvoteAction,
   deleteThreadAction,
   deleteCommentAction,
+  reportAction,
   signOutAction,
 }: ForumPageViewProps) {
   return (
@@ -121,6 +124,7 @@ export function ForumPageView({
                   toggleUpvoteAction={toggleUpvoteAction}
                   deleteThreadAction={deleteThreadAction}
                   deleteCommentAction={deleteCommentAction}
+                  reportAction={reportAction}
                 />
               ))
             ) : (

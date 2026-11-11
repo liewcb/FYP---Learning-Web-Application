@@ -2,8 +2,10 @@ import type { ForumRepository } from "@/interfaces/repositories/forum.repository
 import type { ForumAttachmentStorage } from "@/interfaces/services/forum-attachment-storage.interface";
 import {
   validateForumComment,
+  validateForumReportReason,
   validateForumThread,
   type ForumCommentFormState,
+  type ForumReportFormState,
   type ForumFeedScope,
   type ForumThread,
   type ForumThreadFormState,
@@ -168,5 +170,37 @@ export class ForumController {
 
   deleteComment(commentId: number): Promise<void> {
     return this.forum.deleteComment(commentId);
+  }
+
+  async report(input: {
+    readonly reporterId: string;
+    readonly threadId: number | null;
+    readonly commentId: number | null;
+    readonly reason: string;
+  }): Promise<ForumReportFormState> {
+    const reason = input.reason.trim();
+    const invalid = validateForumReportReason(reason);
+
+    if (invalid) {
+      return { error: invalid };
+    }
+
+    if ((input.threadId === null) === (input.commentId === null)) {
+      return { error: "Choose a post or a comment to report." };
+    }
+
+    try {
+      const created = await this.forum.report({ ...input, reason });
+
+      return {
+        notice: created
+          ? "Thanks. A moderator will review it."
+          : "You have already reported this. A moderator will review it.",
+      };
+    } catch (error) {
+      console.error("Forum report failed.", error);
+
+      return { error: "The report could not be sent. Please try again." };
+    }
   }
 }

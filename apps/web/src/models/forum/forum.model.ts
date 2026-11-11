@@ -211,3 +211,26 @@ export function validateForumComment(content: string): string | null {
 
   return null;
 }
+
+
+/** Students flag a post or comment for administrators to review. */
+export interface ForumReportFormState {
+  readonly error?: string;
+  readonly notice?: string;
+}
+
+export const forumReportReasonRules = { min: 5, max: 500 } as const;
+
+export function validateForumReportReason(reason: string): string | null {
+  const length = reason.trim().length;
+
+  if (length < forumReportReasonRules.min) {
+    return "Tell the moderators briefly what is wrong (at least 5 characters).";
+  }
+
+  if (length > forumReportReasonRules.max) {
+    return `Keep the reason under ${forumReportReasonRules.max} characters.`;
+  }
+
+  return null;
+}

@@ -7,6 +7,7 @@ import {
   type AdminDashboardModel,
   type AdminSection,
 } from "@/models/admin/admin.model";
+import type { MonitoringModel } from "@/models/admin/system-monitoring.model";
 import { authRoutes } from "@/models/auth/auth-routes";
 import type { Viewer } from "@/models/profile/profile.model";
 
@@ -39,8 +40,8 @@ export class AdminController {
     return { status: "allowed", viewer: current.viewer };
   }
 
-  dashboard(viewer: Viewer): AdminDashboardModel {
-    return createAdminDashboardModel(viewer);
+  dashboard(viewer: Viewer, monitoring: MonitoringModel | null): AdminDashboardModel {
+    return createAdminDashboardModel(viewer, monitoring);
   }
 
   section(slug: string): AdminSection | null {

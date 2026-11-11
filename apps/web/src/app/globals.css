@@ -9710,3 +9710,694 @@ ul.quiz-review-options {
   color: var(--muted);
   line-height: 1.55;
 }
+
+/* ------------------------------------------------------------------ */
+/* Admin: user management, forum moderation, audit log, monitoring.     */
+/* ------------------------------------------------------------------ */
+.admin-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-heading-row .button {
+  width: auto;
+  text-decoration: none;
+}
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.admin-toolbar input[type="search"],
+.admin-toolbar select,
+.admin-inline-form select {
+  min-height: 42px;
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
+  padding: 0 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.86rem;
+}
+
+.admin-toolbar input[type="search"] {
+  flex: 1 1 240px;
+}
+
+.admin-toolbar .button {
+  width: auto;
+  min-height: 42px;
+}
+
+.admin-result-count {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.status-pill.admin {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.status-pill:not(.active, .suspended, .admin) {
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.admin-user-list,
+.admin-audit-list,
+.admin-service-grid,
+.admin-usage-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-user-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  background: var(--surface);
+}
+
+.admin-user-card.is-suspended {
+  border-color: var(--danger-line);
+}
+
+.admin-user-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-user-identity {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.admin-user-identity strong {
+  color: var(--heading);
+}
+
+.admin-user-identity span {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.admin-user-chips {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-user-facts {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  grid-template-columns: minmax(180px, 2fr) repeat(3, minmax(90px, 1fr));
+}
+
+.admin-user-facts dt {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-user-facts dd {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.is-warning {
+  color: var(--accent-ink);
+}
+
+.admin-meter {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-soft);
+}
+
+.admin-meter.large {
+  height: 12px;
+  margin: 4px 0 16px;
+}
+
+.admin-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--success);
+}
+
+.admin-meter.is-warning > span {
+  background: var(--accent);
+}
+
+.admin-meter.is-critical > span {
+  background: var(--danger-strong);
+}
+
+.admin-user-note {
+  margin: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.admin-user-manage summary,
+.forum-report summary {
+  width: max-content;
+  cursor: pointer;
+  color: var(--primary-dark);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.admin-user-forms {
+  display: grid;
+  gap: 16px;
+  margin-top: 12px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+}
+
+.admin-inline-form {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.admin-inline-form label {
+  color: var(--heading);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.admin-inline-form p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.admin-inline-form textarea,
+.forum-report textarea {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+  resize: vertical;
+}
+
+.admin-inline-form .button,
+.forum-report .button {
+  width: auto;
+  justify-self: start;
+}
+
+.admin-inline-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-inline-row select {
+  flex: 1 1 140px;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.admin-pagination a {
+  color: var(--primary-dark);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.admin-report-reason {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+
+.admin-quoted-post {
+  margin: 0;
+  border-left: 3px solid var(--line-strong);
+  padding: 4px 0 4px 12px;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.admin-audit-list > li {
+  display: grid;
+  align-items: start;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.admin-audit-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--surface-soft);
+  color: var(--primary-dark);
+}
+
+.admin-audit-summary {
+  margin: 0;
+  color: var(--heading);
+  font-size: 0.9rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.admin-audit-reason {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.admin-audit-meta {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.admin-audit-meta code {
+  font-size: 0.7rem;
+}
+
+.admin-alerts {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+
+.admin-alert {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 14px;
+  padding: 12px 16px;
+  background: var(--accent-soft);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.admin-alert.critical {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+
+.admin-alert > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--brand-midnight);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.admin-alert.critical > span {
+  background: var(--danger-strong);
+  color: #fff;
+}
+
+.admin-alert strong {
+  color: var(--heading);
+  font-size: 0.88rem;
+}
+
+.admin-alert p {
+  margin: 2px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.admin-alert a {
+  color: var(--primary-dark);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.admin-service-grid {
+  margin-bottom: 26px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+.admin-service {
+  display: grid;
+  align-items: start;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--surface);
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.admin-service-dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: var(--success);
+  box-shadow: 0 0 0 4px var(--success-soft);
+}
+
+.admin-service.degraded .admin-service-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.admin-service.down .admin-service-dot {
+  background: var(--danger-strong);
+  box-shadow: 0 0 0 4px var(--danger-soft);
+}
+
+.admin-service div {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-service strong {
+  color: var(--heading);
+  font-size: 0.86rem;
+}
+
+.admin-service span {
+  color: var(--success);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.admin-service.degraded span {
+  color: var(--accent-ink);
+}
+
+.admin-service.down span {
+  color: var(--danger);
+}
+
+.admin-service small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.admin-monitor-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 20px;
+  background: var(--surface);
+}
+
+.admin-panel h2 {
+  margin: 0;
+  color: var(--heading);
+  font-size: 1rem;
+}
+
+.admin-panel-lead {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.admin-panel-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.admin-panel .text-action {
+  justify-self: start;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 8px 4px;
+  text-align: left;
+}
+
+.admin-table th {
+  color: var(--muted);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-table td:not(:first-child),
+.admin-table th:not(:first-child) {
+  text-align: right;
+}
+
+.admin-usage-list {
+  gap: 10px;
+}
+
+.admin-usage-list li {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-usage-list li > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+
+.admin-usage-list strong {
+  overflow: hidden;
+  color: var(--heading);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-usage-list span:not(.admin-meter, .admin-meter > span) {
+  flex: none;
+  color: var(--muted);
+}
+
+.admin-figures {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-figures.compact {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-figure {
+  display: grid;
+  gap: 3px;
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--surface-soft);
+}
+
+.admin-figure > span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-figure strong {
+  color: var(--heading);
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+}
+
+.admin-figure small {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.admin-activity {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-activity-series p {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+}
+
+.admin-activity-series strong {
+  color: var(--heading);
+}
+
+.admin-activity-series p span {
+  color: var(--muted);
+}
+
+.admin-bars {
+  display: grid;
+  align-items: end;
+  gap: 3px;
+  height: 64px;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+  list-style: none;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+}
+
+.admin-bars li {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+
+.admin-bars li > span:first-child {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: var(--info);
+}
+
+/* Student forum: report a post or comment. */
+.forum-report {
+  font-size: 0.8rem;
+}
+
+.forum-report summary {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.forum-report form {
+  display: grid;
+  gap: 8px;
+  min-width: min(320px, 80vw);
+  margin-top: 8px;
+}
+
+.forum-report label {
+  color: var(--heading);
+  font-weight: 700;
+}
+
+@media (max-width: 1000px) {
+  .admin-monitor-grid,
+  .admin-user-forms {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-activity,
+  .admin-figures.compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-user-facts,
+  .admin-figures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-user-facts > div:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .admin-alert {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-alert a {
+    grid-column: 2;
+  }
+}
+
+/* The admin navigation strip is meant to scroll sideways on small screens.
+   Flex and grid children default to min-width: auto, which let the strip
+   widen the whole page instead; allowing them to shrink restores the scroll. */
+@media (max-width: 900px) {
+  .admin-app > *,
+  .admin-sidebar .admin-nav {
+    min-width: 0;
+  }
+}

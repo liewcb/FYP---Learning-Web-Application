@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 
-import { createAdminController } from "@/lib/dependencies/server";
+import {
+  createAdminController,
+  createSystemMonitoringController,
+} from "@/lib/dependencies/server";
 import { AdminDashboardView } from "@/views/admin/admin-dashboard.view";
 
 export default async function AdminDashboardPage() {
@@ -11,5 +14,12 @@ export default async function AdminDashboardPage() {
     redirect(access.redirectTo);
   }
 
-  return <AdminDashboardView model={controller.dashboard(access.viewer)} />;
+  const monitoring = await (await createSystemMonitoringController())
+    .load()
+    .catch((error: unknown) => {
+      console.error("Admin dashboard figures failed to load.", error);
+      return null;
+    });
+
+  return <AdminDashboardView model={controller.dashboard(access.viewer, monitoring)} />;
 }
