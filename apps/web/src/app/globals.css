@@ -11415,3 +11415,20 @@ ul.quiz-review-options {
     background: #fff !important;
   }
 }
+
+/* Profile: storage card call to action. */
+.storage-request-cta {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.storage-request-cta .button {
+  width: 100%;
+  min-height: 40px;
+  gap: 6px;
+  font-size: 0.86rem;
+  text-decoration: none;
+}

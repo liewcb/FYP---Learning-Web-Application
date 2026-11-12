@@ -101,9 +101,12 @@ export function ProfileView({ model, updateAction }: ProfileViewProps) {
               >
                 <span style={{ width: `${usage}%` }} />
               </div>
-              <p className="field-hint">
-                Need more space? <Link href="/storage">Request more storage</Link>
-              </p>
+              <div className="storage-request-cta">
+                <p className="field-hint">Running low on space?</p>
+                <Link className="button button-outline" href="/storage">
+                  <span aria-hidden="true">＋</span> Request more storage
+                </Link>
+              </div>
             </section>
           ) : null}
         </aside>
