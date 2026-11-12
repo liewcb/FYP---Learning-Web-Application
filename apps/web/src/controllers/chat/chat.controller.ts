@@ -2,6 +2,7 @@ import type { ChatGroupRepository } from "@/interfaces/repositories/chat-group.r
 import type { ChatRepository } from "@/interfaces/repositories/chat.repository";
 import type { DocumentRepository } from "@/interfaces/repositories/document.repository";
 import type { StudyBuddyRepository } from "@/interfaces/repositories/study-buddy.repository";
+import type { CallSettler } from "@/interfaces/services/call-settler.interface";
 import type { ChatAttachmentStorage } from "@/interfaces/services/chat-attachment-storage.interface";
 import {
   academicLine,
@@ -45,6 +46,9 @@ const maxAttachmentNameLength = 255;
 const maxSyncMessages = 100;
 const maxJumpMessages = 500;
 const maxSharedFiles = 60;
+/** A call still "ongoing" after this long is checked with the media server. */
+const staleCallAfterMs = 60_000;
+const maxCallChecks = 3;
 
 export interface SendChatInput {
   readonly conversationId: number;
@@ -93,6 +97,8 @@ export class ChatController {
     private readonly buddies: StudyBuddyRepository,
     private readonly documents: DocumentRepository,
     private readonly groups: ChatGroupRepository,
+    /** Turns call messages whose call everyone has left into ended calls. */
+    private readonly calls: CallSettler,
   ) {}
 
   /** Conversation id for chatting with a study buddy, or null. */
@@ -577,8 +583,14 @@ export class ChatController {
 
   /** Strips storage paths and signs image previews. */
   private async present(records: readonly ChatMessageRecord[]): Promise<ChatMessage[]> {
+    const settled = await this.settleCalls(records);
+
     return Promise.all(
       records.map(async (record) => {
+        if (record.call && settled.has(record.call.id)) {
+          record = { ...record, call: { ...record.call, endedAt: settled.get(record.call.id)! } };
+        }
+
         if (!record.attachment) {
           return { ...record, attachment: null };
         }
@@ -596,5 +608,27 @@ export class ChatController {
         return { ...record, attachment: { ...attachment, previewUrl } };
       }),
     );
+  }
+
+  /**
+   * A call is marked ended when someone leaves it last, but not when the
+   * last person simply closes the tab. So "ongoing" calls older than a
+   * minute are checked against the media server, a few at a time.
+   */
+  private async settleCalls(records: readonly ChatMessageRecord[]): Promise<ReadonlyMap<number, string>> {
+    const cutoff = Date.now() - staleCallAfterMs;
+    const ongoing = records
+      .filter((record) => record.call && record.call.endedAt === null && Date.parse(record.createdAt) < cutoff)
+      .map((record) => record.call!.id)
+      .slice(-maxCallChecks);
+
+    if (ongoing.length === 0) {
+      return new Map();
+    }
+
+    return this.calls.settle(ongoing).catch((error: unknown) => {
+      console.error("Checking ongoing calls failed.", error);
+      return new Map<number, string>();
+    });
   }
 }

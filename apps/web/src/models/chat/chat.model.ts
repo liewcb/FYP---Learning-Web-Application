@@ -191,8 +191,34 @@ export interface ChatMessage {
   readonly event: ChatEvent | null;
   /** The student an event is about, e.g. who was removed. */
   readonly eventUserId: string | null;
+  /** The call a "started a video call" message is about. */
+  readonly call: ChatCall | null;
   readonly createdAt: string;
   readonly deletedAt: string | null;
+}
+
+export interface ChatCall {
+  readonly id: number;
+  /** Null while the call is going on. */
+  readonly endedAt: string | null;
+}
+
+/** "12 min", "1 h 5 min", "under a minute": how long an ended call lasted. */
+export function callDurationLabel(startedAt: string, endedAt: string): string {
+  const minutes = Math.round((Date.parse(endedAt) - Date.parse(startedAt)) / 60_000);
+
+  if (minutes < 1) {
+    return "under a minute";
+  }
+
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
 }
 
 /** A stored message, including the private attachment path. */
@@ -541,6 +567,8 @@ export interface ChatMessageEvent {
   readonly body: string;
   readonly attachmentName: string | null;
   readonly event: ChatEvent | null;
+  readonly callId: number | null;
+  readonly callEndedAt: string | null;
   readonly createdAt: string;
   readonly deletedAt: string | null;
 }

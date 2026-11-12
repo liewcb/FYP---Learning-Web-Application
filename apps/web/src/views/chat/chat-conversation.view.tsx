@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState, type DragEvent, type PointerEvent, type ReactNode } from "react";
 
 import {
+  callDurationLabel,
   chatEventText,
   chatInitials,
   chatName,
@@ -28,6 +29,7 @@ import {
   UploadIcon,
   VideoIcon,
 } from "@/views/chat/chat-icons.view";
+import { videoCallHref } from "@/models/video/video-call.model";
 import { ChatMessageBubble } from "@/views/chat/chat-message.view";
 
 /** A message shown while the server is still saving it. */
@@ -252,6 +254,47 @@ export function ChatConversation({
     }
 
     const mine = message.senderId === viewerId;
+
+    // A video call is shown as a message of its own: ongoing with Join, or
+    // ended with how long it lasted.
+    if (message.event === "call_started" && message.call) {
+      const ongoing = message.call.endedAt === null;
+
+      items.push(
+        <li
+          className={`chat-message ${mine ? "mine" : "theirs"} starts-group chat-call-item`}
+          key={message.id}
+          id={`chat-message-${message.id}`}
+        >
+          <div className={ongoing ? "chat-call-card ongoing" : "chat-call-card"}>
+            <span className="chat-call-icon" aria-hidden="true">
+              <VideoIcon />
+            </span>
+            <span className="chat-call-text">
+              <strong>{mine ? "You started a video call" : `${nameFor(message.senderId)} started a video call`}</strong>
+              <span className="chat-call-status">
+                {ongoing ? (
+                  <>
+                    <span className="chat-call-live" aria-hidden="true" />
+                    Ongoing
+                  </>
+                ) : (
+                  `Ended · ${callDurationLabel(message.createdAt, message.call.endedAt!)}`
+                )}
+              </span>
+              <time dateTime={message.createdAt}>{formatChatTime(message.createdAt)}</time>
+            </span>
+            {ongoing && summary.canSend ? (
+              <Link className="button button-dark chat-call-join" href={videoCallHref(message.call.id)}>
+                Join
+              </Link>
+            ) : null}
+          </div>
+        </li>,
+      );
+      previous = message;
+      continue;
+    }
 
     if (message.event) {
       items.push(

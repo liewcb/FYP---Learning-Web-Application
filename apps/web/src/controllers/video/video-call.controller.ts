@@ -244,6 +244,60 @@ export class VideoCallController {
     }));
   }
 
+  /** The student left the call: end it now if nobody else is still in the room. */
+  async leave(callId: number, viewerId: string): Promise<void> {
+    if (!this.rooms.serverUrl) {
+      return;
+    }
+
+    try {
+      // Null unless the student is part of the call.
+      const call = await this.calls.find(callId);
+
+      if (!call || call.endedAt) {
+        return;
+      }
+
+      const others = (await this.rooms.participantIdentities(videoRoomName(callId))).filter(
+        (identity) => identity !== viewerId,
+      );
+
+      if (others.length === 0) {
+        await this.calls.end(callId);
+      }
+    } catch (error) {
+      // Not critical: the next visit to the chat or the call ends it instead.
+      console.error("Ending call on leave failed.", error);
+    }
+  }
+
+  /** For CallSettler: ends calls whose room has closed and says when each ended. */
+  async settle(callIds: readonly number[]): Promise<ReadonlyMap<number, string>> {
+    const ended = new Map<number, string>();
+
+    if (!this.rooms.serverUrl) {
+      return ended;
+    }
+
+    await Promise.all(
+      callIds.map(async (callId) => {
+        try {
+          const call = await this.calls.find(callId);
+
+          if (call?.endedAt) {
+            ended.set(callId, call.endedAt);
+          } else if (call && (await this.endIfAbandoned(call))) {
+            ended.set(callId, new Date().toISOString());
+          }
+        } catch (error) {
+          console.error("Checking a call failed.", error);
+        }
+      }),
+    );
+
+    return ended;
+  }
+
   /** Ends a call whose media room has closed because everyone left. */
   private async endIfAbandoned(call: VideoCall): Promise<boolean> {
     if (Date.now() - Date.parse(call.startedAt) <= videoCallRules.abandonedAfterMs) {

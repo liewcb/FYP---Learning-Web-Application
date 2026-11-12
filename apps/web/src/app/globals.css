@@ -10767,3 +10767,103 @@ ul.quiz-review-options {
     padding: 24px 18px;
   }
 }
+
+/* A video call in the chat: a card of its own, ongoing (with Join) or ended. */
+.chat-call-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(420px, 85%);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: var(--chat-in-bg);
+  color: var(--chat-in-ink);
+  box-shadow: 0 1px 1px var(--shadow-tint);
+}
+
+.chat-message.mine .chat-call-card {
+  background: var(--chat-out-bg);
+  color: var(--chat-out-ink);
+}
+
+.chat-call-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.chat-call-card.ongoing .chat-call-icon {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.chat-call-text {
+  display: grid;
+  min-width: 8rem;
+  flex: 1;
+  gap: 1px;
+}
+
+.chat-call-text strong {
+  overflow: hidden;
+  font-size: 0.88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-call-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.chat-call-card.ongoing .chat-call-status {
+  color: var(--success);
+  font-weight: 700;
+  opacity: 1;
+}
+
+.chat-message.mine .chat-call-card.ongoing .chat-call-status {
+  color: var(--chat-out-ink);
+}
+
+.chat-call-live {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: chat-call-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes chat-call-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-call-live {
+    animation: none;
+  }
+}
+
+.chat-call-text time {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* .button-dark is full width elsewhere; here Join sits beside the text. */
+.chat-call-join {
+  width: auto;
+  min-height: 34px;
+  flex: none;
+  padding-inline: 16px;
+}

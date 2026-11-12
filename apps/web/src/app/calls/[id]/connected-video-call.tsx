@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 
 import {
   inviteToVideoCallAction,
+  leaveVideoCallAction,
   loadCallShareAction,
   openVideoCallAction,
   startCallShareAction,
@@ -37,6 +38,7 @@ const actions = {
   startShare: startCallShareAction,
   stopShare: stopCallShareAction,
   loadShare: loadCallShareAction,
+  leave: leaveVideoCallAction,
 };
 
 /** Client entry point: assembles the LiveKit call room for the view. */

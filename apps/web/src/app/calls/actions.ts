@@ -98,3 +98,17 @@ export async function loadCallShareAction(callId: number): Promise<CallShareStat
     return { error: "The presentation could not be loaded." };
   }
 }
+
+/** The student left the call; it ends if nobody else is still in it. */
+export async function leaveVideoCallAction(callId: number): Promise<void> {
+  const id = parseChatId(callId);
+  const viewerId = await currentStudentId();
+
+  if (id === null || viewerId === null) {
+    return;
+  }
+
+  const calls = await createVideoCallController();
+
+  await calls.leave(id, viewerId);
+}

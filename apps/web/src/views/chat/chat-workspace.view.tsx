@@ -532,6 +532,19 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
       onMessageUpdated(event) {
         const deletedAt = event.deletedAt;
 
+        // A call ended: its message turns from "Ongoing" to "Ended".
+        if (event.callId !== null && event.callEndedAt !== null && event.conversationId === activeId) {
+          const endedAt = event.callEndedAt;
+
+          setMessages((current) =>
+            current.map((message) =>
+              message.id === event.id && message.call
+                ? { ...message, call: { ...message.call, endedAt } }
+                : message,
+            ),
+          );
+        }
+
         if (deletedAt === null) {
           return;
         }

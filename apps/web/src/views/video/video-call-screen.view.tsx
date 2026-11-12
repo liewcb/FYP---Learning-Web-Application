@@ -36,6 +36,8 @@ export interface VideoCallActions {
   startShare(callId: number, documentId: number): Promise<CallShareState>;
   stopShare(callId: number): Promise<CallShareState>;
   loadShare(callId: number): Promise<CallShareState>;
+  /** Ends the call if the student was the last one in it. */
+  leave(callId: number): Promise<void>;
 }
 
 interface VideoCallScreenProps {
@@ -44,6 +46,9 @@ interface VideoCallScreenProps {
   readonly viewers: DocumentViewers;
   readonly actions: VideoCallActions;
 }
+
+/** How long leaving waits for the server before going back to the chat. */
+const leaveWaitMs = 1_500;
 
 type SidePanel = "invite" | "present" | null;
 
@@ -286,6 +291,18 @@ export function VideoCallScreen({ state, Room, viewers, actions }: VideoCallScre
     return null;
   }, [actions, callId]);
 
+  /** Tell the server first, so the chat shows the call as ended, but never wait long. */
+  async function leaveCall() {
+    if (callId !== null) {
+      await Promise.race([
+        actions.leave(callId).catch(() => undefined),
+        new Promise((resolve) => window.setTimeout(resolve, leaveWaitMs)),
+      ]);
+    }
+
+    router.push(back);
+  }
+
   async function present(document: PresentableDocument): Promise<string | null> {
     if (callId === null) {
       return "The document could not be presented.";
@@ -393,7 +410,7 @@ export function VideoCallScreen({ state, Room, viewers, actions }: VideoCallScre
           <Room
             serverUrl={state.serverUrl}
             token={state.token}
-            onLeave={() => router.push(back)}
+            onLeave={() => void leaveCall()}
             renderStage={(channel) => (
               <SharedDocumentStage
                 channel={channel}

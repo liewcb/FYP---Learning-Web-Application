@@ -103,12 +103,14 @@ interface ChatMessageRow {
   attachment_size: number | null;
   event: string | null;
   event_user_id: string | null;
+  video_call_id: number | null;
+  call_ended_at: string | null;
   created_at: string;
   deleted_at: string | null;
 }
 
 const messageColumns =
-  "id, conversation_id, sender_id, body, reply_to_id, attachment_path, attachment_name, attachment_type, attachment_size, event, event_user_id, created_at, deleted_at";
+  "id, conversation_id, sender_id, body, reply_to_id, attachment_path, attachment_name, attachment_type, attachment_size, event, event_user_id, video_call_id, call_ended_at, created_at, deleted_at";
 
 const sendOutcomes = new Set<ChatSendOutcome>(chatSendOutcomes);
 const deleteOutcomes = new Set<ChatDeleteOutcome>(chatDeleteOutcomes);
@@ -222,6 +224,7 @@ function toRecord(
       : null,
     event: isChatEvent(row.event) ? row.event : null,
     eventUserId: row.event_user_id,
+    call: row.video_call_id === null ? null : { id: row.video_call_id, endedAt: row.call_ended_at },
     createdAt: row.created_at,
     deletedAt: row.deleted_at,
   };

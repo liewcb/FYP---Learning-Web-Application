@@ -218,6 +218,7 @@ export async function createChatController(): Promise<ChatController> {
     new SupabaseStudyBuddyRepository(supabase),
     new SupabaseDocumentRepository(supabase),
     new SupabaseChatGroupRepository(supabase),
+    await createVideoCallController(),
   );
 }
 

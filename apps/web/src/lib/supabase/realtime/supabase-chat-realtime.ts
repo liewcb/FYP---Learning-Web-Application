@@ -36,6 +36,8 @@ function toMessageEvent(row: Row): ChatMessageEvent | null {
     body: text(row.body),
     attachmentName: nullableText(row.attachment_name),
     event: isChatEvent(row.event) ? row.event : null,
+    callId: Number.isSafeInteger(Number(row.video_call_id)) && row.video_call_id !== null ? Number(row.video_call_id) : null,
+    callEndedAt: nullableText(row.call_ended_at),
     createdAt: text(row.created_at),
     deletedAt: nullableText(row.deleted_at),
   };
