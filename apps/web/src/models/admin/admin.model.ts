@@ -62,6 +62,13 @@ export const adminSections: readonly AdminSection[] = [
     ready: true,
   },
   {
+    slug: "report-review",
+    label: "Report review",
+    description: "Decide reports about profiles, messages, posts and materials; reporters are notified.",
+    icon: "⚑",
+    ready: true,
+  },
+  {
     slug: "storage-requests",
     label: "Storage requests",
     description: "Approve or reject requests for additional storage.",
@@ -117,7 +124,7 @@ export function createAdminDashboardModel(
       stats: [
         { label: "Registered users", value: "—", detail: unavailable },
         { label: "Pending materials", value: "—", detail: unavailable },
-        { label: "Forum reports", value: "—", detail: unavailable },
+        { label: "Open reports", value: "—", detail: unavailable },
         { label: "Platform storage used", value: "—", detail: unavailable },
       ],
       sections: adminSections,
@@ -142,9 +149,9 @@ export function createAdminDashboardModel(
         detail: "Waiting for library review",
       },
       {
-        label: "Forum reports",
-        value: overview.community.pendingForumReports.toLocaleString("en-MY"),
-        detail: "Waiting for moderation",
+        label: "Open reports",
+        value: overview.community.pendingReports.toLocaleString("en-MY"),
+        detail: `${overview.community.pendingForumReports} about forum posts`,
       },
       {
         label: "Platform storage used",

@@ -350,45 +350,4 @@ export class SupabaseForumRepository implements ForumRepository {
       throw new Error(`Unable to update forum upvote: ${error.message}`);
     }
   }
-
-  async report(input: {
-    readonly reporterId: string;
-    readonly threadId: number | null;
-    readonly commentId: number | null;
-    readonly reason: string;
-  }): Promise<boolean> {
-    // One pending report per student and post is enough for moderators.
-    let existing = this.supabase
-      .from("forum_reports")
-      .select("id", { head: true, count: "exact" })
-      .eq("reporter_id", input.reporterId)
-      .eq("status", "pending");
-
-    existing = input.threadId !== null
-      ? existing.eq("thread_id", input.threadId)
-      : existing.eq("comment_id", input.commentId ?? 0);
-
-    const { count, error: countError } = await existing;
-
-    if (countError) {
-      throw new Error(`Unable to check forum reports: ${countError.message}`);
-    }
-
-    if ((count ?? 0) > 0) {
-      return false;
-    }
-
-    const { error } = await this.supabase.from("forum_reports").insert({
-      reporter_id: input.reporterId,
-      thread_id: input.threadId,
-      comment_id: input.commentId,
-      reason: input.reason,
-    });
-
-    if (error) {
-      throw new Error(`Unable to report forum content: ${error.message}`);
-    }
-
-    return true;
-  }
 }

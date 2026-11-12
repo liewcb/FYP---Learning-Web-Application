@@ -190,6 +190,34 @@ video button in a chat -> openVideoCallAction -> VideoCallController
   default, can browse on their own and jump back with "Follow". Late joiners
   ask the presenter for the position.
 
+## Reports
+
+One `reports` table holds every report a student sends: a profile, a chat
+message (direct or group), a forum post or comment, or a library material. It
+replaced `forum_reports` and `chat_reports`, whose rows were moved into it.
+
+```text
+Report button -> submitReportAction -> ReportController -> submit_report RPC
+  (can the reporter see it? not their own? one open report per target)
+  -> reports row with a snapshot of what was reported
+Admin "Report review" -> ReportReviewController -> admin_resolve_report RPC
+  -> remove content / suspend (through User management) / dismiss
+  -> every open report on the same target closed, each reporter notified
+```
+
+- The snapshot is taken when the report is sent, so evidence survives edits and
+  deletion. A chat message report includes the five messages before it that
+  the reporter could see; a profile reported from a chat includes the last ten.
+- Decisions: no violation, remove the content, suspend the account, or both.
+  Suspension goes through `AdminUsersController.suspend` (it also blocks
+  sign-in); the database then requires the account to be suspended before it
+  records the decision.
+- The reporter gets a `report_resolved` notification and sees the outcome, and
+  any message from the moderator, on `/reports`. Reporters cannot read who
+  decided or the internal reason (column grants), which goes to the audit log.
+- The forum moderation page reads the same table, and hiding or removing a post
+  there also closes and notifies its reports.
+
 ## Security boundaries
 
 - The browser receives only the Supabase URL and publishable key.

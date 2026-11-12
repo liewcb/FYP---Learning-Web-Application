@@ -57,6 +57,7 @@ interface ChatConversationProps {
   readonly onLoadOlder: () => void;
   readonly onReply: (message: ChatMessage) => void;
   readonly onDelete: (message: ChatMessage) => void;
+  readonly onReport: (message: ChatMessage) => void;
   readonly onJumpTo: (messageId: number) => void;
   /** Attachments already copied to, or being copied to, My Documents. */
   readonly savedIds: ReadonlySet<number>;
@@ -193,6 +194,7 @@ export function ChatConversation({
   onLoadOlder,
   onReply,
   onDelete,
+  onReport,
   onJumpTo,
   savedIds,
   savingIds,
@@ -303,6 +305,7 @@ export function ChatConversation({
         }
         onReply={onReply}
         onDelete={onDelete}
+        onReport={onReport}
         onJumpTo={onJumpTo}
         onSaveToDocuments={onSaveToDocuments}
       />,

@@ -20,6 +20,7 @@ import {
   syncChatAction,
 } from "@/app/chats/actions";
 import { openVideoCallAction } from "@/app/calls/actions";
+import { submitReportAction } from "@/app/reports/actions";
 import { createChatRealtime } from "@/lib/dependencies/client";
 import type { ChatPageModel } from "@/models/chat/chat.model";
 import { ChatWorkspace, type ChatActions } from "@/views/chat/chat-workspace.view";
@@ -41,6 +42,7 @@ const actions: ChatActions = {
   groupCommand: groupCommandAction,
   loadMembers: loadGroupMembersAction,
   openCall: openVideoCallAction,
+  reportMessage: submitReportAction,
 };
 
 /** Client entry point: assembles the browser realtime adapter for the view. */

@@ -9,7 +9,7 @@ import {
   ChatAttachmentView,
   type AttachmentSaveState,
 } from "@/views/chat/chat-attachment.view";
-import { ReplyIcon, TickIcon, TrashIcon } from "@/views/chat/chat-icons.view";
+import { FlagIcon, ReplyIcon, TickIcon, TrashIcon } from "@/views/chat/chat-icons.view";
 
 interface ChatMessageBubbleProps {
   readonly message: ChatMessage;
@@ -30,6 +30,8 @@ interface ChatMessageBubbleProps {
   readonly onDelete: (message: ChatMessage) => void;
   readonly onJumpTo: (messageId: number) => void;
   readonly onSaveToDocuments: (message: ChatMessage) => void;
+  /** Others' messages can be reported, even in a chat that is now read-only. */
+  readonly onReport: (message: ChatMessage) => void;
 }
 
 function ReplyQuote({
@@ -66,6 +68,7 @@ export function ChatMessageBubble({
   onDelete,
   onJumpTo,
   onSaveToDocuments,
+  onReport,
 }: ChatMessageBubbleProps) {
   const deleted = message.deletedAt !== null;
   const classes = [
@@ -112,18 +115,31 @@ export function ChatMessageBubble({
         </span>
       </div>
 
-      {canAct && !deleted ? (
+      {(canAct || !mine) && !deleted ? (
         <div className="chat-message-actions">
-          <button
-            className="chat-icon-button small"
-            type="button"
-            onClick={() => onReply(message)}
-            aria-label="Reply"
-            title="Reply"
-          >
-            <ReplyIcon />
-          </button>
-          {mine ? (
+          {canAct ? (
+            <button
+              className="chat-icon-button small"
+              type="button"
+              onClick={() => onReply(message)}
+              aria-label="Reply"
+              title="Reply"
+            >
+              <ReplyIcon />
+            </button>
+          ) : null}
+          {!mine ? (
+            <button
+              className="chat-icon-button small"
+              type="button"
+              onClick={() => onReport(message)}
+              aria-label="Report message"
+              title="Report message"
+            >
+              <FlagIcon />
+            </button>
+          ) : null}
+          {mine && canAct ? (
             <button
               className="chat-icon-button small"
               type="button"

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { signOutAction } from "@/app/auth/actions";
+import { submitReportAction } from "@/app/reports/actions";
 import { studyBuddyAction } from "@/app/study-buddy/actions";
 import {
   createProfileController,
@@ -13,6 +14,7 @@ import {
   parseStudyBuddyFilters,
   parseStudyBuddyTab,
 } from "@/models/peers/study-buddy.model";
+import { ReportActionProvider } from "@/views/reports/report-action-context.view";
 import { StudyBuddyPageView } from "@/views/study-buddy/study-buddy-page.view";
 
 export const metadata: Metadata = {
@@ -53,11 +55,13 @@ export default async function StudyBuddyPage({ searchParams }: StudyBuddyPagePro
   });
 
   return (
-    <StudyBuddyPageView
-      viewer={viewer}
-      page={page}
-      action={studyBuddyAction}
-      signOutAction={signOutAction}
-    />
+    <ReportActionProvider action={submitReportAction}>
+      <StudyBuddyPageView
+        viewer={viewer}
+        page={page}
+        action={studyBuddyAction}
+        signOutAction={signOutAction}
+      />
+    </ReportActionProvider>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { NavigationItem } from "@/models/home/home.model";
+import { myReportsPath } from "@/models/reports/report.model";
 import { BrandLogo } from "@/views/shared/brand-logo.view";
 import { ChatUnreadBadge } from "@/views/shared/chat-unread-badge.view";
 import { NotificationBell } from "@/views/shared/notification-bell.view";
@@ -69,6 +70,9 @@ export function StudentTopbar({
               <p className="account-menu-name">{displayName}</p>
               <Link className="account-menu-item" href="/profile">
                 My profile
+              </Link>
+              <Link className="account-menu-item" href={myReportsPath}>
+                My reports
               </Link>
               <form action={signOutAction}>
                 <button className="account-menu-item" type="submit">

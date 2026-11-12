@@ -59,6 +59,8 @@ import { ChatList } from "@/views/chat/chat-list.view";
 import { ChatProfilePanel } from "@/views/chat/chat-profile-panel.view";
 import { ChatReportDialog } from "@/views/chat/chat-report-dialog.view";
 import { ChatSearchPanel } from "@/views/chat/chat-search-panel.view";
+import type { SubmitReport } from "@/views/reports/report-button.view";
+import { ReportDialog } from "@/views/reports/report-dialog.view";
 
 /** Server Actions the workspace calls; supplied by the route. */
 export interface ChatActions {
@@ -83,6 +85,7 @@ export interface ChatActions {
   groupCommand(groupId: number, command: ChatGroupCommand): Promise<ChatActionState>;
   loadMembers(groupId: number): Promise<ChatGroupMember[] | null>;
   openCall(conversationId: number, start: boolean): Promise<VideoCallOpenState>;
+  reportMessage: SubmitReport;
 }
 
 type SidePanel = "profile" | "search" | null;
@@ -313,6 +316,7 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [confirm, setConfirm] = useState<ChatConfirmRequest | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportingMessage, setReportingMessage] = useState<ChatMessage | null>(null);
   const [callBusy, setCallBusy] = useState(false);
   // Starts from the server's clock so the first render matches hydration.
   const [now, setNow] = useState(() => Date.parse(model.generatedAt));
@@ -1169,6 +1173,7 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
           onLoadOlder={() => void loadOlder()}
           onReply={setReplyTo}
           onDelete={remove}
+          onReport={setReportingMessage}
           onJumpTo={(messageId) => void jumpTo(messageId)}
           savedIds={savedIds}
           savingIds={savingIds}
@@ -1251,6 +1256,21 @@ export function ChatWorkspace({ model, actions, realtime }: ChatWorkspaceProps) 
       )}
 
       <ChatConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
+
+      <ReportDialog
+        open={reportingMessage !== null}
+        title={reportingMessage ? `Report a message from ${nameFor(reportingMessage.senderId)}` : "Report message"}
+        note="Moderators see this message and the few before it. The sender is not told who reported them."
+        onSubmit={(reason, details) =>
+          actions.reportMessage({
+            targetType: "chat_message",
+            targetId: reportingMessage?.id ?? null,
+            reason,
+            details,
+          })
+        }
+        onClose={() => setReportingMessage(null)}
+      />
 
       {summary?.other ? (
         <ChatReportDialog

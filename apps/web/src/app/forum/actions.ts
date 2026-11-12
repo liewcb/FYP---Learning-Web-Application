@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import {
   createForumController,
   createProfileController,
+  createReportController,
 } from "@/lib/dependencies/server";
 import type {
   ForumCommentFormState,
@@ -137,16 +138,25 @@ export async function reportForumContentAction(
     return { error: "Your session expired. Sign in and try again." };
   }
 
-  const forum = await createForumController();
-  const state = await forum.report({
-    reporterId: viewer.id,
-    threadId: positiveId(formData, "threadId"),
-    commentId: positiveId(formData, "commentId"),
-    reason: field(formData, "reason"),
+  const threadId = positiveId(formData, "threadId");
+  const commentId = positiveId(formData, "commentId");
+
+  if ((threadId === null) === (commentId === null)) {
+    return { error: "Choose a post or a comment to report." };
+  }
+
+  const reports = await createReportController();
+  const state = await reports.submit({
+    targetType: threadId !== null ? "forum_thread" : "forum_comment",
+    targetId: threadId ?? commentId,
+    targetUserId: null,
+    reason: field(formData, "category"),
+    details: field(formData, "details"),
   });
 
   if (state.notice) {
     revalidatePath("/admin/forum");
+    revalidatePath("/admin/report-review");
   }
 
   return state;

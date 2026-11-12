@@ -66,6 +66,8 @@ export interface SystemOverview {
     readonly forumThreads: number;
     readonly forumComments: number;
     readonly pendingForumReports: number;
+    /** Every open report: profiles, messages, posts and materials. */
+    readonly pendingReports: number;
     readonly pendingLibraryMaterials: number;
   };
   readonly activity: readonly ActivityDay[];
@@ -167,12 +169,12 @@ export function buildMonitoringAlerts(
     });
   }
 
-  if (overview.community.pendingForumReports > 0) {
+  if (overview.community.pendingReports > 0) {
     alerts.push({
       level: "warning",
-      title: `${overview.community.pendingForumReports} forum reports waiting`,
-      detail: "Students have flagged posts for review.",
-      href: "/admin/forum",
+      title: `${overview.community.pendingReports} reports waiting`,
+      detail: "Students have reported profiles, messages, posts or materials.",
+      href: "/admin/report-review",
     });
   }
 

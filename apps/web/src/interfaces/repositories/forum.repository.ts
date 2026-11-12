@@ -20,10 +20,4 @@ export interface ForumRepository {
   deleteComment(commentId: number): Promise<void>;
   toggleUpvote(threadId: number, userId: string): Promise<void>;
   /** Returns false when the same student already reported this post. */
-  report(input: {
-    readonly reporterId: string;
-    readonly threadId: number | null;
-    readonly commentId: number | null;
-    readonly reason: string;
-  }): Promise<boolean>;
 }

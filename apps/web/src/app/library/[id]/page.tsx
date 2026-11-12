@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { signOutAction } from "@/app/auth/actions";
+import { submitReportAction } from "@/app/reports/actions";
 import {
   createLibraryController,
   createProfileController,
@@ -10,6 +11,7 @@ import { adminBasePath } from "@/models/admin/admin.model";
 import { authRoutes } from "@/models/auth/auth-routes";
 import { parseLibraryId } from "@/models/library/library.model";
 import { LibraryDetailView } from "@/views/library/library-detail.view";
+import { ReportActionProvider } from "@/views/reports/report-action-context.view";
 
 export const metadata: Metadata = {
   title: "Library material",
@@ -45,5 +47,9 @@ export default async function LibraryDetailPage({ params }: LibraryDetailPagePro
     notFound();
   }
 
-  return <LibraryDetailView viewer={viewer} model={model} signOutAction={signOutAction} />;
+  return (
+    <ReportActionProvider action={submitReportAction}>
+      <LibraryDetailView viewer={viewer} model={model} signOutAction={signOutAction} />
+    </ReportActionProvider>
+  );
 }

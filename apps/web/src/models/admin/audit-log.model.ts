@@ -1,7 +1,7 @@
 export const adminAuditLogPath = "/admin/audit-log";
 export const auditLogPageSize = 30;
 
-export const auditAreas = ["all", "users", "forum", "library"] as const;
+export const auditAreas = ["all", "users", "forum", "library", "reports"] as const;
 export type AuditArea = (typeof auditAreas)[number];
 
 export const auditAreaLabels: Record<AuditArea, string> = {
@@ -9,6 +9,7 @@ export const auditAreaLabels: Record<AuditArea, string> = {
   users: "Users",
   forum: "Forum",
   library: "Library",
+  reports: "Reports",
 };
 
 export interface AuditEvent {
@@ -112,6 +113,14 @@ export function describeAuditEvent(event: AuditEvent): string {
       return `Restored a comment: “${excerpt ?? `#${event.entityId}`}”`;
     case "forum_report_dismissed":
       return `Dismissed a forum report (${text(meta, "report_reason") ?? "no reason given"})`;
+    case "report_no_violation":
+      return `Dismissed a report about ${text(meta, "target_label") ?? `#${event.entityId}`}`;
+    case "report_content_removed":
+      return `Removed reported content: ${text(meta, "target_label") ?? `#${event.entityId}`}`;
+    case "report_user_suspended":
+      return `Suspended the account in a report about ${text(meta, "target_label") ?? `#${event.entityId}`}`;
+    case "report_removed_and_suspended":
+      return `Removed content and suspended the account: ${text(meta, "target_label") ?? `#${event.entityId}`}`;
     case "library_material_submitted":
       return `Library material #${event.entityId} submitted for review`;
     case "library_material_status_changed": {

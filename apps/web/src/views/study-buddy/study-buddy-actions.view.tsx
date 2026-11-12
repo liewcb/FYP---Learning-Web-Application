@@ -9,6 +9,7 @@ import type {
   StudyBuddyActionIntent,
   StudyBuddyActionState,
 } from "@/models/peers/study-buddy.model";
+import { ReportButton } from "@/views/reports/report-button.view";
 import { ConfirmSubmitButton } from "@/views/shared/confirm-submit-button.view";
 
 export type StudyBuddyAction = (
@@ -100,6 +101,12 @@ export function StudyBuddyActions({
             ) : null}
           </>
         ) : null}
+
+        <ReportButton
+          target={{ type: "user", userId: buddy.id }}
+          title={`Report ${buddy.fullName}'s profile`}
+          label="Report profile"
+        />
       </div>
 
       {state.error ? (

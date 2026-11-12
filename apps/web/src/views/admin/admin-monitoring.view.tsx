@@ -245,7 +245,7 @@ export function AdminMonitoringView({ model }: { readonly model: MonitoringModel
         <div className="admin-figures compact">
           <Figure label="Forum threads" value={overview.community.forumThreads} />
           <Figure label="Forum comments" value={overview.community.forumComments} />
-          <Figure label="Pending reports" value={overview.community.pendingForumReports} />
+          <Figure label="Open reports" value={overview.community.pendingReports} />
           <Figure label="Library reviews waiting" value={overview.community.pendingLibraryMaterials} />
         </div>
       </section>

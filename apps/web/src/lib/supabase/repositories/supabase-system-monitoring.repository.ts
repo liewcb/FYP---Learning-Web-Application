@@ -105,6 +105,7 @@ export function toSystemOverview(raw: unknown): SystemOverview {
       forumThreads: count(community, "forum_threads"),
       forumComments: count(community, "forum_comments"),
       pendingForumReports: count(community, "pending_forum_reports"),
+      pendingReports: count(community, "pending_reports"),
       pendingLibraryMaterials: count(community, "pending_library_materials"),
     },
     activity: activity(root.activity),

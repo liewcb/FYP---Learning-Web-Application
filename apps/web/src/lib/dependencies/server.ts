@@ -8,6 +8,8 @@ import { ContentAnalysisController } from "@/controllers/analysis/content-analys
 import { LearningResultsController } from "@/controllers/learning-results.controller";
 import { AuthController } from "@/controllers/auth/auth.controller";
 import { ChatController } from "@/controllers/chat/chat.controller";
+import { ReportReviewController } from "@/controllers/admin/report-review.controller";
+import { ReportController } from "@/controllers/reports/report.controller";
 import { ChatGroupController } from "@/controllers/chat/chat-group.controller";
 import { PasswordResetController } from "@/controllers/auth/password-reset.controller";
 import { DocumentController } from "@/controllers/documents/document.controller";
@@ -24,6 +26,8 @@ import { HttpAiService } from "@/lib/ai/http-ai-service";
 import { AfterBackgroundTaskRunner } from "@/lib/next/after-background-task-runner";
 import { SupabaseChatGroupRepository } from "@/lib/supabase/repositories/supabase-chat-group.repository";
 import { SupabaseChatRepository } from "@/lib/supabase/repositories/supabase-chat.repository";
+import { SupabaseReportModerationRepository } from "@/lib/supabase/repositories/supabase-report-moderation.repository";
+import { SupabaseReportRepository } from "@/lib/supabase/repositories/supabase-report.repository";
 import { SupabaseDocumentRepository } from "@/lib/supabase/repositories/supabase-document.repository";
 import { SupabaseForumRepository } from "@/lib/supabase/repositories/supabase-forum.repository";
 import { SupabaseLearningResultsRepository } from "@/lib/supabase/repositories/supabase-learning-results.repository";
@@ -134,6 +138,18 @@ export async function createAdminUsersController(): Promise<AdminUsersController
   return new AdminUsersController(
     new SupabaseAdminUsersRepository(supabase),
     new SupabaseAccountAccessService(createServiceRoleClient),
+  );
+}
+
+export async function createReportController(): Promise<ReportController> {
+  return new ReportController(new SupabaseReportRepository(await createClient()));
+}
+
+export async function createReportReviewController(): Promise<ReportReviewController> {
+  return new ReportReviewController(
+    new SupabaseReportModerationRepository(await createClient()),
+    await createAdminUsersController(),
+    () => new SupabaseChatAttachmentStorage(createServiceRoleClient()),
   );
 }
 

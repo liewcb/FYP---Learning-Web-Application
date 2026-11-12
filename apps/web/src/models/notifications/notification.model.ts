@@ -1,4 +1,9 @@
 import { chatHref } from "@/models/chat/chat.model";
+import {
+  myReportsPath,
+  resolutionSummaries,
+  type ReportResolution,
+} from "@/models/reports/report.model";
 import { videoCallHref } from "@/models/video/video-call.model";
 
 export const notificationTypes = [
@@ -8,6 +13,7 @@ export const notificationTypes = [
   "group_invite_accepted",
   "video_call_started",
   "video_call_invite",
+  "report_resolved",
 ] as const;
 
 export type NotificationType = (typeof notificationTypes)[number];
@@ -20,6 +26,11 @@ export interface AppNotification {
   readonly conversationId: number | null;
   /** The call a video call notification links to. */
   readonly videoCallId: number | null;
+  /** The decided report a report notification is about. */
+  readonly report: {
+    readonly label: string;
+    readonly resolution: ReportResolution | null;
+  } | null;
   readonly read: boolean;
   readonly createdAt: string;
 }
@@ -52,6 +63,14 @@ export function notificationMessage(notification: AppNotification): string {
       return `${notification.actorName} started a video call in your chat.`;
     case "video_call_invite":
       return `${notification.actorName} invited you to a video call.`;
+    case "report_resolved": {
+      const about = notification.report ? ` about ${notification.report.label}` : "";
+      const outcome = notification.report?.resolution
+        ? ` ${resolutionSummaries[notification.report.resolution]}`
+        : "";
+
+      return `Your report${about} was reviewed.${outcome}`;
+    }
   }
 }
 
@@ -69,6 +88,8 @@ export function notificationHref(notification: AppNotification): string {
     case "video_call_started":
     case "video_call_invite":
       return notification.videoCallId === null ? "/chats" : videoCallHref(notification.videoCallId);
+    case "report_resolved":
+      return myReportsPath;
   }
 }
 

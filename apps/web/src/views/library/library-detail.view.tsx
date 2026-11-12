@@ -10,6 +10,7 @@ import { createStudentNavigation } from "@/models/home/home.model";
 import type { Viewer } from "@/models/profile/profile.model";
 import { documentTypeLabel, formatBytes } from "@/views/documents/document-display";
 import { formatLibraryDate, formatLibraryDateTime } from "@/views/library/library-display";
+import { ReportButton } from "@/views/reports/report-button.view";
 import { StudentTopbar } from "@/views/student/student-topbar.view";
 
 interface LibraryDetailViewProps {
@@ -52,6 +53,13 @@ export function LibraryDetailView({ viewer, model, signOutAction }: LibraryDetai
                 ? ` · Published ${formatLibraryDate(material.publishedAt)}`
                 : ` · Submitted ${formatLibraryDate(material.createdAt)}`}
             </p>
+            {!isOwner && material.status === "published" ? (
+              <ReportButton
+                target={{ type: "library_material", id: material.id }}
+                title="Report this material"
+                label="Report material"
+              />
+            ) : null}
           </div>
           {isOwner || material.status !== "published" ? (
             <span className={`status-chip ${material.status}`}>

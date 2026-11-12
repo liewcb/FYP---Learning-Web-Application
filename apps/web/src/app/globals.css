@@ -10401,3 +10401,369 @@ ul.quiz-review-options {
     min-width: 0;
   }
 }
+
+/* Reports ---------------------------------------------------------------- */
+
+.forum-report select {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.report-button {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.report-button:hover {
+  color: var(--danger);
+}
+
+.status-chip.report-pending {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.status-chip.report-actioned {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.status-chip.report-dismissed {
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+/* My reports */
+
+.my-reports {
+  display: grid;
+  gap: 24px;
+}
+
+.my-reports-header {
+  display: grid;
+  gap: 6px;
+  max-width: 68ch;
+}
+
+.my-reports-header h1 {
+  margin: 0;
+  color: var(--heading);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  letter-spacing: -0.03em;
+}
+
+.my-reports-header p,
+.my-reports-empty p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.my-reports-empty h2 {
+  margin: 0;
+  color: var(--heading);
+  font-size: 1.1rem;
+}
+
+.my-reports-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-report {
+  gap: 12px;
+  padding: 20px 22px;
+}
+
+.my-report-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.my-report-top > div {
+  min-width: 0;
+}
+
+.my-report-type {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.my-report h2 {
+  margin: 2px 0 0;
+  color: var(--heading);
+  font-size: 1.02rem;
+  overflow-wrap: anywhere;
+}
+
+.my-report-facts,
+.report-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin: 0;
+}
+
+.my-report-facts dt,
+.report-facts dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.my-report-facts dd,
+.report-facts dd {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.my-report-details {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.my-report-outcome {
+  display: grid;
+  gap: 4px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+}
+
+.my-report-outcome p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+/* Admin: Report review */
+
+.report-review-queue {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.report-card.selected {
+  border-color: var(--brand-gold);
+  box-shadow: 0 0 0 1px var(--brand-gold);
+}
+
+/* The card is a flex column, which would stretch the button to full width. */
+.report-open {
+  align-self: flex-start;
+  min-height: 36px;
+  padding-inline: 18px;
+}
+
+/* One report opens in a window over the queue, like "View profile". */
+.report-review-window {
+  position: relative;
+  padding: 32px 36px;
+}
+
+.report-detail {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.report-detail-top {
+  display: grid;
+  gap: 2px;
+  /* Room for the close button in the corner. */
+  padding-right: 48px;
+}
+
+.report-detail h2 {
+  margin: 4px 0 0;
+  color: var(--heading);
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.report-detail h3 {
+  margin: 0;
+  color: var(--heading);
+  font-size: 0.95rem;
+}
+
+.report-detail h4 {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+}
+
+.report-evidence,
+.report-others,
+.report-decided {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.report-evidence-note {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.report-context {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+  list-style: none;
+  font-size: 0.8rem;
+}
+
+.report-context time {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.report-context p {
+  margin: 2px 0 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.report-context .report-context-deleted {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.report-others ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+}
+
+.report-others li p,
+.report-decided p {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+}
+
+.report-decision {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.report-decision fieldset {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.report-decision legend {
+  margin-bottom: 6px;
+  color: var(--heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.report-decision-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 12px;
+  color: var(--ink);
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.report-decision-option:has(input:checked) {
+  border-color: var(--brand-gold);
+  background: var(--surface-soft);
+}
+
+.report-decision-warning {
+  margin: 0;
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+  font-size: 0.84rem;
+}
+
+.report-decision-field {
+  display: grid;
+  gap: 6px;
+  color: var(--heading);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.report-decision-field textarea {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.report-decision-field small {
+  color: var(--muted);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.report-decision .button {
+  justify-self: start;
+}
+
+.report-decision-notice {
+  margin: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .report-review-window {
+    padding: 24px 18px;
+  }
+}
