@@ -68,9 +68,17 @@ def test_complete_quiz_calls_atomic_database_function():
         }
     )
 
-    persistence.complete_quiz(73, result, prompt_version="quiz-v1")
+    persistence.complete_quiz(
+        73,
+        result,
+        prompt_version="quiz-v1",
+        source_sentences=["Hazard analysis identifies hazards and their causes."],
+    )
 
     assert requests[0].url.path == "/rest/v1/rpc/complete_generated_quiz"
     payload = json.loads(requests[0].content)
     assert payload["p_quiz_id"] == 73
     assert payload["p_questions"][0]["correct_answer"] == "True"
+    assert payload["p_questions"][0]["source_sentences"] == [
+        "Hazard analysis identifies hazards and their causes."
+    ]

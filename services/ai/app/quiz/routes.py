@@ -117,6 +117,7 @@ def generate_and_save_quiz(
             quiz_id,
             result,
             prompt_version=PROMPT_VERSION,
+            source_sentences=generation_request.sentences,
         )
     except SupabasePersistenceError as error:
         _try_fail_quiz(persistence, quiz_id, "Saving generated quiz failed.")

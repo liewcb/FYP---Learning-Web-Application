@@ -7,7 +7,12 @@ import {
   type QuizAttemptReview,
   type QuizAttemptSummary,
   type QuizPerformanceSummary,
+  type QuizReviewItem,
 } from "@/models/quiz/quiz-attempt.model";
+import {
+  buildStudyRecommendation,
+  type StudyRecommendation,
+} from "@/models/quiz/study-recommendation.model";
 
 export interface QuizAttemptHistory {
   readonly attempts: readonly QuizAttemptSummary[];
@@ -37,7 +42,7 @@ export class QuizAttemptController {
 
     try {
       const attemptId = await this.attempts.submit(quizId, validation.answers, start);
-      const review = await this.attempts.findReview(attemptId);
+      const review = await this.review(attemptId);
 
       if (!review) {
         return { ok: false, error: "Your attempt was saved, but its review could not be loaded." };
@@ -45,7 +50,12 @@ export class QuizAttemptController {
 
       return {
         ok: true,
-        result: { attemptId, items: review.items, score: scoreFromItems(review.items) },
+        result: {
+          attemptId,
+          items: review.items,
+          score: scoreFromItems(review.items),
+          recommendation: review.recommendation,
+        },
       };
     } catch (error) {
       console.error("Quiz attempt submission failed.", error);
@@ -67,7 +77,56 @@ export class QuizAttemptController {
     return this.attempts.listAttempts({ limit, quizId });
   }
 
-  review(attemptId: number): Promise<QuizAttemptReview | null> {
-    return this.attempts.findReview(attemptId);
+  async review(attemptId: number): Promise<QuizAttemptReview | null> {
+    const review = await this.attempts.findReview(attemptId);
+
+    if (!review) {
+      return null;
+    }
+
+    return {
+      ...review,
+      recommendation: await this.recommend(review.attempt.quizId, attemptId, review.items),
+    };
+  }
+
+  /**
+   * Builds the study recommendation for an attempt. A failure here never
+   * hides the graded result: the student just gets score-based advice.
+   */
+  private async recommend(
+    quizId: number,
+    attemptId: number,
+    items: readonly QuizReviewItem[],
+  ): Promise<StudyRecommendation> {
+    const percentage = scoreFromItems(items).percentage;
+
+    try {
+      const { context, sources } = await this.attempts.findRecommendationInputs(quizId, attemptId);
+
+      return buildStudyRecommendation(
+        items.map((item) => ({
+          position: item.position,
+          isCorrect: item.isCorrect,
+          sourceSentences: sources.get(item.position)?.sentences ?? [],
+          sourceSentenceIndexes: sources.get(item.position)?.indexes ?? [],
+        })),
+        percentage,
+        context,
+      );
+    } catch (error) {
+      console.error("Study recommendation failed; using score-based advice.", error);
+
+      return buildStudyRecommendation(
+        items.map((item) => ({
+          position: item.position,
+          isCorrect: item.isCorrect,
+          sourceSentences: [],
+          sourceSentenceIndexes: [],
+        })),
+        percentage,
+        null,
+      );
+    }
   }
 }

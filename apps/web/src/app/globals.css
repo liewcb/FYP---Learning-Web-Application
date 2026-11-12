@@ -11074,3 +11074,344 @@ ul.quiz-review-options {
     grid-template-columns: 1fr;
   }
 }
+
+/* Quiz: study recommendation after an attempt. */
+.study-rec {
+  display: grid;
+  gap: 14px;
+  margin: 0 0 18px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--success);
+  border-radius: 14px;
+  padding: 18px;
+  background: var(--surface);
+}
+
+.study-rec.on_track {
+  border-left-color: var(--info);
+}
+
+.study-rec.needs_review {
+  border-left-color: var(--accent);
+}
+
+.study-rec-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.study-rec-heading h3 {
+  margin: 4px 0 4px;
+  color: var(--heading);
+  font-size: 1rem;
+}
+
+.study-rec-heading p:not(.section-kicker) {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+}
+
+.study-rec-level {
+  flex: none;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.study-rec.on_track .study-rec-level {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.study-rec.needs_review .study-rec-level {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.study-rec-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ink);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.study-rec-topics {
+  display: grid;
+  gap: 10px;
+}
+
+.study-rec-topics h4 {
+  margin: 0;
+  color: var(--heading);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.study-rec-topics article {
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+}
+
+.study-rec-topic-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.86rem;
+}
+
+.study-rec-topic-head strong {
+  color: var(--heading);
+  text-transform: capitalize;
+}
+
+.study-rec-topic-head span {
+  flex: none;
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.study-rec-topics ul {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.study-rec-strengths {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+}
+
+.study-rec-strengths span {
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.study-rec-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.study-rec-links .button {
+  width: auto;
+  text-decoration: none;
+}
+
+/* Admin: system reports. */
+.report-form {
+  margin-bottom: 20px;
+}
+
+.report-form fieldset {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.report-form legend {
+  margin-bottom: 8px;
+  color: var(--heading);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.report-form > .button {
+  width: auto;
+  justify-self: start;
+}
+
+.report-options {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.report-options label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.report-options label:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--info-soft);
+}
+
+.report-options input {
+  margin-top: 3px;
+}
+
+.report-options span {
+  display: grid;
+  gap: 3px;
+}
+
+.report-options strong {
+  color: var(--heading);
+  font-size: 0.86rem;
+}
+
+.report-options small {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.system-report {
+  display: grid;
+  gap: 16px;
+}
+
+.system-report-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.system-report-header h2 {
+  margin: 4px 0;
+  color: var(--heading);
+  font-size: 1.4rem;
+}
+
+.system-report-header p:not(.section-kicker) {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.system-report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.system-report-actions .button {
+  width: auto;
+  text-decoration: none;
+}
+
+.report-two-column {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.report-subtitle {
+  margin: 8px 0 0;
+  color: var(--heading);
+  font-size: 0.9rem;
+}
+
+.report-daily {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 80px;
+  margin: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--line);
+  list-style: none;
+}
+
+.report-daily li {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+  height: 100%;
+}
+
+.report-daily-bar {
+  display: block;
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  background: var(--info);
+}
+
+.report-state.operational {
+  color: var(--success);
+  font-weight: 700;
+}
+
+.report-state.degraded {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.report-state.down {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.report-alerts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+}
+
+@media (max-width: 860px) {
+  .report-two-column {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Printing a report (or saving it as PDF) shows only the report itself. */
+@media print {
+  .admin-sidebar,
+  .admin-topbar,
+  .report-no-print,
+  nextjs-portal {
+    display: none !important;
+  }
+
+  .admin-app,
+  .admin-main,
+  .admin-content {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .system-report .admin-panel {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+
+  body {
+    background: #fff !important;
+  }
+}

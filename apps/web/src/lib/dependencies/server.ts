@@ -3,6 +3,7 @@ import { AdminUsersController } from "@/controllers/admin/admin-users.controller
 import { AuditLogController } from "@/controllers/admin/audit-log.controller";
 import { ForumModerationController } from "@/controllers/admin/forum-moderation.controller";
 import { SystemMonitoringController } from "@/controllers/admin/system-monitoring.controller";
+import { SystemReportController } from "@/controllers/admin/system-report.controller";
 import { StorageRequestController } from "@/controllers/storage/storage-request.controller";
 import { AiController } from "@/controllers/ai/ai.controller";
 import { ContentAnalysisController } from "@/controllers/analysis/content-analysis.controller";
@@ -47,6 +48,7 @@ import { SupabaseAdminUsersRepository } from "@/lib/supabase/repositories/supaba
 import { SupabaseAuditLogRepository } from "@/lib/supabase/repositories/supabase-audit-log.repository";
 import { SupabaseForumModerationRepository } from "@/lib/supabase/repositories/supabase-forum-moderation.repository";
 import { SupabaseSystemMonitoringRepository } from "@/lib/supabase/repositories/supabase-system-monitoring.repository";
+import { SupabaseSystemReportRepository } from "@/lib/supabase/repositories/supabase-system-report.repository";
 import { SupabaseStorageRequestRepository } from "@/lib/supabase/repositories/supabase-storage-request.repository";
 import { SupabaseAccountAccessService } from "@/lib/supabase/services/supabase-account-access.service";
 import { defaultPlatformStorageCapacityBytes } from "@/models/admin/system-monitoring.model";
@@ -272,5 +274,12 @@ export async function createLibraryController(): Promise<LibraryController> {
     new SupabaseLibraryRepository(supabase, createServiceRoleClient),
     new SupabaseLibraryStorage(createServiceRoleClient),
     new SupabaseDocumentRepository(supabase),
+  );
+}
+
+export async function createSystemReportController(): Promise<SystemReportController> {
+  return new SystemReportController(
+    new SupabaseSystemReportRepository(await createClient()),
+    await createSystemMonitoringController(),
   );
 }

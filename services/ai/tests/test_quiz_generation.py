@@ -51,8 +51,9 @@ class FakeQuizPersistence:
         self.started = kwargs
         return 73
 
-    def complete_quiz(self, quiz_id, result, *, prompt_version):
+    def complete_quiz(self, quiz_id, result, *, prompt_version, source_sentences=None):
         self.completed = (quiz_id, result, prompt_version)
+        self.source_sentences = source_sentences
 
     def fail_quiz(self, quiz_id, message):
         self.failed = (quiz_id, message)
@@ -210,3 +211,5 @@ def test_generate_and_save_endpoint_persists_validated_quiz(monkeypatch):
     assert persistence.started["document_id"] == 11
     assert persistence.completed[0] == 73
     assert persistence.completed[2] == "quiz-v1"
+    # The sentence text is kept so missed questions can be matched to topics.
+    assert persistence.source_sentences

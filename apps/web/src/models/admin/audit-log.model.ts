@@ -104,6 +104,8 @@ export function describeAuditEvent(event: AuditEvent): string {
       return `Suspended ${person}`;
     case "user_reactivated":
       return `Reactivated ${person}`;
+    case "system_report_generated":
+      return `Generated a system report (last ${Number(meta.days) || "?"} days)`;
     case "storage_request_approved":
       return `Approved ${person === "a user" ? "a" : `${person}'s`} storage request: ${bytesLabel(meta.from_bytes)} → ${bytesLabel(meta.to_bytes)}`;
     case "storage_request_rejected":

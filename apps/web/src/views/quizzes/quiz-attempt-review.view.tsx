@@ -10,6 +10,7 @@ import {
 import { formatAttemptDate } from "@/views/quizzes/quiz-display";
 import { QuizReviewList, QuizScoreSummary } from "@/views/quizzes/quiz-review.view";
 import { QuizTabs } from "@/views/quizzes/quiz-tabs.view";
+import { StudyRecommendationView } from "@/views/quizzes/study-recommendation.view";
 import { StudentTopbar } from "@/views/student/student-topbar.view";
 
 interface QuizAttemptReviewViewProps {
@@ -56,6 +57,9 @@ export function QuizAttemptReviewView({
             <span aria-hidden="true">←</span> All attempts
           </Link>
           <QuizScoreSummary score={scoreFromItems(items)} />
+          {review.recommendation ? (
+            <StudyRecommendationView recommendation={review.recommendation} />
+          ) : null}
           <QuizReviewList items={items} />
         </section>
       </div>

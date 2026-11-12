@@ -256,7 +256,22 @@ class SupabasePersistence:
         result: QuizGenerationResponse,
         *,
         prompt_version: str,
+        source_sentences: list[str] | None = None,
     ) -> None:
+        sentences = source_sentences or []
+
+        def question_payload(question) -> dict:
+            payload = question.model_dump(mode="json")
+            # Keep the text of each grounding sentence: its index only makes
+            # sense against the sentence list sent to Gemini, while the text
+            # lets study recommendations match a question to analysed topics.
+            payload["source_sentences"] = [
+                sentences[index][:2_000]
+                for index in question.source_sentence_indexes
+                if 0 <= index < len(sentences)
+            ][:10]
+            return payload
+
         self._request(
             "POST",
             "rpc/complete_generated_quiz",
@@ -264,9 +279,7 @@ class SupabasePersistence:
                 "p_quiz_id": quiz_id,
                 "p_generation_model": result.model,
                 "p_prompt_version": prompt_version,
-                "p_questions": [
-                    question.model_dump(mode="json") for question in result.questions
-                ],
+                "p_questions": [question_payload(question) for question in result.questions],
             },
         )
 

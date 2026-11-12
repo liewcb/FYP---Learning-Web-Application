@@ -6,6 +6,10 @@ import {
   type QuizQuestionType,
   type QuizScore,
 } from "@/models/quiz/quiz.model";
+import {
+  buildStudyRecommendation,
+  type StudyRecommendation,
+} from "@/models/quiz/study-recommendation.model";
 
 /** A question as the student sees it before submitting: no answer key. */
 export interface QuizAttemptQuestion {
@@ -28,6 +32,7 @@ export interface QuizAttemptResult {
   readonly items: readonly QuizReviewItem[];
   /** Present when the attempt was stored in the student's history. */
   readonly attemptId?: number;
+  readonly recommendation?: StudyRecommendation;
 }
 
 export type QuizAttemptOutcome =
@@ -50,6 +55,7 @@ export interface QuizAttemptSummary {
 export interface QuizAttemptReview {
   readonly attempt: QuizAttemptSummary;
   readonly items: readonly QuizReviewItem[];
+  readonly recommendation?: StudyRecommendation;
 }
 
 export interface QuizPerformanceSummary {
@@ -118,7 +124,23 @@ export function gradeGeneratedQuizLocally(
     explanation: question.explanation,
   }));
 
-  return { score: scoreFromItems(items), items };
+  const score = scoreFromItems(items);
+
+  // Pasted text has no saved analysis, so only score-based advice is possible.
+  return {
+    score,
+    items,
+    recommendation: buildStudyRecommendation(
+      quiz.questions.map((question) => ({
+        position: question.position,
+        isCorrect: isCorrectQuizAnswer(question, answers[question.position]),
+        sourceSentences: [],
+        sourceSentenceIndexes: [],
+      })),
+      score.percentage,
+      null,
+    ),
+  };
 }
 
 export type QuizAttemptValidation =

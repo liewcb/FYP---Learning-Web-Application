@@ -9,11 +9,13 @@ import type {
   QuizAttemptResult,
 } from "@/models/quiz/quiz-attempt.model";
 import type { QuizAnswers } from "@/models/quiz/quiz.model";
+import { recommendationNotice } from "@/models/quiz/study-recommendation.model";
 import {
   QuizReviewList,
   QuizScoreSummary,
   questionTypeLabels,
 } from "@/views/quizzes/quiz-review.view";
+import { StudyRecommendationView } from "@/views/quizzes/study-recommendation.view";
 
 interface InteractiveQuizViewProps {
   readonly kicker: string;
@@ -115,7 +117,7 @@ export function InteractiveQuizView({
           <QuizScoreSummary score={result.score} />
           {result.attemptId ? (
             <p className="saved-result-note">
-              Attempt saved to your history.{" "}
+              {recommendationNotice}{" "}
               <Link href={`/quizzes/attempts/${result.attemptId}`}>Open this review</Link>
               {" · "}
               <Link href="/quizzes/attempts">See all attempts</Link>
@@ -125,6 +127,9 @@ export function InteractiveQuizView({
               Quizzes made from pasted text are not saved. Generate from an
               uploaded document to keep your score history.
             </p>
+          ) : null}
+          {result.recommendation ? (
+            <StudyRecommendationView recommendation={result.recommendation} />
           ) : null}
           <QuizReviewList items={result.items} />
           <div className="quiz-submit-bar">

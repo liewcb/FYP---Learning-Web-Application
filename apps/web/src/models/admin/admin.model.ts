@@ -87,7 +87,7 @@ export const adminSections: readonly AdminSection[] = [
     label: "Reports",
     description: "Generate and download usage and activity reports.",
     icon: "▦",
-    ready: false,
+    ready: true,
   },
   {
     slug: "audit-log",
