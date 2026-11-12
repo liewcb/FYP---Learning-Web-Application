@@ -73,7 +73,7 @@ export const adminSections: readonly AdminSection[] = [
     label: "Storage requests",
     description: "Approve or reject requests for additional storage.",
     icon: "⬒",
-    ready: false,
+    ready: true,
   },
   {
     slug: "monitoring",

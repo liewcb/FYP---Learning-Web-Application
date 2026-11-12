@@ -7,6 +7,8 @@ import {
   createForumThreadAction,
   deleteForumCommentAction,
   deleteForumThreadAction,
+  editForumCommentAction,
+  editForumThreadAction,
   reportForumContentAction,
   toggleForumUpvoteAction,
 } from "@/app/forum/actions";
@@ -54,6 +56,8 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
       deleteThreadAction={deleteForumThreadAction}
       deleteCommentAction={deleteForumCommentAction}
       reportAction={reportForumContentAction}
+      editThreadAction={editForumThreadAction}
+      editCommentAction={editForumCommentAction}
       signOutAction={signOutAction}
     />
   );

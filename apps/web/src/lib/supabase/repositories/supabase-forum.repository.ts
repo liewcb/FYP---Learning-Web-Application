@@ -6,6 +6,8 @@ import {
   type CreateForumAttachmentInput,
   type CreateForumCommentInput,
   type CreateForumThreadInput,
+  type UpdateForumCommentInput,
+  type UpdateForumThreadInput,
   type ForumAttachment,
   type ForumAuthor,
   type ForumComment,
@@ -349,5 +351,41 @@ export class SupabaseForumRepository implements ForumRepository {
     if (error) {
       throw new Error(`Unable to update forum upvote: ${error.message}`);
     }
+  }
+
+  async updateThread(input: UpdateForumThreadInput): Promise<boolean> {
+    // Row-level security already limits updates to the author; the extra
+    // filters keep hidden or removed posts from being edited back into view.
+    const { data, error } = await this.supabase
+      .from("forum_threads")
+      .update({ title: input.title, content: input.content })
+      .eq("id", input.threadId)
+      .eq("author_id", input.authorId)
+      .eq("status", "published")
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Unable to update forum thread: ${error.message}`);
+    }
+
+    return data !== null;
+  }
+
+  async updateComment(input: UpdateForumCommentInput): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from("forum_comments")
+      .update({ content: input.content })
+      .eq("id", input.commentId)
+      .eq("author_id", input.authorId)
+      .eq("status", "published")
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Unable to update forum comment: ${error.message}`);
+    }
+
+    return data !== null;
   }
 }

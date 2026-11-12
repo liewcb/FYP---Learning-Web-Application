@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import {
   formatBytes,
   storageUsagePercent,
@@ -100,7 +102,7 @@ export function ProfileView({ model, updateAction }: ProfileViewProps) {
                 <span style={{ width: `${usage}%` }} />
               </div>
               <p className="field-hint">
-                Need more space? Storage requests are coming soon.
+                Need more space? <Link href="/storage">Request more storage</Link>
               </p>
             </section>
           ) : null}

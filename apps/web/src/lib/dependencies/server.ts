@@ -3,6 +3,7 @@ import { AdminUsersController } from "@/controllers/admin/admin-users.controller
 import { AuditLogController } from "@/controllers/admin/audit-log.controller";
 import { ForumModerationController } from "@/controllers/admin/forum-moderation.controller";
 import { SystemMonitoringController } from "@/controllers/admin/system-monitoring.controller";
+import { StorageRequestController } from "@/controllers/storage/storage-request.controller";
 import { AiController } from "@/controllers/ai/ai.controller";
 import { ContentAnalysisController } from "@/controllers/analysis/content-analysis.controller";
 import { LearningResultsController } from "@/controllers/learning-results.controller";
@@ -46,6 +47,7 @@ import { SupabaseAdminUsersRepository } from "@/lib/supabase/repositories/supaba
 import { SupabaseAuditLogRepository } from "@/lib/supabase/repositories/supabase-audit-log.repository";
 import { SupabaseForumModerationRepository } from "@/lib/supabase/repositories/supabase-forum-moderation.repository";
 import { SupabaseSystemMonitoringRepository } from "@/lib/supabase/repositories/supabase-system-monitoring.repository";
+import { SupabaseStorageRequestRepository } from "@/lib/supabase/repositories/supabase-storage-request.repository";
 import { SupabaseAccountAccessService } from "@/lib/supabase/services/supabase-account-access.service";
 import { defaultPlatformStorageCapacityBytes } from "@/models/admin/system-monitoring.model";
 import { SupabaseAuthService } from "@/lib/supabase/services/supabase-auth.service";
@@ -163,6 +165,12 @@ export async function createAuditLogController(): Promise<AuditLogController> {
   return new AuditLogController(new SupabaseAuditLogRepository(await createClient()));
 }
 
+export async function createStorageRequestController(): Promise<StorageRequestController> {
+  return new StorageRequestController(
+    new SupabaseStorageRequestRepository(await createClient()),
+  );
+}
+
 function platformStorageCapacityBytes(): number {
   const configured = Number(process.env.PLATFORM_STORAGE_CAPACITY_BYTES);
 
@@ -176,6 +184,7 @@ export async function createSystemMonitoringController(): Promise<SystemMonitori
     new SupabaseSystemMonitoringRepository(await createClient()),
     new HttpAiService(),
     platformStorageCapacityBytes(),
+    async () => (await createStorageRequestController()).pendingCount(),
   );
 }
 

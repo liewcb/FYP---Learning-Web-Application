@@ -218,3 +218,40 @@ export interface ForumReportFormState {
   readonly error?: string;
   readonly notice?: string;
 }
+
+/* ---------- Editing your own posts ---------- */
+
+export interface ForumEditFormState {
+  readonly error?: string;
+  readonly notice?: string;
+  readonly fieldErrors?: Partial<Record<"title" | "content", string>>;
+}
+
+export interface UpdateForumThreadInput {
+  readonly threadId: number;
+  readonly authorId: string;
+  readonly title: string;
+  readonly content: string;
+}
+
+export interface UpdateForumCommentInput {
+  readonly commentId: number;
+  readonly authorId: string;
+  readonly content: string;
+}
+
+/** Same rules as a new post, without attachments (those are not editable). */
+export function validateForumThreadEdit(
+  values: ForumThreadFormValues,
+): { ok: true; value: ForumThreadFormValues } | { ok: false; fieldErrors: ForumEditFormState["fieldErrors"] } {
+  const result = validateForumThread(values, []);
+
+  return result.ok
+    ? { ok: true, value: result.value }
+    : { ok: false, fieldErrors: { title: result.fieldErrors?.title, content: result.fieldErrors?.content } };
+}
+
+/** A post counts as edited when it changed more than a minute after posting. */
+export function isEdited(createdAt: string, updatedAt: string): boolean {
+  return Date.parse(updatedAt) - Date.parse(createdAt) > 60_000;
+}

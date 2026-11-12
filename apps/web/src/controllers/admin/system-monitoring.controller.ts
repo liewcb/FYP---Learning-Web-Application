@@ -17,21 +17,34 @@ export class SystemMonitoringController {
     private readonly monitoring: SystemMonitoringRepository,
     private readonly aiService: AiService,
     private readonly platformCapacityBytes: number,
+    /** Pending storage requests, so administrators are told when students ask for space. */
+    private readonly pendingStorageRequests: () => Promise<number> = async () => 0,
   ) {}
 
   async load(): Promise<MonitoringModel> {
-    const [overview, heaviestUsers, databaseMs, aiStatus] = await Promise.all([
+    const [overview, heaviestUsers, databaseMs, aiStatus, storageRequests] = await Promise.all([
       this.monitoring.overview(),
       this.monitoring.heaviestUsers(8),
       this.monitoring.pingDatabase().catch(() => null),
       this.checkAiService(),
+      this.pendingStorageRequests().catch(() => 0),
     ]);
     const services = this.services(overview, databaseMs, aiStatus);
+    const alerts = buildMonitoringAlerts(overview, services, this.platformCapacityBytes);
+
+    if (storageRequests > 0) {
+      alerts.push({
+        level: "warning",
+        title: `${storageRequests} storage ${storageRequests === 1 ? "request" : "requests"} waiting`,
+        detail: "Students have asked for more space.",
+        href: "/admin/storage-requests",
+      });
+    }
 
     return {
       overview,
       services,
-      alerts: buildMonitoringAlerts(overview, services, this.platformCapacityBytes),
+      alerts,
       platformBytes: totalStoredBytes(overview),
       platformCapacityBytes: this.platformCapacityBytes,
       heaviestUsers,

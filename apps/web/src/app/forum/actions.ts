@@ -9,6 +9,7 @@ import {
 } from "@/lib/dependencies/server";
 import type {
   ForumCommentFormState,
+  ForumEditFormState,
   ForumReportFormState,
   ForumThreadFormState,
   ForumThreadFormValues,
@@ -157,6 +158,62 @@ export async function reportForumContentAction(
   if (state.notice) {
     revalidatePath("/admin/forum");
     revalidatePath("/admin/report-review");
+  }
+
+  return state;
+}
+
+export async function editForumThreadAction(
+  _previous: ForumEditFormState,
+  formData: FormData,
+): Promise<ForumEditFormState> {
+  const viewer = await currentViewer();
+  const threadId = positiveId(formData, "threadId");
+
+  if (!viewer) {
+    return { error: "Your session expired. Sign in and try again." };
+  }
+
+  if (threadId === null) {
+    return { error: "This post could not be found." };
+  }
+
+  const state = await (await createForumController()).editThread({
+    threadId,
+    authorId: viewer.id,
+    values: { title: field(formData, "title"), content: field(formData, "content") },
+  });
+
+  if (state.notice) {
+    revalidatePath("/forum");
+  }
+
+  return state;
+}
+
+export async function editForumCommentAction(
+  _previous: ForumEditFormState,
+  formData: FormData,
+): Promise<ForumEditFormState> {
+  const viewer = await currentViewer();
+  const commentId = positiveId(formData, "commentId");
+
+  if (!viewer) {
+    return { error: "Your session expired. Sign in and try again." };
+  }
+
+  if (commentId === null) {
+    return { error: "This comment could not be found." };
+  }
+
+  const state = await (await createForumController()).editComment({
+    commentId,
+    authorId: viewer.id,
+    content: field(formData, "content"),
+  });
+
+  if (state.notice) {
+    revalidatePath("/forum");
   }
 
   return state;

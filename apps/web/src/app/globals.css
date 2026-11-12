@@ -10867,3 +10867,210 @@ ul.quiz-review-options {
   flex: none;
   padding-inline: 16px;
 }
+
+/* Forum: authors edit their own posts and comments in place. */
+.forum-edit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.forum-edited {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-style: italic;
+}
+
+.forum-edit-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.forum-edit-button:hover {
+  text-decoration: underline;
+}
+
+.forum-edit-form {
+  display: grid;
+  gap: 8px;
+  padding: 20px 22px;
+}
+
+.forum-edit-form.compact {
+  padding: 6px 0 0;
+}
+
+.forum-edit-form label {
+  color: var(--heading);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.forum-edit-form input,
+.forum-edit-form textarea {
+  width: 100%;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  padding: 9px 11px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+  resize: vertical;
+}
+
+.forum-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.forum-edit-actions .button {
+  width: auto;
+}
+
+/* Storage requests: student page. */
+.storage-layout {
+  display: grid;
+  align-items: start;
+  gap: 20px;
+  margin-bottom: 20px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+}
+
+.storage-usage-figure {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.storage-usage-figure strong {
+  color: var(--heading);
+  font-size: 1.5rem;
+}
+
+.storage-usage-figure > span:last-child {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.storage-request-form {
+  display: grid;
+  gap: 14px;
+}
+
+.storage-request-form .button {
+  width: auto;
+  justify-self: start;
+}
+
+.storage-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.storage-amounts legend {
+  margin-bottom: 8px;
+  color: var(--heading);
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.storage-amounts label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.storage-amounts label:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--info-soft);
+  color: var(--heading);
+}
+
+.storage-pending {
+  display: grid;
+  gap: 10px;
+}
+
+.storage-pending .status-chip {
+  justify-self: start;
+}
+
+.storage-pending p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.storage-pending blockquote {
+  margin: 0;
+  border-left: 3px solid var(--line-strong);
+  padding-left: 12px;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.storage-pending .button {
+  width: auto;
+}
+
+.storage-history ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.storage-history li {
+  display: grid;
+  align-items: center;
+  gap: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.storage-history li > div {
+  display: grid;
+  gap: 2px;
+}
+
+.storage-history li > div span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.storage-history li p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 860px) {
+  .storage-layout {
+    grid-template-columns: 1fr;
+  }
+}

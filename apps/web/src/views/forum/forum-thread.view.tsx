@@ -2,8 +2,13 @@ import type {
   ForumCommentFormState,
   ForumThread,
 } from "@/models/forum/forum.model";
-import { isImageAttachment } from "@/models/forum/forum.model";
+import { isEdited, isImageAttachment } from "@/models/forum/forum.model";
 import { CommentFormView } from "@/views/forum/comment-form.view";
+import {
+  EditableCommentContent,
+  EditableThreadContent,
+  type ForumEditAction,
+} from "@/views/forum/editable-forum-content.view";
 import {
   ReportContentView,
   type ForumReportAction,
@@ -20,6 +25,8 @@ interface ForumThreadViewProps {
   readonly deleteThreadAction: (formData: FormData) => Promise<void>;
   readonly deleteCommentAction: (formData: FormData) => Promise<void>;
   readonly reportAction: ForumReportAction;
+  readonly editThreadAction: ForumEditAction;
+  readonly editCommentAction: ForumEditAction;
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en-MY", {
@@ -45,6 +52,8 @@ export function ForumThreadView({
   deleteThreadAction,
   deleteCommentAction,
   reportAction,
+  editThreadAction,
+  editCommentAction,
 }: ForumThreadViewProps) {
   return (
     <article className="forum-thread">
@@ -60,10 +69,15 @@ export function ForumThreadView({
         <span className="status-chip uploaded">Community</span>
       </header>
 
-      <div className="forum-thread-copy">
-        <h2>{thread.title}</h2>
-        <p>{thread.content}</p>
-      </div>
+      <EditableThreadContent
+        key={thread.updatedAt}
+        threadId={thread.id}
+        title={thread.title}
+        content={thread.content}
+        edited={isEdited(thread.createdAt, thread.updatedAt)}
+        canEdit={thread.canDelete && thread.status === "published"}
+        action={editThreadAction}
+      />
 
       {thread.attachments.length > 0 ? (
         <div className="forum-attachments">
@@ -158,7 +172,14 @@ export function ForumThreadView({
                       <ReportContentView action={reportAction} commentId={comment.id} />
                     )}
                   </div>
-                  <p>{comment.content}</p>
+                  <EditableCommentContent
+                    key={comment.updatedAt}
+                    commentId={comment.id}
+                    content={comment.content}
+                    edited={isEdited(comment.createdAt, comment.updatedAt)}
+                    canEdit={comment.canDelete && comment.status === "published"}
+                    action={editCommentAction}
+                  />
                 </div>
               </div>
             ))

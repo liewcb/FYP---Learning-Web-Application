@@ -86,6 +86,13 @@ const libraryStatusWords: Record<string, string> = {
   archived: "archived",
 };
 
+/** “Title” for new events; "Library material #12" for events logged before titles were recorded. */
+function libraryTitle(event: AuditEvent): string {
+  const title = text(event.metadata, "title");
+
+  return title ? `“${title}”` : `Library material #${event.entityId}`;
+}
+
 /** Plain-language summary of one audit event for the log and the report. */
 export function describeAuditEvent(event: AuditEvent): string {
   const meta = event.metadata;
@@ -97,6 +104,10 @@ export function describeAuditEvent(event: AuditEvent): string {
       return `Suspended ${person}`;
     case "user_reactivated":
       return `Reactivated ${person}`;
+    case "storage_request_approved":
+      return `Approved ${person === "a user" ? "a" : `${person}'s`} storage request: ${bytesLabel(meta.from_bytes)} → ${bytesLabel(meta.to_bytes)}`;
+    case "storage_request_rejected":
+      return `Rejected ${person === "a user" ? "a" : `${person}'s`} request for +${bytesLabel(meta.requested_bytes)} storage`;
     case "user_storage_quota_changed":
       return `Changed ${person === "a user" ? "a" : `${person}'s`} storage quota from ${bytesLabel(meta.from_bytes)} to ${bytesLabel(meta.to_bytes)}`;
     case "forum_thread_hidden":
@@ -122,13 +133,19 @@ export function describeAuditEvent(event: AuditEvent): string {
     case "report_removed_and_suspended":
       return `Removed content and suspended the account: ${text(meta, "target_label") ?? `#${event.entityId}`}`;
     case "library_material_submitted":
-      return `Library material #${event.entityId} submitted for review`;
+      return `${libraryTitle(event)} submitted to the library for review`;
+    case "library_material_approved":
+      return `Approved and published ${libraryTitle(event)}`;
+    case "library_material_rejected":
+      return `Rejected ${libraryTitle(event)}`;
+    case "library_material_archived":
+      return `Archived ${libraryTitle(event)} from the library`;
     case "library_material_status_changed": {
       const status = text(meta, "status");
-      return `Library material #${event.entityId} ${status ? libraryStatusWords[status] ?? status : "updated"}`;
+      return `${libraryTitle(event)} ${status ? libraryStatusWords[status] ?? status : "updated"}`;
     }
     case "library_material_metadata_updated":
-      return `Library material #${event.entityId} details updated`;
+      return `${libraryTitle(event)} details updated`;
     default:
       return event.action.replace(/_/g, " ");
   }

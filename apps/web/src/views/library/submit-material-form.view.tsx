@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 
 import {
   libraryRules,
@@ -37,6 +37,22 @@ export function SubmitMaterialForm({
     tags: "",
   };
   const errors = state.fieldErrors ?? {};
+  const titleRef = useRef<HTMLInputElement>(null);
+  // The title most recently filled in for the student, so a title they
+  // typed themselves is never overwritten when they switch documents.
+  const autoTitle = useRef(values.title);
+
+  function documentChanged(documentId: string) {
+    const input = titleRef.current;
+    const chosen = documents.find((document) => String(document.id) === documentId);
+
+    if (!input || !chosen) return;
+
+    if (input.value.trim() === "" || input.value === autoTitle.current) {
+      input.value = chosen.title;
+      autoTitle.current = chosen.title;
+    }
+  }
 
   return (
     <form className="module-card lib-submit-form" action={formAction} noValidate>
@@ -67,6 +83,7 @@ export function SubmitMaterialForm({
           id="library-document"
           name="documentId"
           defaultValue={values.documentId}
+          onChange={(event) => documentChanged(event.target.value)}
           aria-invalid={errors.documentId ? true : undefined}
         >
           <option value="">Choose a ready document</option>
@@ -83,6 +100,7 @@ export function SubmitMaterialForm({
         <label htmlFor="library-title">Title</label>
         <input
           id="library-title"
+          ref={titleRef}
           name="title"
           defaultValue={values.title}
           maxLength={libraryRules.titleMax}

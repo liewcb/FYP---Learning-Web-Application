@@ -3,7 +3,9 @@ import type { ForumAttachmentStorage } from "@/interfaces/services/forum-attachm
 import {
   validateForumComment,
   validateForumThread,
+  validateForumThreadEdit,
   type ForumCommentFormState,
+  type ForumEditFormState,
   type ForumFeedScope,
   type ForumThread,
   type ForumThreadFormState,
@@ -168,5 +170,59 @@ export class ForumController {
 
   deleteComment(commentId: number): Promise<void> {
     return this.forum.deleteComment(commentId);
+  }
+
+  async editThread(input: {
+    readonly threadId: number;
+    readonly authorId: string;
+    readonly values: ForumThreadFormValues;
+  }): Promise<ForumEditFormState> {
+    const validation = validateForumThreadEdit(input.values);
+
+    if (!validation.ok) {
+      return { fieldErrors: validation.fieldErrors };
+    }
+
+    try {
+      const updated = await this.forum.updateThread({
+        threadId: input.threadId,
+        authorId: input.authorId,
+        ...validation.value,
+      });
+
+      return updated
+        ? { notice: "Post updated." }
+        : { error: "This post can no longer be edited." };
+    } catch (error) {
+      console.error("Forum thread update failed.", error);
+      return { error: "Your changes could not be saved. Please try again." };
+    }
+  }
+
+  async editComment(input: {
+    readonly commentId: number;
+    readonly authorId: string;
+    readonly content: string;
+  }): Promise<ForumEditFormState> {
+    const invalid = validateForumComment(input.content);
+
+    if (invalid) {
+      return { fieldErrors: { content: invalid } };
+    }
+
+    try {
+      const updated = await this.forum.updateComment({
+        commentId: input.commentId,
+        authorId: input.authorId,
+        content: input.content.trim(),
+      });
+
+      return updated
+        ? { notice: "Comment updated." }
+        : { error: "This comment can no longer be edited." };
+    } catch (error) {
+      console.error("Forum comment update failed.", error);
+      return { error: "Your changes could not be saved. Please try again." };
+    }
   }
 }
