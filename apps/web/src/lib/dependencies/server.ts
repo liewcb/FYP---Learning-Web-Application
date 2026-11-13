@@ -39,6 +39,7 @@ import { SupabaseProfileRepository } from "@/lib/supabase/repositories/supabase-
 import { SupabaseRevisionRepository } from "@/lib/supabase/repositories/supabase-revision.repository";
 import { SupabaseStudyBuddyRepository } from "@/lib/supabase/repositories/supabase-study-buddy.repository";
 import { SupabaseVideoCallRepository } from "@/lib/supabase/repositories/supabase-video-call.repository";
+import { SupabaseAvatarStorage } from "@/lib/supabase/storage/supabase-avatar-storage";
 import { SupabaseChatAttachmentStorage } from "@/lib/supabase/storage/supabase-chat-attachment-storage";
 import { SupabaseDocumentStorage } from "@/lib/supabase/storage/supabase-document-storage";
 import { SupabaseForumAttachmentStorage } from "@/lib/supabase/storage/supabase-forum-attachment-storage";
@@ -121,6 +122,7 @@ export async function createProfileController(): Promise<ProfileController> {
   return new ProfileController(
     new SupabaseAuthService(supabase),
     new SupabaseProfileRepository(supabase),
+    new SupabaseAvatarStorage(supabase),
   );
 }
 
@@ -258,6 +260,8 @@ export async function createRevisionController(): Promise<RevisionController> {
     new SupabaseRevisionRepository(supabase),
     new SupabaseDocumentRepository(supabase),
     new HttpAiService(),
+    new SupabaseLearningResultsRepository(supabase),
+    new SupabaseQuizAttemptRepository(supabase),
   );
 }
 

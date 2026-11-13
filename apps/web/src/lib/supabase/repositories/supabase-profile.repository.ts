@@ -105,6 +105,14 @@ export class SupabaseProfileRepository implements ProfileRepository {
     return { status: "failed", reason: "unavailable" };
   }
 
+  async setOwnAvatar(id: string, path: string | null): Promise<void> {
+    const { error } = await this.supabase.from("profiles").update({ avatar_path: path }).eq("id", id);
+
+    if (error) {
+      throw new Error(`Unable to save profile picture: ${error.message}`);
+    }
+  }
+
   async getOwnAccount(): Promise<AccountSummary | null> {
     const { data, error } = await this.supabase
       .rpc("get_my_account")

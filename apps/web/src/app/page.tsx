@@ -2,17 +2,23 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { signOutAction } from "@/app/auth/actions";
+import { ConnectedDocumentViewers } from "@/app/documents/connected-document-viewers";
+import { submitQuizAttemptAction } from "@/app/quizzes/actions";
 import {
   analyseRevisionDocumentAction,
   createNoteAction,
+  addHighlightAction,
   createSubjectAction,
   deleteNoteAction,
   deleteSubjectAction,
+  loadSavedAnalysisAction,
+  loadSavedQuizAction,
   moveDocumentToSubjectAction,
   openRevisionDocumentAction,
   recordReadingProgressAction,
+  recolourHighlightAction,
+  removeHighlightsAction,
   renameSubjectAction,
-  setHighlightAction,
   updateNoteAction,
 } from "@/app/revision/actions";
 import {
@@ -38,9 +44,14 @@ const actions: RevisionActions = {
   createNote: createNoteAction,
   updateNote: updateNoteAction,
   deleteNote: deleteNoteAction,
-  setHighlight: setHighlightAction,
+  addHighlight: addHighlightAction,
+  recolourHighlight: recolourHighlightAction,
+  removeHighlights: removeHighlightsAction,
   recordProgress: recordReadingProgressAction,
   analyse: analyseRevisionDocumentAction,
+  loadAnalysis: loadSavedAnalysisAction,
+  loadQuiz: loadSavedQuizAction,
+  submitQuiz: submitQuizAttemptAction,
 };
 
 interface HomeProps {
@@ -68,11 +79,13 @@ export default async function Home({ searchParams }: HomeProps) {
   });
 
   return (
-    <RevisionDashboardView
-      viewer={viewer}
-      model={model}
-      actions={actions}
-      signOutAction={signOutAction}
-    />
+    <ConnectedDocumentViewers>
+      <RevisionDashboardView
+        viewer={viewer}
+        model={model}
+        actions={actions}
+        signOutAction={signOutAction}
+      />
+    </ConnectedDocumentViewers>
   );
 }

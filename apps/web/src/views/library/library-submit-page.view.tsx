@@ -31,6 +31,7 @@ export function LibrarySubmitPageView({
         navigation={createStudentNavigation("Library")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
@@ -52,8 +53,7 @@ export function LibrarySubmitPageView({
               <span aria-hidden="true">□</span>
               <strong>No documents available to share</strong>
               <p>
-                Only documents whose status is Ready can be submitted, and a document that is
-                already pending or published cannot be sent again.
+                Only Ready documents can be submitted, and each one only once.
               </p>
               <Link className="button button-dark" href="/documents">
                 Go to My Documents

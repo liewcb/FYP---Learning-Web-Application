@@ -1,4 +1,9 @@
 import type {
+  CreateStudyHighlightInput,
+  HighlightColour,
+  StudyHighlight,
+} from "@/models/revision/highlight.model";
+import type {
   CreateStudyNoteInput,
   ReadingProgress,
   RevisionAnalysis,
@@ -24,10 +29,11 @@ export interface RevisionRepository {
   updateNote(noteId: number, input: UpdateStudyNoteInput): Promise<StudyNote>;
   deleteNote(noteId: number): Promise<void>;
 
-  /** Start sentence of each highlighted passage. */
-  listHighlights(documentId: number): Promise<number[]>;
-  addHighlight(ownerId: string, documentId: number, sentenceIndex: number): Promise<void>;
-  removeHighlight(documentId: number, sentenceIndex: number): Promise<void>;
+  /** The student's highlights in a document, oldest first. */
+  listHighlights(documentId: number): Promise<StudyHighlight[]>;
+  addHighlight(input: CreateStudyHighlightInput): Promise<StudyHighlight>;
+  recolourHighlight(highlightId: number, colour: HighlightColour): Promise<void>;
+  removeHighlights(highlightIds: readonly number[]): Promise<void>;
 
   listProgress(): Promise<ReadingProgress[]>;
   /** Returns the new percentage read, or null when it could not be saved. */

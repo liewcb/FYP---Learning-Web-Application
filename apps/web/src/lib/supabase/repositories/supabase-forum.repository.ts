@@ -15,6 +15,7 @@ import {
   type ForumThread,
   type ForumVisibility,
 } from "@/models/forum/forum.model";
+import { avatarHref } from "@/models/profile/avatar.model";
 
 interface ProfileRow {
   id: string;
@@ -75,6 +76,7 @@ function toAuthor(row: ProfileRow): ForumAuthor {
     username: row.username,
     avatarPath: row.avatar_path,
     initials: createInitials(displayName),
+    avatarUrl: avatarHref(row.avatar_path),
   };
 }
 

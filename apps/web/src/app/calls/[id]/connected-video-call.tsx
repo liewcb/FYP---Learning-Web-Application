@@ -10,7 +10,7 @@ import {
   startCallShareAction,
   stopCallShareAction,
 } from "@/app/calls/actions";
-import type { DocumentViewers } from "@/interfaces/services/document-viewer.interface";
+import { documentViewers } from "@/lib/documents/document-viewers";
 import type { VideoCallPageState } from "@/models/video/video-call.model";
 import { VideoCallScreen } from "@/views/video/video-call-screen.view";
 
@@ -19,18 +19,6 @@ const LiveKitCallRoom = dynamic(
   () => import("@/lib/livekit/livekit-call-room").then((module) => module.LiveKitCallRoom),
   { ssr: false },
 );
-
-// pdf.js and docx-preview load only when someone presents that kind of file.
-const viewers: DocumentViewers = {
-  Pdf: dynamic(
-    () => import("@/lib/documents/pdf-canvas-viewer").then((module) => module.PdfCanvasViewer),
-    { ssr: false },
-  ),
-  Docx: dynamic(
-    () => import("@/lib/documents/docx-html-viewer").then((module) => module.DocxHtmlViewer),
-    { ssr: false },
-  ),
-};
 
 const actions = {
   invite: inviteToVideoCallAction,
@@ -47,7 +35,7 @@ export function ConnectedVideoCall({ state }: { readonly state: VideoCallPageSta
     <VideoCallScreen
       state={state}
       Room={LiveKitCallRoom}
-      viewers={viewers}
+      viewers={documentViewers}
       actions={actions}
     />
   );

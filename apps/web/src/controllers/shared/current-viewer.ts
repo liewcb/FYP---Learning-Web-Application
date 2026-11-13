@@ -1,6 +1,7 @@
 import type { ProfileRepository } from "@/interfaces/repositories/profile.repository";
 import type { AuthService } from "@/interfaces/services/auth-service.interface";
 import { getInitials, type AuthUser } from "@/models/auth/auth.model";
+import { avatarHref } from "@/models/profile/avatar.model";
 import type { Profile, Viewer } from "@/models/profile/profile.model";
 
 export interface CurrentAccount {
@@ -44,6 +45,7 @@ export async function loadCurrentAccount(
       email: user.email,
       displayName,
       initials: getInitials(displayName),
+      avatarUrl: avatarHref(profile.avatarPath),
       role: profile.role,
     },
   };

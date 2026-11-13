@@ -9,6 +9,7 @@ import {
   type ChatContact,
 } from "@/models/chat/chat.model";
 import { BackIcon, SearchIcon, TickIcon } from "@/views/chat/chat-icons.view";
+import { Avatar } from "@/views/shared/avatar.view";
 
 interface NewGroupPanelProps {
   readonly open: boolean;
@@ -179,7 +180,7 @@ export function NewGroupPanel({ open, contacts, onClose, onCreate }: NewGroupPan
                         disabled={!checked && full}
                         onChange={() => toggle(contact.id)}
                       />
-                      <span className="chat-avatar" aria-hidden="true">{contact.initials}</span>
+                      <Avatar className="chat-avatar" initials={contact.initials} url={contact.avatarUrl} />
                       <span className="chat-contact-text">
                         <strong>{contact.fullName}</strong>
                         <small>

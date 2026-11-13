@@ -44,6 +44,8 @@ export interface ChatParticipant {
   readonly fullName: string;
   readonly username: string | null;
   readonly initials: string;
+  /** Link to their profile picture, or null to show initials. */
+  readonly avatarUrl: string | null;
   readonly academicLine: string | null;
   /** Null when hidden (no longer buddies) or never recorded. */
   readonly lastSeenAt: string | null;
@@ -141,6 +143,8 @@ export interface ChatGroupMember {
   readonly fullName: string;
   readonly username: string | null;
   readonly initials: string;
+  /** Link to their profile picture, or null to show initials. */
+  readonly avatarUrl: string | null;
   readonly academicLine: string | null;
   /** Shared between study buddies only. */
   readonly lastSeenAt: string | null;
@@ -243,6 +247,8 @@ export interface ChatContact {
   readonly fullName: string;
   readonly username: string | null;
   readonly initials: string;
+  /** Link to their profile picture, or null to show initials. */
+  readonly avatarUrl: string | null;
   readonly academicLine: string | null;
 }
 

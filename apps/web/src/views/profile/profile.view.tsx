@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import type { AvatarUpdateState } from "@/models/profile/avatar.model";
 import {
   formatBytes,
   storageUsagePercent,
@@ -7,6 +8,7 @@ import {
   type ProfilePageModel,
 } from "@/models/profile/profile.model";
 import { ProfileFormView } from "@/views/profile/profile-form.view";
+import { ProfilePicture } from "@/views/profile/profile-picture.view";
 
 interface ProfileViewProps {
   readonly model: ProfilePageModel;
@@ -14,6 +16,8 @@ interface ProfileViewProps {
     state: ProfileFormState,
     formData: FormData,
   ) => Promise<ProfileFormState>;
+  readonly uploadAvatarAction: (formData: FormData) => Promise<AvatarUpdateState>;
+  readonly removeAvatarAction: () => Promise<AvatarUpdateState>;
 }
 
 const dateFormat = new Intl.DateTimeFormat("en-MY", {
@@ -22,16 +26,21 @@ const dateFormat = new Intl.DateTimeFormat("en-MY", {
   year: "numeric",
 });
 
-export function ProfileView({ model, updateAction }: ProfileViewProps) {
+export function ProfileView({ model, updateAction, uploadAvatarAction, removeAvatarAction }: ProfileViewProps) {
   const { viewer, profile, account } = model;
   const usage = account ? storageUsagePercent(account) : 0;
 
   return (
     <div className="profile-page">
       <section className="profile-header" aria-labelledby="profile-title">
-        <span className="profile-avatar" aria-hidden="true">
-          {viewer.initials}
-        </span>
+        <ProfilePicture
+          // A new picture from the server starts the picker afresh.
+          key={viewer.avatarUrl ?? "none"}
+          initials={viewer.initials}
+          avatarUrl={viewer.avatarUrl}
+          uploadAction={uploadAvatarAction}
+          removeAction={removeAvatarAction}
+        />
         <div>
           <p className="section-kicker">My profile</p>
           <h1 id="profile-title">{viewer.displayName}</h1>

@@ -10,6 +10,8 @@ export interface ForumAuthor {
   readonly username: string | null;
   readonly avatarPath: string | null;
   readonly initials: string;
+  /** Link to their profile picture, or null to show initials. */
+  readonly avatarUrl: string | null;
 }
 
 export interface ForumAttachment {

@@ -23,6 +23,7 @@ import {
   type ChatSummary,
   type SendChatMessageInput,
 } from "@/models/chat/chat.model";
+import { loadAvatarUrls } from "@/lib/supabase/repositories/avatar-urls";
 
 const reportOutcomes = new Set<ChatReportOutcome>([
   "reported",
@@ -128,7 +129,7 @@ function firstRow<T>(data: unknown): T | null {
   return Array.isArray(data) ? ((data[0] as T | undefined) ?? null) : null;
 }
 
-function toSummary(row: ChatSummaryRow): ChatSummary {
+function toSummary(row: ChatSummaryRow, avatars: ReadonlyMap<string, string>): ChatSummary {
   const isGroup = row.kind === "group";
 
   return {
@@ -142,6 +143,7 @@ function toSummary(row: ChatSummaryRow): ChatSummary {
             fullName: participantName(row.other_full_name ?? "", row.other_username),
             username: row.other_username,
             initials: participantInitials(row.other_full_name ?? "", row.other_username),
+            avatarUrl: avatars.get(row.other_id) ?? null,
             academicLine: academicLine(row.other_academic_major, row.other_year_of_study),
             lastSeenAt: row.other_last_seen_at,
           },
@@ -252,7 +254,10 @@ export class SupabaseChatRepository implements ChatRepository {
       throw new Error(`Unable to load chats: ${error.message}`);
     }
 
-    return (data as ChatSummaryRow[]).map(toSummary);
+    const rows = data as ChatSummaryRow[];
+    const avatars = await loadAvatarUrls(this.supabase, rows.map((row) => row.other_id));
+
+    return rows.map((row) => toSummary(row, avatars));
   }
 
   async findConversation(conversationId: number): Promise<ChatSummary | null> {
@@ -266,7 +271,7 @@ export class SupabaseChatRepository implements ChatRepository {
 
     const row = firstRow<ChatSummaryRow>(data);
 
-    return row ? toSummary(row) : null;
+    return row ? toSummary(row, await loadAvatarUrls(this.supabase, [row.other_id])) : null;
   }
 
   async listMessages(

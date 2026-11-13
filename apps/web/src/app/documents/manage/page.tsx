@@ -7,6 +7,7 @@ import {
   processDocumentAction,
   renameDocumentAction,
 } from "@/app/documents/actions";
+import { ConnectedDocumentViewers } from "@/app/documents/connected-document-viewers";
 import {
   createDocumentController,
   createProfileController,
@@ -35,13 +36,15 @@ export default async function ManageDocumentsPage() {
   const documents = await controller.listForManagement();
 
   return (
-    <DocumentManagerView
-      viewer={viewer}
-      documents={documents}
-      processAction={processDocumentAction}
-      renameAction={renameDocumentAction}
-      deleteAction={deleteDocumentAction}
-      signOutAction={signOutAction}
-    />
+    <ConnectedDocumentViewers>
+      <DocumentManagerView
+        viewer={viewer}
+        documents={documents}
+        processAction={processDocumentAction}
+        renameAction={renameDocumentAction}
+        deleteAction={deleteDocumentAction}
+        signOutAction={signOutAction}
+      />
+    </ConnectedDocumentViewers>
   );
 }

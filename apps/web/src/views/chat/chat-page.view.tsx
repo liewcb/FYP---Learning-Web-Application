@@ -18,6 +18,7 @@ export function ChatPageView({ viewer, signOutAction, children }: ChatPageViewPr
         navigation={createStudentNavigation("Chats")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
       <div className="chat-shell">{children}</div>

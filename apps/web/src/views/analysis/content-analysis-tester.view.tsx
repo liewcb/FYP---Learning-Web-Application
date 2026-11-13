@@ -71,14 +71,12 @@ export function ContentAnalysisTester({
         <div className="module-card-heading">
           <span className="module-icon blue" aria-hidden="true">✦</span>
           <div>
-            <p className="section-kicker">Content analysis</p>
-            <h2 id="analysis-title">What is this material about?</h2>
+            <h2 id="analysis-title">Analyse a document</h2>
           </div>
         </div>
 
         <p className="module-card-copy">
-          Pick a material and we&apos;ll find its key terms, most important
-          sentences and main topics for you. No settings needed.
+          Find a material&apos;s key terms, key sentences and main topics.
         </p>
 
         <div className="source-switch" role="tablist" aria-label="Material source">
@@ -144,8 +142,7 @@ export function ContentAnalysisTester({
                 </div>
               ) : (
                 <p className="field-hint">
-                  Choose one of your ready documents. Its text has already been
-                  extracted, so there is nothing to copy or paste.
+                  Only Ready documents are listed.
                 </p>
               )}
 
@@ -157,8 +154,7 @@ export function ContentAnalysisTester({
             <div className="analysis-no-sources">
               <strong>No ready documents yet</strong>
               <p>
-                Upload a lecture note above. Once its status shows Ready, it
-                will appear here. You can also paste text instead.
+                Nothing is ready yet. Upload a note above, or paste text.
               </p>
             </div>
           )
@@ -179,8 +175,7 @@ export function ContentAnalysisTester({
             required
           />
           <p className="field-hint">
-            Pasted text is analysed once and not saved. Upload a document to
-            keep its analysis.
+            Pasted text is not saved.
           </p>
         </div>
 
@@ -199,8 +194,7 @@ export function ContentAnalysisTester({
         </button>
         {pending ? (
           <p className="pending-note" role="status">
-            This usually takes a few seconds. The first run can take longer
-            while the language models load.
+            Usually a few seconds. The first run takes longer.
           </p>
         ) : null}
       </form>
@@ -236,7 +230,7 @@ export function ContentAnalysisTester({
 
             {saved ? (
               <p className="saved-result-note">
-                This analysis is saved with your selected document and will be here next time you sign in.
+                Saved with this document.
               </p>
             ) : null}
 
@@ -288,9 +282,8 @@ export function ContentAnalysisTester({
             <span aria-hidden="true">◎</span>
             <h2>Your analysis will appear here</h2>
             <p>
-              Choose a document and press Analyse. You&apos;ll see its key
-              terms, most important sentences and main topics here. Results
-              for uploaded documents are saved automatically.
+              Choose a document and press Analyse to see its key terms,
+              sentences and topics.
             </p>
           </div>
         )}

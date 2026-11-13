@@ -35,17 +35,16 @@ export function MyReportsPageView({ viewer, reports, loadError, signOutAction }:
         navigation={createStudentNavigation()}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
       <div className="app-shell module-page-content my-reports">
         <header className="my-reports-header">
-          <p className="section-kicker">Safety</p>
           <h1>My reports</h1>
           <p>
-            Reports you sent about profiles, messages, posts and library materials. You get a
-            notification when a moderator decides one.
-            {open > 0 ? ` ${open} still under review.` : ""}
+            Reports you sent and what moderators decided.
+            {open > 0 ? ` ${open} under review.` : ""}
           </p>
         </header>
 
@@ -57,8 +56,7 @@ export function MyReportsPageView({ viewer, reports, loadError, signOutAction }:
           <section className="module-card my-reports-empty">
             <h2>No reports yet</h2>
             <p>
-              If something breaks the rules, use Report on the message, post, profile or material.
-              Moderators review every report.
+              See something that breaks the rules? Use Report on it.
             </p>
           </section>
         ) : (

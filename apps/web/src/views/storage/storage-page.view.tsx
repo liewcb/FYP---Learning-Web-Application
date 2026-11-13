@@ -49,6 +49,7 @@ export function StoragePageView({
         navigation={createStudentNavigation()}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
@@ -59,8 +60,7 @@ export function StoragePageView({
 
         <header className="module-page-header">
           <div>
-            <p className="section-kicker">My storage</p>
-            <h1>Your space for learning materials.</h1>
+            <h1>My storage</h1>
             <p>
               Uploaded documents count towards your storage quota. If you run
               low, ask an administrator for more space.

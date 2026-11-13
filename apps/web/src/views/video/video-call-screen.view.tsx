@@ -29,6 +29,7 @@ import {
   UploadIcon,
 } from "@/views/chat/chat-icons.view";
 import { SharedDocumentStage } from "@/views/video/shared-document-stage.view";
+import { Avatar } from "@/views/shared/avatar.view";
 
 export interface VideoCallActions {
   invite(callId: number, studentId: string): Promise<VideoCallInviteState>;
@@ -96,8 +97,8 @@ function PresentPanel({
       </header>
       <p className="chat-dialog-note">
         {share && share.sharerId !== viewerId
-          ? `${share.sharerName} is presenting. Choosing a document replaces their presentation.`
-          : "Everyone in the call sees the document beside the video and follows your page."}
+          ? `${share.sharerName} is presenting. Yours will replace it.`
+          : "Everyone sees it beside the video, on your page."}
       </p>
       {error ? (
         <p className="chat-composer-error" role="alert">
@@ -208,7 +209,7 @@ function InvitePanel({
       </header>
       <p className="chat-dialog-note">
         {placesLeft > 0
-          ? `${placesLeft} place${placesLeft === 1 ? "" : "s"} left. Invited buddies get a notification with a link to join.`
+          ? `${placesLeft} place${placesLeft === 1 ? "" : "s"} left. Invitees get a link to join.`
           : `The call has reached ${videoCallRules.maxParticipants} people.`}
       </p>
       {message ? (
@@ -223,7 +224,7 @@ function InvitePanel({
 
             return (
               <li className="chat-group-member" key={contact.id}>
-                <span className="chat-avatar" aria-hidden="true">{contact.initials}</span>
+                <Avatar className="chat-avatar" initials={contact.initials} url={contact.avatarUrl} />
                 <span className="chat-contact-text">
                   <strong>{contact.fullName}</strong>
                   <small>{contact.academicLine ?? ""}</small>

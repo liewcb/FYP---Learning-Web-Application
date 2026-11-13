@@ -13,6 +13,7 @@ import type {
 import { createStudentNavigation } from "@/models/home/home.model";
 import type { Viewer } from "@/models/profile/profile.model";
 import { ContentAnalysisTester } from "@/views/analysis/content-analysis-tester.view";
+import { DocumentPreviewButton } from "@/views/documents/document-preview-button.view";
 import {
   documentStatusLabels,
   documentTypeLabel,
@@ -60,17 +61,16 @@ export function DocumentsView({
         navigation={createStudentNavigation("My Documents")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
       <div className="app-shell module-page-content">
         <header className="module-page-header">
           <div>
-            <p className="section-kicker">Content Analysis Module</p>
-            <h1>Turn your notes into clear learning insights.</h1>
+            <h1>Content analysis</h1>
             <p>
-              Upload private learning material. Its text is extracted and
-              cleaned automatically, ready for content analysis and quizzes.
+              Your private materials, ready for analysis and quizzes.
             </p>
           </div>
           <Link className="button button-outline" href="/quizzes">
@@ -111,8 +111,7 @@ export function DocumentsView({
             <div className="module-card-heading">
               <span className="module-icon amber" aria-hidden="true">▤</span>
               <div>
-                <p className="section-kicker">Private workspace</p>
-                <h2>Your uploaded materials</h2>
+                <h2>My documents</h2>
               </div>
               {documents.length > 0 ? (
                 <Link className="text-action module-card-link" href="/documents/manage">
@@ -129,9 +128,11 @@ export function DocumentsView({
                       {documentTypeLabel(document.mimeType)}
                     </span>
                     <div>
-                      <Link className="document-title-link" href={`/documents/${document.id}`}>
-                        <strong>{document.title}</strong>
-                      </Link>
+                      <DocumentPreviewButton
+                        documentId={document.id}
+                        title={document.title}
+                        mimeType={document.mimeType}
+                      />
                       <p>
                         {document.status === "ready" && document.content
                           ? formatContentSummary(document.content)

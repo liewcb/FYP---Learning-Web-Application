@@ -36,6 +36,8 @@ export interface VideoCallContact {
   readonly id: string;
   readonly fullName: string;
   readonly initials: string;
+  /** Link to their profile picture, or null to show initials. */
+  readonly avatarUrl: string | null;
   readonly academicLine: string | null;
 }
 

@@ -12,6 +12,7 @@ import {
   type StudyBuddyResponseOutcome,
 } from "@/models/peers/study-buddy.model";
 import { parseStudyPreferences } from "@/models/profile/study-profile.model";
+import { loadAvatarUrls } from "@/lib/supabase/repositories/avatar-urls";
 
 interface StudyBuddyRow {
   id: string;
@@ -60,7 +61,7 @@ function toConnectionStatus(value: string): ConnectionStatus {
     : "none";
 }
 
-function toStudyBuddy(row: StudyBuddyRow): StudyBuddy {
+function toStudyBuddy(row: StudyBuddyRow, avatars: ReadonlyMap<string, string>): StudyBuddy {
   // Reuse the profile parser so unknown stored values are dropped consistently.
   const preferences = parseStudyPreferences({
     studyTimes: row.study_times ?? [],
@@ -75,6 +76,7 @@ function toStudyBuddy(row: StudyBuddyRow): StudyBuddy {
     fullName: row.full_name.trim() || row.username || "Student",
     username: row.username,
     initials: studyBuddyInitials(row.full_name, row.username),
+    avatarUrl: avatars.get(row.id) ?? null,
     academicMajor: row.academic_major,
     yearOfStudy: row.year_of_study,
     bio: row.bio,
@@ -117,7 +119,7 @@ export class SupabaseStudyBuddyRepository implements StudyBuddyRepository {
       throw new Error(`Unable to load study buddies: ${error.message}`);
     }
 
-    return (data as StudyBuddyRow[]).map(toStudyBuddy);
+    return this.withAvatars(data as StudyBuddyRow[]);
   }
 
   async listConnections(): Promise<StudyBuddy[]> {
@@ -127,7 +129,13 @@ export class SupabaseStudyBuddyRepository implements StudyBuddyRepository {
       throw new Error(`Unable to load study buddy connections: ${error.message}`);
     }
 
-    return (data as StudyBuddyRow[]).map(toStudyBuddy);
+    return this.withAvatars(data as StudyBuddyRow[]);
+  }
+
+  private async withAvatars(rows: readonly StudyBuddyRow[]): Promise<StudyBuddy[]> {
+    const avatars = await loadAvatarUrls(this.supabase, rows.map((row) => row.id));
+
+    return rows.map((row) => toStudyBuddy(row, avatars));
   }
 
   async sendRequest(studentId: string): Promise<StudyBuddyRequestOutcome> {

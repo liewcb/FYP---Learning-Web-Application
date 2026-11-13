@@ -34,14 +34,12 @@ export function CreateThreadView({ action }: CreateThreadViewProps) {
       <div className="module-card-heading">
         <span className="module-icon amber" aria-hidden="true">✎</span>
         <div>
-          <p className="section-kicker">Start a discussion</p>
-          <h2>Share an academic question</h2>
+          <h2>New post</h2>
         </div>
       </div>
 
       <p className="module-card-copy">
-        Community posts are visible to signed-in students. Connection-only
-        sharing will be added when the peer module is connected.
+        Visible to every signed-in student.
       </p>
 
       {state.error ? (

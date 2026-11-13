@@ -81,6 +81,11 @@ export interface QuizGenerationFormState {
 
 export type QuizAnswers = Readonly<Record<number, string>>;
 
+/** Answers keyed by question position, as the attempt actions take them. */
+export function toAnswerRecord(answers: QuizAnswers): Record<string, string> {
+  return Object.fromEntries(Object.entries(answers).map(([position, answer]) => [position, answer]));
+}
+
 export interface QuizScore {
   readonly correct: number;
   readonly total: number;

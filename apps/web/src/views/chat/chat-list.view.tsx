@@ -32,6 +32,7 @@ import {
 } from "@/views/chat/chat-icons.view";
 import { NewChatPanel } from "@/views/chat/new-chat-panel.view";
 import { NewGroupPanel } from "@/views/chat/new-group-panel.view";
+import { Avatar } from "@/views/shared/avatar.view";
 
 type ChatFilter = "all" | "unread";
 
@@ -237,9 +238,11 @@ function ChatRow({
         aria-current={active ? "page" : undefined}
       >
         <span className="chat-avatar-wrap">
-          <span className={isGroup ? "chat-avatar group" : "chat-avatar"} aria-hidden="true">
-            {chatInitials(chat)}
-          </span>
+          <Avatar
+            className={isGroup ? "chat-avatar group" : "chat-avatar"}
+            initials={chatInitials(chat)}
+            url={chat.other?.avatarUrl}
+          />
           {online ? <span className="chat-online-dot" aria-label="Online" /> : null}
         </span>
         <span className="chat-row-text">

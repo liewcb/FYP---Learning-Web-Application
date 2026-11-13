@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { adminBasePath, type AdminNavItem } from "@/models/admin/admin.model";
 import type { Viewer } from "@/models/profile/profile.model";
+import { Avatar } from "@/views/shared/avatar.view";
 
 interface AdminSidebarProps {
   readonly viewer: Viewer;
@@ -28,9 +29,7 @@ export function AdminSidebar({
   return (
     <aside className="admin-sidebar" aria-label="Admin navigation">
       <div className="admin-identity">
-        <span className="student-avatar" aria-hidden="true">
-          {viewer.initials}
-        </span>
+        <Avatar className="student-avatar" initials={viewer.initials} url={viewer.avatarUrl} />
         <div>
           <strong>{viewer.displayName}</strong>
           <span>Administrator</span>

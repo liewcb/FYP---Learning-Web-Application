@@ -61,14 +61,12 @@ export function SubmitMaterialForm({
           ▤
         </span>
         <div>
-          <p className="section-kicker">Share with classmates</p>
-          <h2>Submit a document to the Library</h2>
+          <h2>Submit a document</h2>
         </div>
       </div>
 
       <p className="module-card-copy">
-        A copy of the file is sent to a moderator for review. Your original stays private in My
-        Documents, and the copy is only visible to others once it is approved.
+        A moderator reviews a copy first. Your original stays private.
       </p>
 
       {state.error ? (

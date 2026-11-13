@@ -1,4 +1,5 @@
 import type { DocumentStatus } from "@/models/document/document.model";
+import type { StudyHighlight } from "@/models/revision/highlight.model";
 
 export const subjectColours = ["navy", "gold", "green", "blue", "red", "purple"] as const;
 
@@ -84,14 +85,31 @@ export interface ReaderDocument {
   readonly pageCount: number | null;
   readonly sentenceCount: number;
   readonly blocks: readonly ReaderBlock[];
-  /** Start sentence of each highlighted passage. */
-  readonly highlights: readonly number[];
+  /** Oldest first: later highlights are drawn over earlier ones. */
+  readonly highlights: readonly StudyHighlight[];
   readonly progressPercent: number;
   readonly lastSentence: number;
   readonly analysis: RevisionAnalysis | null;
   /** An analysis is being prepared right now. */
   readonly analysisRunning: boolean;
+  /** Saved quizzes made from this document, newest first. */
+  readonly quizzes: readonly RevisionQuiz[];
 }
+
+/** A saved quiz of the open document, with how the student has done on it. */
+export interface RevisionQuiz {
+  readonly id: number;
+  readonly title: string;
+  readonly difficulty: string;
+  readonly questionCount: number;
+  readonly createdAt: string;
+  readonly attempts: number;
+  /** Best score so far, 0 to 100; null before the first attempt. */
+  readonly bestPercentage: number | null;
+}
+
+/** Saved quizzes listed for one document on the dashboard. */
+export const revisionQuizLimit = 8;
 
 export interface StudyNote {
   readonly id: number;
@@ -153,7 +171,7 @@ export function isHeadingSentence(text: string): boolean {
 
 /**
  * Groups extracted sentences into headings and short passages. Passages are
- * addressed by their first sentence index, which highlights and notes store.
+ * addressed by their first sentence index, which notes store.
  */
 export function buildReaderBlocks(
   sentences: readonly string[],

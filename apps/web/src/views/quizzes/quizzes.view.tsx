@@ -47,17 +47,16 @@ export function QuizzesView({
         navigation={createStudentNavigation("Quizzes")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
       <div className="app-shell module-page-content">
         <header className="module-page-header">
           <div>
-            <p className="section-kicker">Quiz &amp; Assessment Generation Module</p>
-            <h1>Turn understood content into active practice.</h1>
+            <h1>Quiz generator</h1>
             <p>
-              Configure a focused assessment from an uploaded document or pasted
-              content, answer each question and review grounded feedback.
+              Make a quiz from a document or your notes, then review the feedback.
             </p>
           </div>
           <Link className="button button-outline" href="/documents">

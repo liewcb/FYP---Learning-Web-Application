@@ -26,6 +26,8 @@ export interface StudyBuddy {
   readonly fullName: string;
   readonly username: string | null;
   readonly initials: string;
+  /** Link to their profile picture, or null to show initials. */
+  readonly avatarUrl: string | null;
   readonly academicMajor: string | null;
   readonly yearOfStudy: number | null;
   readonly bio: string | null;

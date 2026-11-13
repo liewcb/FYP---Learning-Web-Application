@@ -6,6 +6,7 @@ import {
   analyseContentAction,
   uploadDocumentAction,
 } from "@/app/documents/actions";
+import { ConnectedDocumentViewers } from "@/app/documents/connected-document-viewers";
 import {
   createDocumentController,
   createLearningResultsController,
@@ -83,18 +84,20 @@ export default async function DocumentsPage({ searchParams }: DocumentsPageProps
   }
 
   return (
-    <DocumentsView
-      viewer={viewer}
-      documents={documents.map((document) => document.data)}
-      awaitingExtraction={documents.some((document) =>
-        document.isAwaitingExtraction(),
-      )}
-      analysisSource={analysisSource}
-      savedAnalysis={savedAnalysis}
-      availableAnalysisSources={availableAnalysisSources}
-      uploadAction={uploadDocumentAction}
-      analysisAction={analyseContentAction}
-      signOutAction={signOutAction}
-    />
+    <ConnectedDocumentViewers>
+      <DocumentsView
+        viewer={viewer}
+        documents={documents.map((document) => document.data)}
+        awaitingExtraction={documents.some((document) =>
+          document.isAwaitingExtraction(),
+        )}
+        analysisSource={analysisSource}
+        savedAnalysis={savedAnalysis}
+        availableAnalysisSources={availableAnalysisSources}
+        uploadAction={uploadDocumentAction}
+        analysisAction={analyseContentAction}
+        signOutAction={signOutAction}
+      />
+    </ConnectedDocumentViewers>
   );
 }

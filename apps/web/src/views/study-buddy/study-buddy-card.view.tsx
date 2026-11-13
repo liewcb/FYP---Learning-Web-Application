@@ -12,6 +12,7 @@ import {
   StudyBuddyActions,
   type StudyBuddyAction,
 } from "@/views/study-buddy/study-buddy-actions.view";
+import { Avatar } from "@/views/shared/avatar.view";
 
 const maxCardInterests = 5;
 
@@ -96,7 +97,7 @@ export function StudyBuddyCard({ buddy, action, showMatch = false }: StudyBuddyC
         onClick={openProfile}
         aria-haspopup="dialog"
       >
-        <span className="buddy-avatar" aria-hidden="true">{buddy.initials}</span>
+        <Avatar className="buddy-avatar" initials={buddy.initials} url={buddy.avatarUrl} />
         <span className="buddy-identity">
           <strong>{buddy.fullName}</strong>
           {buddy.username ? <small>@{buddy.username}</small> : null}
@@ -140,7 +141,7 @@ export function StudyBuddyCard({ buddy, action, showMatch = false }: StudyBuddyC
           </button>
 
           <header className="buddy-profile-header">
-            <span className="buddy-avatar large" aria-hidden="true">{buddy.initials}</span>
+            <Avatar className="buddy-avatar large" initials={buddy.initials} url={buddy.avatarUrl} />
             <div className="buddy-profile-identity">
               <h2 id={nameId}>{buddy.fullName}</h2>
               {buddy.username ? <p>@{buddy.username}</p> : null}

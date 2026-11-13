@@ -65,17 +65,16 @@ export function ForumPageView({
         navigation={createStudentNavigation("Forum")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
       <div className="app-shell module-page-content">
         <header className="module-page-header forum-page-header">
           <div>
-            <p className="section-kicker">Academic Discussion Forum</p>
-            <h1>Ask, explain and learn with your community.</h1>
+            <h1>Discussion forum</h1>
             <p>
-              Publish study questions, attach supporting material, exchange
-              comments and upvote explanations that help other students.
+              Ask questions, share explanations and upvote the best answers.
             </p>
           </div>
           <span className="forum-community-badge">Signed-in community</span>
@@ -112,12 +111,8 @@ export function ForumPageView({
             {scope === "connections" ? (
               <div className="forum-feed-empty">
                 <span aria-hidden="true">◎</span>
-                <h2>Ready for the peer connection module</h2>
-                <p>
-                  This feed is intentionally reserved. Once your teammate adds
-                  confirmed connections, only the repository filter and RLS
-                  visibility rule need to be connected.
-                </p>
+                <h2>Posts from your study buddies</h2>
+                <p>Coming soon. For now, everything is in Community.</p>
                 <Link href="/forum?scope=community">Return to Community</Link>
               </div>
             ) : threads.length > 0 ? (
@@ -138,10 +133,7 @@ export function ForumPageView({
               <div className="forum-feed-empty">
                 <span aria-hidden="true">✦</span>
                 <h2>{scope === "mine" ? "You have not posted yet" : "Start the first discussion"}</h2>
-                <p>
-                  Use the discussion form to ask a question or share a useful
-                  explanation with other signed-in students.
-                </p>
+                <p>Ask a question or share an explanation to get it going.</p>
               </div>
             )}
           </section>

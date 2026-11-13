@@ -20,6 +20,7 @@ import {
   FlagIcon,
   TrashIcon,
 } from "@/views/chat/chat-icons.view";
+import { Avatar } from "@/views/shared/avatar.view";
 
 const memberSinceFormatter = new Intl.DateTimeFormat("en-MY", {
   month: "long",
@@ -80,7 +81,7 @@ export function ChatProfilePanel({
 
       <div className="chat-side-panel-body">
         <section className="chat-profile-hero">
-          <span className="chat-avatar large" aria-hidden="true">{other.initials}</span>
+          <Avatar className="chat-avatar large" initials={other.initials} url={other.avatarUrl} />
           <h3>{other.fullName}</h3>
           {other.username ? <p>@{other.username}</p> : null}
           {other.academicLine ? <p>{other.academicLine}</p> : null}

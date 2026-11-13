@@ -1673,6 +1673,127 @@ a.student-avatar {
   font-weight: 800;
 }
 
+/* Profile pictures: the picture covers the initials, which stay as the fallback. */
+.has-avatar {
+  position: relative;
+  overflow: hidden;
+}
+
+.avatar-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+  background: var(--surface-soft);
+  user-select: none;
+}
+
+.profile-picture-button {
+  position: relative;
+  flex: none;
+  border: 0;
+  border-radius: 22px;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.profile-picture-button:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.profile-picture-badge {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 3px solid var(--paper);
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  transition: transform 140ms ease;
+}
+
+.profile-picture-button:hover .profile-picture-badge {
+  transform: scale(1.08);
+}
+
+/* After .buddy-dialog in specificity, which sets a wider window. */
+.buddy-dialog.profile-picture-dialog {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.profile-picture-window {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 24px 26px;
+  text-align: center;
+}
+
+.profile-picture-window header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-picture-window h2 {
+  margin: 0;
+  color: var(--heading);
+  font-size: 1.15rem;
+}
+
+.profile-picture-window .buddy-dialog-close {
+  position: static;
+}
+
+.profile-picture-preview {
+  display: grid;
+  width: 168px;
+  height: 168px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  color: var(--primary-dark);
+  font-size: 2.6rem;
+  font-weight: 800;
+}
+
+.profile-picture-window .field-hint,
+.profile-picture-window .form-alert {
+  margin: 0;
+}
+
+.profile-picture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.profile-picture-actions .button {
+  width: auto;
+}
+
+.profile-picture-actions .button.danger {
+  border-color: var(--danger, #c0392b);
+  color: var(--danger, #c0392b);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-picture-badge {
+    transition: none;
+  }
+}
+
 .profile-meta {
   margin: 0;
   color: var(--muted);
@@ -8008,6 +8129,7 @@ a.student-avatar {
 }
 
 .rev-reader-column {
+  position: relative;
   display: flex;
   max-width: 700px;
   flex-direction: column;
@@ -8043,10 +8165,6 @@ a.student-avatar {
   line-height: 1.75;
 }
 
-.rev-passage.highlighted {
-  background: var(--info-soft);
-}
-
 .rev-key {
   border-radius: 3px;
   padding: 0 1px;
@@ -8055,8 +8173,177 @@ a.student-avatar {
   color: inherit;
 }
 
+.rev-hl-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.rev-hl-hint .rev-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Highlights: any stretch of text, in the colour the student picked. */
+.rev-hl {
+  --hl-rgb: 250 204 21;
+  --hl-alpha: 0.4;
+  --hl-line: transparent;
+
+  /* Square ends, so pieces of one highlight join into a single bar. */
+  border-radius: 0;
+  padding: 0.05em 0;
+  background: rgb(var(--hl-rgb) / var(--hl-alpha));
+  box-shadow: inset 0 -2px 0 var(--hl-line);
+  color: inherit;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.rev-hl[data-colour="green"] {
+  --hl-rgb: 74 222 128;
+  --hl-alpha: 0.34;
+}
+
+.rev-hl[data-colour="blue"] {
+  --hl-rgb: 96 165 250;
+  --hl-alpha: 0.34;
+}
+
+.rev-hl[data-colour="pink"] {
+  --hl-rgb: 244 114 182;
+  --hl-alpha: 0.32;
+}
+
+.rev-hl[data-colour="purple"] {
+  --hl-rgb: 167 139 250;
+  --hl-alpha: 0.36;
+}
+
+/* On dark paper a strong tint turns muddy: a light tint, with the colour underneath. */
+:root[data-theme="dark"] .rev-hl {
+  --hl-alpha: 0.2;
+  --hl-line: rgb(var(--hl-rgb) / 0.95);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .rev-hl {
+    --hl-alpha: 0.2;
+    --hl-line: rgb(var(--hl-rgb) / 0.95);
+  }
+}
+
+.rev-hl[data-highlight^="-"] {
+  /* Not saved yet. */
+  opacity: 0.7;
+}
+
+.rev-hl-toolbar {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 6px 8px;
+  background: var(--surface);
+  box-shadow: 0 10px 28px var(--shadow-tint);
+  transform: translate(-50%, calc(-100% - 8px));
+  user-select: none;
+  white-space: nowrap;
+  animation: rev-hl-toolbar-in 140ms ease-out;
+}
+
+.rev-hl-toolbar.below {
+  transform: translate(-50%, 8px);
+}
+
+@keyframes rev-hl-toolbar-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.rev-hl-swatch {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  cursor: pointer;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  padding: 0;
+  background: #facc15;
+  box-shadow: 0 0 0 1px var(--line);
+  transition: transform 120ms ease;
+}
+
+.rev-hl-swatch:hover {
+  transform: scale(1.12);
+}
+
+.rev-hl-swatch[data-colour="green"] {
+  background: #4ade80;
+}
+
+.rev-hl-swatch[data-colour="blue"] {
+  background: #60a5fa;
+}
+
+.rev-hl-swatch[data-colour="pink"] {
+  background: #f472b6;
+}
+
+.rev-hl-swatch[data-colour="purple"] {
+  background: #a78bfa;
+}
+
+.rev-hl-swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--heading);
+}
+
+.rev-hl-toolbar-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--line);
+}
+
+.rev-hl-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  border: 0;
+  border-radius: 8px;
+  padding: 4px 6px;
+  background: none;
+  color: var(--heading);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.rev-hl-action:hover {
+  background: var(--surface-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rev-hl-toolbar {
+    animation: none;
+  }
+
+  .rev-hl-swatch {
+    transition: none;
+  }
+}
+
 .rev-passage-tools {
   display: flex;
+  user-select: none;
   width: 34px;
   flex: none;
   flex-direction: column;
@@ -11431,4 +11718,434 @@ ul.quiz-review-options {
   gap: 6px;
   font-size: 0.86rem;
   text-decoration: none;
+}
+
+/* Motion -------------------------------------------------------------------
+   Small, consistent transitions. Everything here sits inside
+   prefers-reduced-motion: no-preference, so people who ask for less motion
+   get the same pages without it. Fill mode is "backwards" so nothing is
+   left applied after an animation ends (a lingering transform would trap
+   fixed-position popovers inside the section). */
+
+:root {
+  --motion-fast: 160ms;
+  --motion-base: 300ms;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes page-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Opening a page: its sections rise in one after another. The top bar
+     stays still, so navigation feels like the content changing. */
+  .module-page-content > *,
+  .rev-shell > * {
+    animation: page-rise var(--motion-base) var(--motion-ease) backwards;
+  }
+
+  .module-page-content > :nth-child(2) { animation-delay: 40ms; }
+  .module-page-content > :nth-child(3) { animation-delay: 80ms; }
+  .module-page-content > :nth-child(4) { animation-delay: 120ms; }
+  .module-page-content > :nth-child(n + 5) { animation-delay: 160ms; }
+
+  /* Lists of cards follow, a little later. */
+  .buddy-grid > *,
+  .lib-review-list > *,
+  .my-reports-list > *,
+  .forum-feed > .forum-thread {
+    animation: page-rise var(--motion-base) var(--motion-ease) backwards;
+  }
+
+  .buddy-grid > :nth-child(2),
+  .lib-review-list > :nth-child(2),
+  .my-reports-list > :nth-child(2),
+  .forum-feed > .forum-thread:nth-of-type(2) { animation-delay: 50ms; }
+
+  .buddy-grid > :nth-child(3),
+  .lib-review-list > :nth-child(3),
+  .my-reports-list > :nth-child(3),
+  .forum-feed > .forum-thread:nth-of-type(3) { animation-delay: 100ms; }
+
+  .buddy-grid > :nth-child(n + 4),
+  .lib-review-list > :nth-child(n + 4),
+  .my-reports-list > :nth-child(n + 4),
+  .forum-feed > .forum-thread:nth-of-type(n + 4) { animation-delay: 150ms; }
+
+  /* Menus open with a short pop rather than appearing. */
+  .notification-panel,
+  .account-menu[open] .account-menu-panel {
+    animation: menu-pop var(--motion-fast) var(--motion-ease) backwards;
+    transform-origin: top right;
+  }
+
+  /* Chats: the open conversation fades in, and a sent message slides up. */
+  .chat-pane {
+    animation: fade-in 200ms ease-out backwards;
+  }
+
+  .chat-message.pending,
+  .chat-call-item {
+    animation: message-in 200ms var(--motion-ease) backwards;
+  }
+
+  /* Cards that open something lift slightly under the pointer. Forum
+     threads hold comment boxes, so they stay put. */
+  @media (hover: hover) {
+    .buddy-card,
+    .lib-review-card,
+    .rev-note-card {
+      transition:
+        transform var(--motion-fast) var(--motion-ease),
+        box-shadow var(--motion-fast) var(--motion-ease),
+        border-color var(--motion-fast) ease;
+    }
+
+    .buddy-card:hover,
+    .lib-review-card:hover,
+    .rev-note-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 36px var(--shadow-tint);
+    }
+  }
+}
+
+/* Dashboard: saved analysis and saved quizzes ------------------------------ */
+
+/* The card is a flex column; keep its buttons their own size. */
+.rev-tool-card > .rev-small-button {
+  align-self: flex-start;
+}
+
+.rev-tool-header-action {
+  margin-left: auto;
+  flex: none;
+}
+
+.rev-quiz-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rev-quiz-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--surface-soft);
+}
+
+.rev-quiz-text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.rev-quiz-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rev-quiz-list .rev-small-button {
+  flex: none;
+}
+
+.rev-dialog.wide {
+  width: min(920px, calc(100vw - 32px));
+  max-height: min(90dvh, 960px);
+  overflow-y: auto;
+  border-radius: 22px;
+}
+
+.rev-study-dialog {
+  display: grid;
+  gap: 18px;
+  padding: 28px 32px 32px;
+}
+
+.rev-study-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.rev-study-dialog-header h2 {
+  margin: 4px 0 0;
+  color: var(--heading);
+  font-size: 1.3rem;
+  overflow-wrap: anywhere;
+}
+
+.rev-study-dialog-header p:not(.section-kicker) {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+/* The close button is absolutely placed in the profile dialog; here it sits in the header. */
+.rev-study-dialog-header .buddy-dialog-close {
+  position: static;
+  flex: none;
+}
+
+.analysis-sentence-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.analysis-sentence-link:hover {
+  color: var(--info);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .rev-study-dialog {
+    padding: 22px 18px 24px;
+  }
+}
+
+/* Original file viewer: My Documents window and the dashboard reader ----- */
+
+.original-viewer {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  outline: none;
+}
+
+.original-viewer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  padding: 8px 16px;
+}
+
+.original-viewer-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.original-viewer-group .rev-small-button {
+  min-width: 36px;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.original-viewer-page {
+  min-width: 64px;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.original-viewer-download {
+  margin-left: auto;
+}
+
+.original-viewer-body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  background: var(--paper);
+}
+
+.original-viewer-message {
+  margin: auto;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* My Documents: the window */
+.original-viewer-dialog {
+  width: min(1000px, calc(100vw - 32px));
+  overflow: hidden;
+}
+
+.original-viewer-window {
+  display: flex;
+  height: min(88dvh, 980px);
+  flex-direction: column;
+}
+
+.original-viewer-window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding: 14px 16px 14px 22px;
+}
+
+.original-viewer-window-header h2 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--heading);
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.original-viewer-window-header .buddy-dialog-close {
+  position: static;
+  flex: none;
+}
+
+.original-viewer-find {
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: rgb(250 204 21 / 0.22);
+  color: var(--ink);
+  font-size: 0.8rem;
+  animation: original-find-in 180ms ease-out;
+}
+
+.original-viewer-find.missing {
+  background: rgb(127 127 127 / 0.12);
+  color: var(--muted);
+}
+
+@keyframes original-find-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+
+/* A PDF page: the drawing, with its text laid over it (pdf.js text layer). */
+.pdf-page {
+  --scale-round-x: 1px;
+  --scale-round-y: 1px;
+
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.pdf-page canvas {
+  display: block;
+}
+
+.pdf-page .textLayer {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: clip;
+  color-scheme: only light;
+  forced-color-adjust: none;
+  letter-spacing: normal;
+  line-height: 1;
+  text-align: initial;
+  text-size-adjust: none;
+  transform-origin: 0 0;
+  word-spacing: normal;
+
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.pdf-page .textLayer :is(span, br) {
+  position: absolute;
+  color: transparent;
+  cursor: text;
+  transform-origin: 0% 0%;
+  user-select: text;
+  white-space: pre;
+}
+
+.pdf-page .textLayer > :not(.markedContent),
+.pdf-page .textLayer .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+
+  z-index: 1;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.pdf-page .textLayer .markedContent {
+  display: contents;
+}
+
+.pdf-page .textLayer ::selection {
+  background: rgb(0 0 255 / 0.25);
+  color: transparent;
+}
+
+/* Marks inside the text layer sit over the drawing, so only their colour shows. */
+.pdf-page .textLayer mark.pdf-find-hit {
+  position: static;
+  border-radius: 2px;
+  background: rgb(250 204 21 / 0.45);
+  color: transparent;
+  box-shadow: 0 0 0 1px rgb(202 138 4 / 0.55);
+}
+
+.shared-docx mark.docx-find-hit {
+  border-radius: 2px;
+  background: rgb(250 204 21 / 0.6);
+  color: inherit;
+  box-shadow: 0 0 0 2px rgb(250 204 21 / 0.6);
+}
+
+/* The title in document lists is a button that opens the window. */
+button.document-title-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.document-title-link:hover strong,
+button.document-title-link:focus-visible strong {
+  color: var(--info);
+  text-decoration: underline;
 }

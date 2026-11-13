@@ -28,17 +28,16 @@ export function LibraryPageView({
         navigation={createStudentNavigation("Library")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
       <div className="app-shell module-page-content">
         <header className="module-page-header">
           <div>
-            <p className="section-kicker">Learning Material Library</p>
-            <h1>Verified notes, shared by students.</h1>
+            <h1>Library</h1>
             <p>
-              Browse materials that moderators have approved, or share one of your own
-              documents. Your private files stay private until a moderator publishes them.
+              Approved materials from other students. Share your own for review.
             </p>
           </div>
           <Link className="button button-outline" href="/library/submit">

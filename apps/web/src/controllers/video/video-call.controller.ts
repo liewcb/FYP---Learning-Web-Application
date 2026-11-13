@@ -325,6 +325,7 @@ export class VideoCallController {
         id: buddy.id,
         fullName: buddy.fullName,
         initials: buddy.initials,
+        avatarUrl: buddy.avatarUrl,
         academicLine: academicLine(buddy.academicMajor, buddy.yearOfStudy),
       }));
   }

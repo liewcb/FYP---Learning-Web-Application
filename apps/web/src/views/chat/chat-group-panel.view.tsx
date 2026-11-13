@@ -33,6 +33,7 @@ import {
   ShieldIcon,
   TrashIcon,
 } from "@/views/chat/chat-icons.view";
+import { Avatar } from "@/views/shared/avatar.view";
 
 interface ChatGroupPanelProps {
   readonly open: boolean;
@@ -53,7 +54,7 @@ interface ChatGroupPanelProps {
 }
 
 /** Someone the admin can invite: a study buddy or a former member. */
-type InvitableStudent = Pick<ChatContact, "id" | "fullName" | "username" | "initials" | "academicLine"> & {
+type InvitableStudent = Pick<ChatContact, "id" | "fullName" | "username" | "initials" | "avatarUrl" | "academicLine"> & {
   readonly former: "left" | "removed" | null;
 };
 
@@ -331,7 +332,7 @@ export function ChatGroupPanel({
                 <ul className="chat-contact-list chat-group-picker" aria-label="Students to invite">
                   {invitable.map((contact) => (
                     <li key={contact.id} className="chat-group-member">
-                      <span className="chat-avatar" aria-hidden="true">{contact.initials}</span>
+                      <Avatar className="chat-avatar" initials={contact.initials} url={contact.avatarUrl} />
                       <span className="chat-contact-text">
                         <strong>{contact.fullName}</strong>
                         <small>{invitableLine(contact)}</small>
@@ -371,7 +372,7 @@ export function ChatGroupPanel({
                     key={`${member.status}-${member.id}`}
                     className={member.status === "invited" ? "chat-group-member invited" : "chat-group-member"}
                   >
-                    <span className="chat-avatar" aria-hidden="true">{member.initials}</span>
+                    <Avatar className="chat-avatar" initials={member.initials} url={member.avatarUrl} />
                     <span className="chat-contact-text">
                       <strong>{me ? "You" : member.fullName}</strong>
                       <small className={seen.online && member.status === "member" ? "online" : undefined}>

@@ -1,11 +1,21 @@
 import type { DocumentRepository } from "@/interfaces/repositories/document.repository";
+import type { LearningResultsRepository } from "@/interfaces/repositories/learning-results.repository";
+import type { QuizAttemptRepository } from "@/interfaces/repositories/quiz-attempt.repository";
 import type { RevisionRepository } from "@/interfaces/repositories/revision.repository";
 import type { AiService } from "@/interfaces/services/ai-service.interface";
+import type { SavedContentAnalysis } from "@/models/analysis/content-analysis.model";
 import { limitSentencesForAi, type LearningDocument } from "@/models/document/document.model";
+import type {
+  CreateStudyHighlightInput,
+  HighlightColour,
+  StudyHighlight,
+} from "@/models/revision/highlight.model";
+import type { SavedQuiz } from "@/models/quiz/quiz.model";
 import {
   buildReaderBlocks,
   isSubjectColour,
   quoteFromText,
+  revisionQuizLimit,
   revisionRules,
   revisionStreak,
   subjectColours,
@@ -16,6 +26,7 @@ import {
   type RevisionActionState,
   type RevisionAnalysis,
   type RevisionDashboardModel,
+  type RevisionQuiz,
   type RevisionSource,
   type StudyNote,
   type StudySubject,
@@ -24,6 +35,9 @@ import {
 
 /** Same request sizes as the content-analysis page defaults. */
 const analysisRequest = { top_keywords: 12, top_sentences: 6, max_topics: 4 } as const;
+
+/** Recent attempts read to work out each quiz's best score. */
+const attemptLookback = 200;
 
 function failed<T>(error: unknown, message: string, log: string): RevisionActionState<T> {
   console.error(log, error);
@@ -35,6 +49,8 @@ export class RevisionController {
     private readonly revision: RevisionRepository,
     private readonly documents: DocumentRepository,
     private readonly ai: AiService,
+    private readonly results: LearningResultsRepository,
+    private readonly attempts: QuizAttemptRepository,
   ) {}
 
   async loadDashboard(input: {
@@ -193,22 +209,29 @@ export class RevisionController {
     }
   }
 
-  async setHighlight(
-    ownerId: string,
-    documentId: number,
-    sentenceIndex: number,
-    on: boolean,
-  ): Promise<RevisionActionState> {
+  async addHighlight(input: CreateStudyHighlightInput): Promise<RevisionActionState<StudyHighlight>> {
     try {
-      if (on) {
-        await this.revision.addHighlight(ownerId, documentId, sentenceIndex);
-      } else {
-        await this.revision.removeHighlight(documentId, sentenceIndex);
-      }
-
-      return {};
+      return { value: await this.revision.addHighlight(input) };
     } catch (error) {
       return failed(error, "The highlight could not be saved.", "Saving highlight failed.");
+    }
+  }
+
+  async recolourHighlight(highlightId: number, colour: HighlightColour): Promise<RevisionActionState> {
+    try {
+      await this.revision.recolourHighlight(highlightId, colour);
+      return {};
+    } catch (error) {
+      return failed(error, "The colour could not be changed.", "Changing highlight colour failed.");
+    }
+  }
+
+  async removeHighlights(highlightIds: readonly number[]): Promise<RevisionActionState> {
+    try {
+      await this.revision.removeHighlights(highlightIds);
+      return {};
+    } catch (error) {
+      return failed(error, "The highlight could not be removed.", "Removing highlights failed.");
     }
   }
 
@@ -251,6 +274,50 @@ export class RevisionController {
     }
   }
 
+  /** The full saved analysis of a document, to read on the dashboard. */
+  async savedAnalysis(documentId: number): Promise<RevisionActionState<SavedContentAnalysis>> {
+    try {
+      // Row-level security returns only the student's own documents' analyses.
+      const analysis = await this.results.findLatestReadyAnalysis(documentId);
+
+      return analysis ? { value: analysis } : { error: "This document has no saved analysis yet." };
+    } catch (error) {
+      return failed(error, "The analysis could not be loaded. Please try again.", "Loading saved analysis failed.");
+    }
+  }
+
+  /** A saved quiz's questions, without answers, to take on the dashboard. */
+  async savedQuiz(quizId: number): Promise<RevisionActionState<SavedQuiz>> {
+    try {
+      const quiz = await this.results.findSavedQuiz(quizId);
+
+      return quiz ? { value: quiz } : { error: "This quiz is no longer available." };
+    } catch (error) {
+      return failed(error, "The quiz could not be loaded. Please try again.", "Loading saved quiz failed.");
+    }
+  }
+
+  private async quizzesFor(documentId: number): Promise<RevisionQuiz[]> {
+    const [quizzes, attempts] = await Promise.all([
+      this.results.listSavedQuizzes(revisionQuizLimit, documentId),
+      this.attempts.listAttempts({ limit: attemptLookback }),
+    ]);
+
+    return quizzes.map((quiz) => {
+      const mine = attempts.filter((attempt) => attempt.quizId === quiz.id);
+
+      return {
+        id: quiz.id,
+        title: quiz.title,
+        difficulty: quiz.difficulty,
+        questionCount: quiz.questionCount,
+        createdAt: quiz.createdAt,
+        attempts: mine.length,
+        bestPercentage: mine.length > 0 ? Math.max(...mine.map((attempt) => attempt.percentage)) : null,
+      };
+    });
+  }
+
   private toSource(
     document: LearningDocument,
     subjectId: number | null,
@@ -284,10 +351,15 @@ export class RevisionController {
       return null;
     }
 
-    const [content, highlights, latest] = await Promise.all([
+    const [content, highlights, latest, quizzes] = await Promise.all([
       this.documents.findContent(documentId),
       this.revision.listHighlights(documentId),
       this.revision.findLatestAnalysis(documentId),
+      // Quizzes are extra: the document still opens if they cannot be listed.
+      this.quizzesFor(documentId).catch((error: unknown) => {
+        console.error("Listing quizzes for the dashboard failed.", error);
+        return [];
+      }),
     ]);
 
     if (!content) {
@@ -309,6 +381,7 @@ export class RevisionController {
       lastSentence: progress?.lastSentence ?? 0,
       analysis: latest.analysis,
       analysisRunning: latest.running,
+      quizzes,
     };
   }
 }

@@ -10,6 +10,7 @@ import {
   type ChatGroupInvite,
   type ChatGroupMember,
 } from "@/models/chat/chat.model";
+import { loadAvatarUrls } from "@/lib/supabase/repositories/avatar-urls";
 
 interface InviteRow {
   invite_id: number;
@@ -113,11 +114,15 @@ export class SupabaseChatGroupRepository implements ChatGroupRepository {
       throw new Error(`Unable to load group members: ${error.message}`);
     }
 
-    return (data as MemberRow[]).map((row) => ({
+    const rows = data as MemberRow[];
+    const avatars = await loadAvatarUrls(this.supabase, rows.map((row) => row.user_id));
+
+    return rows.map((row) => ({
       id: row.user_id,
       fullName: participantName(row.full_name, row.username),
       username: row.username,
       initials: participantInitials(row.full_name, row.username),
+      avatarUrl: avatars.get(row.user_id) ?? null,
       academicLine: academicLine(row.academic_major, row.year_of_study),
       lastSeenAt: row.last_seen_at,
       isBuddy: row.is_buddy,

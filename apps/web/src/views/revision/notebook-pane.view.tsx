@@ -9,6 +9,7 @@ import {
   noteSnippet,
   revisionRules,
   type ReaderDocument,
+  type RevisionQuiz,
   type RevisionSource,
   type StudyNote,
 } from "@/models/revision/revision.model";
@@ -50,6 +51,9 @@ interface NotebookPaneProps {
   readonly onClearPassageFilter: () => void;
   readonly onAnalyse: () => void;
   readonly onFindTerm: (term: string) => void;
+  /** Opens the document's full saved analysis. */
+  readonly onReadAnalysis: () => void;
+  readonly onTakeQuiz: (quiz: RevisionQuiz) => void;
 }
 
 type SaveStatus = "saved" | "saving" | "error";
@@ -203,11 +207,16 @@ function StudyTools({
   onAnalyse,
   onOpenPassage,
   onFindTerm,
-}: Pick<NotebookPaneProps, "reader" | "analysing" | "onAnalyse" | "onOpenPassage" | "onFindTerm">) {
+  onReadAnalysis,
+  onTakeQuiz,
+}: Pick<
+  NotebookPaneProps,
+  "reader" | "analysing" | "onAnalyse" | "onOpenPassage" | "onFindTerm" | "onReadAnalysis" | "onTakeQuiz"
+>) {
   if (!reader) {
     return (
       <div className="rev-empty-small">
-        <p>Open a document to see its key points, key terms and a practice quiz.</p>
+        <p>Open a document to see its key points, saved analysis and quizzes.</p>
       </div>
     );
   }
@@ -229,20 +238,25 @@ function StudyTools({
           </span>
         </header>
         {reader.analysis && reader.analysis.keyPoints.length > 0 ? (
-          <ol className="rev-key-points">
-            {reader.analysis.keyPoints.map((point) => (
-              <li key={point.index}>
-                <button type="button" onClick={() => onOpenPassage(reader.id, point.index)}>
-                  {point.text}
-                </button>
-              </li>
-            ))}
-          </ol>
+          <>
+            <ol className="rev-key-points">
+              {reader.analysis.keyPoints.map((point) => (
+                <li key={point.index}>
+                  <button type="button" onClick={() => onOpenPassage(reader.id, point.index)}>
+                    {point.text}
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <button className="rev-small-button" type="button" onClick={onReadAnalysis}>
+              Read full analysis
+            </button>
+          </>
         ) : running ? (
           <p className="rev-tool-note">Analysing this document… this can take a minute.</p>
         ) : (
           <div className="rev-tool-cta">
-            <p className="rev-tool-note">Find the most important sentences and terms, and mark them in the text.</p>
+            <p className="rev-tool-note">Find the key sentences and terms, and mark them in the text.</p>
             <button className="button button-dark" type="button" onClick={onAnalyse}>
               Find key points
             </button>
@@ -273,17 +287,39 @@ function StudyTools({
         </section>
       ) : null}
 
-      <section className="rev-tool-card row">
-        <span className="rev-tool-icon red">
-          <QuizIcon />
-        </span>
-        <span className="rev-tool-text">
-          <strong>Practice quiz</strong>
-          <small>Generate questions from this document</small>
-        </span>
-        <Link className="rev-small-button gold" href={`/quizzes?documentId=${reader.id}`}>
-          Make a quiz
-        </Link>
+      <section className="rev-tool-card">
+        <header>
+          <span className="rev-tool-icon red">
+            <QuizIcon />
+          </span>
+          <span>
+            <strong>Practice quizzes</strong>
+            <small>{reader.quizzes.length > 0 ? "Saved from this document" : "None saved yet"}</small>
+          </span>
+          <Link className="rev-small-button gold rev-tool-header-action" href={`/quizzes?documentId=${reader.id}`}>
+            Make a quiz
+          </Link>
+        </header>
+        {reader.quizzes.length > 0 ? (
+          <ul className="rev-quiz-list">
+            {reader.quizzes.map((quiz) => (
+              <li key={quiz.id}>
+                <span className="rev-quiz-text">
+                  <strong>{quiz.title}</strong>
+                  <small>
+                    {quiz.questionCount} questions · {quiz.difficulty}
+                    {quiz.bestPercentage !== null
+                      ? ` · best ${quiz.bestPercentage}% (${quiz.attempts} ${quiz.attempts === 1 ? "try" : "tries"})`
+                      : " · not tried yet"}
+                  </small>
+                </span>
+                <button className="rev-small-button" type="button" onClick={() => onTakeQuiz(quiz)}>
+                  {quiz.attempts > 0 ? "Retake" : "Take"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </section>
     </div>
   );
@@ -308,6 +344,8 @@ export function NotebookPane({
   onClearPassageFilter,
   onAnalyse,
   onFindTerm,
+  onReadAnalysis,
+  onTakeQuiz,
 }: NotebookPaneProps) {
   const listed = passageFilter
     ? notes.filter(
@@ -345,6 +383,8 @@ export function NotebookPane({
           onAnalyse={onAnalyse}
           onOpenPassage={onOpenPassage}
           onFindTerm={onFindTerm}
+          onReadAnalysis={onReadAnalysis}
+          onTakeQuiz={onTakeQuiz}
         />
       ) : openNote ? (
         <NoteEditor

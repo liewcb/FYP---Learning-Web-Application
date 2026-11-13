@@ -319,3 +319,19 @@ export class LearningDocument {
     };
   }
 }
+
+/** How the original file is shown in the browser. */
+export type OriginalFileKind = "pdf" | "docx";
+
+export function originalFileKind(mimeType: string): OriginalFileKind {
+  return mimeType === "application/pdf" ? "pdf" : "docx";
+}
+
+/** Opens the student's own file for viewing (not downloading). */
+export function documentFileHref(documentId: number): string {
+  return `/documents/${documentId}/file`;
+}
+
+export function documentDownloadHref(documentId: number): string {
+  return `/documents/${documentId}/download`;
+}

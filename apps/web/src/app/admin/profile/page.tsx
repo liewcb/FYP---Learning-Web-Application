@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { updateProfileAction } from "@/app/profile/actions";
+import { removeAvatarAction, updateProfileAction, uploadAvatarAction } from "@/app/profile/actions";
 import {
   createAdminController,
   createProfileController,
@@ -28,5 +28,12 @@ export default async function AdminProfilePage() {
     redirect(authRoutes.signIn);
   }
 
-  return <ProfileView model={model} updateAction={updateProfileAction} />;
+  return (
+    <ProfileView
+      model={model}
+      updateAction={updateProfileAction}
+      uploadAvatarAction={uploadAvatarAction}
+      removeAvatarAction={removeAvatarAction}
+    />
+  );
 }

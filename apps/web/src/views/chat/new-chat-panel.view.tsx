@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import { chatGroupRules, chatWithHref, type ChatContact } from "@/models/chat/chat.model";
 import { BackIcon, GroupIcon, SearchIcon } from "@/views/chat/chat-icons.view";
+import { Avatar } from "@/views/shared/avatar.view";
 
 interface NewChatPanelProps {
   readonly open: boolean;
@@ -109,7 +110,7 @@ export function NewChatPanel({ open, contacts, onClose, onNewGroup }: NewChatPan
               {visible.map((contact) => (
                 <li key={contact.id}>
                   <Link className="chat-contact" href={chatWithHref(contact.id)}>
-                    <span className="chat-avatar" aria-hidden="true">{contact.initials}</span>
+                    <Avatar className="chat-avatar" initials={contact.initials} url={contact.avatarUrl} />
                     <span className="chat-contact-text">
                       <strong>{contact.fullName}</strong>
                       <small>

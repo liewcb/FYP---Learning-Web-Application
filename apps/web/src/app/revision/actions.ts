@@ -4,7 +4,17 @@ import {
   createProfileController,
   createRevisionController,
 } from "@/lib/dependencies/server";
+import type { SavedContentAnalysis } from "@/models/analysis/content-analysis.model";
 import type { Viewer } from "@/models/profile/profile.model";
+import type { SavedQuiz } from "@/models/quiz/quiz.model";
+import {
+  highlightRules,
+  isHighlightColour,
+  parseTextRange,
+  type HighlightColour,
+  type StudyHighlight,
+  type TextRange,
+} from "@/models/revision/highlight.model";
 import {
   parseRevisionId,
   type ReaderDocument,
@@ -168,23 +178,65 @@ export async function deleteNoteAction(noteId: number): Promise<RevisionActionSt
   return (await createRevisionController()).deleteNote(id);
 }
 
-export async function setHighlightAction(
+export async function addHighlightAction(
   documentId: number,
-  sentenceIndex: number,
-  on: boolean,
-): Promise<RevisionActionState> {
+  range: TextRange,
+  colour: HighlightColour,
+): Promise<RevisionActionState<StudyHighlight>> {
   const id = parseRevisionId(documentId);
-  const viewer = await currentStudent();
+  const parsedRange = parseTextRange(range);
 
-  if (id === null || !Number.isSafeInteger(sentenceIndex) || sentenceIndex < 0) {
+  if (id === null) {
     return notFound;
   }
+
+  if (!parsedRange || !isHighlightColour(colour)) {
+    return { error: "Select some text to highlight." };
+  }
+
+  const viewer = await currentStudent();
 
   if (!viewer) {
     return signedOut;
   }
 
-  return (await createRevisionController()).setHighlight(viewer.id, id, sentenceIndex, on === true);
+  return (await createRevisionController()).addHighlight({
+    ownerId: viewer.id,
+    documentId: id,
+    range: parsedRange,
+    colour,
+  });
+}
+
+export async function recolourHighlightAction(
+  highlightId: number,
+  colour: HighlightColour,
+): Promise<RevisionActionState> {
+  const id = parseRevisionId(highlightId);
+
+  if (id === null || !isHighlightColour(colour)) {
+    return notFound;
+  }
+
+  if (!(await currentStudent())) {
+    return signedOut;
+  }
+
+  return (await createRevisionController()).recolourHighlight(id, colour);
+}
+
+export async function removeHighlightsAction(highlightIds: readonly number[]): Promise<RevisionActionState> {
+  const ids = Array.isArray(highlightIds) ? highlightIds.map((id) => parseRevisionId(id)) : [];
+
+  if (ids.length === 0 || ids.length > highlightRules.maxRemovedAtOnce || ids.some((id) => id === null)) {
+    return notFound;
+  }
+
+  if (!(await currentStudent())) {
+    return signedOut;
+  }
+
+  return (await createRevisionController()).removeHighlights(ids as number[]);
 }
 
 export async function recordReadingProgressAction(
@@ -214,4 +266,36 @@ export async function analyseRevisionDocumentAction(
   }
 
   return (await createRevisionController()).analyse(id);
+}
+
+/** The full saved analysis of a document, opened from the dashboard. */
+export async function loadSavedAnalysisAction(
+  documentId: number,
+): Promise<RevisionActionState<SavedContentAnalysis>> {
+  const id = parseRevisionId(documentId);
+
+  if (id === null) {
+    return notFound;
+  }
+
+  if (!(await currentStudent())) {
+    return signedOut;
+  }
+
+  return (await createRevisionController()).savedAnalysis(id);
+}
+
+/** A saved quiz to take on the dashboard; answers stay on the server. */
+export async function loadSavedQuizAction(quizId: number): Promise<RevisionActionState<SavedQuiz>> {
+  const id = parseRevisionId(quizId);
+
+  if (id === null) {
+    return notFound;
+  }
+
+  if (!(await currentStudent())) {
+    return signedOut;
+  }
+
+  return (await createRevisionController()).savedQuiz(id);
 }

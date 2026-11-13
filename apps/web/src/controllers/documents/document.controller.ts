@@ -245,4 +245,12 @@ export class DocumentController {
 
     return this.storage.createDownloadUrl(document.storagePath, document.fileName);
   }
+
+  /** A short-lived link that shows the file in the browser instead of downloading it. */
+  async viewUrl(id: number): Promise<string | null> {
+    // Row-level security returns only the student's own documents.
+    const document = await this.documents.findById(id);
+
+    return document ? this.storage.createViewUrl(document.storagePath) : null;
+  }
 }

@@ -32,6 +32,7 @@ export function QuizAttemptReviewView({
         navigation={createStudentNavigation("Quizzes")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 

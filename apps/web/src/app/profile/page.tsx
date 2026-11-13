@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { signOutAction } from "@/app/auth/actions";
-import { updateProfileAction } from "@/app/profile/actions";
+import { removeAvatarAction, updateProfileAction, uploadAvatarAction } from "@/app/profile/actions";
 import { createProfileController } from "@/lib/dependencies/server";
 import { adminProfilePath } from "@/models/admin/admin.model";
 import { authRoutes } from "@/models/auth/auth-routes";
@@ -32,10 +32,16 @@ export default async function ProfilePage() {
         navigation={createStudentNavigation()}
         displayName={model.viewer.displayName}
         initials={model.viewer.initials}
+        avatarUrl={model.viewer.avatarUrl}
         signOutAction={signOutAction}
       />
       <main className="app-shell page-content">
-        <ProfileView model={model} updateAction={updateProfileAction} />
+        <ProfileView
+          model={model}
+          updateAction={updateProfileAction}
+          uploadAvatarAction={uploadAvatarAction}
+          removeAvatarAction={removeAvatarAction}
+        />
       </main>
     </div>
   );

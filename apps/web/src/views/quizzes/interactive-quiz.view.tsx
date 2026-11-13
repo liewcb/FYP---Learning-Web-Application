@@ -124,8 +124,7 @@ export function InteractiveQuizView({
             </p>
           ) : !recordsAttempts ? (
             <p className="quiz-local-note">
-              Quizzes made from pasted text are not saved. Generate from an
-              uploaded document to keep your score history.
+              Quizzes from pasted text are not saved.
             </p>
           ) : null}
           {result.recommendation ? (

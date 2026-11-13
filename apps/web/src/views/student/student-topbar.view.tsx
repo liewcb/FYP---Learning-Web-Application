@@ -4,6 +4,7 @@ import type { NavigationItem } from "@/models/home/home.model";
 import { myReportsPath } from "@/models/reports/report.model";
 import { BrandLogo } from "@/views/shared/brand-logo.view";
 import { ChatUnreadBadge } from "@/views/shared/chat-unread-badge.view";
+import { AvatarImage } from "@/views/shared/avatar.view";
 import { NotificationBell } from "@/views/shared/notification-bell.view";
 import { ThemeToggle } from "@/views/shared/theme-toggle.view";
 
@@ -11,6 +12,7 @@ interface StudentTopbarProps {
   readonly navigation: readonly NavigationItem[];
   readonly displayName: string;
   readonly initials: string;
+  readonly avatarUrl?: string | null;
   readonly signOutAction: () => Promise<void>;
 }
 
@@ -18,6 +20,7 @@ export function StudentTopbar({
   navigation,
   displayName,
   initials,
+  avatarUrl = null,
   signOutAction,
 }: StudentTopbarProps) {
   // Colours come from the light/dark theme; see .topbar in globals.css.
@@ -60,11 +63,12 @@ export function StudentTopbar({
 
           <details className="account-menu">
             <summary
-              className="student-avatar"
+              className={avatarUrl ? "student-avatar has-avatar" : "student-avatar"}
               aria-label={`Account menu for ${displayName}`}
               title={displayName}
             >
               {initials}
+              <AvatarImage url={avatarUrl} />
             </summary>
             <div className="account-menu-panel">
               <p className="account-menu-name">{displayName}</p>

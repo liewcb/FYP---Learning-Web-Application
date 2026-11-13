@@ -31,6 +31,7 @@ import {
 } from "@/views/chat/chat-icons.view";
 import { videoCallHref } from "@/models/video/video-call.model";
 import { ChatMessageBubble } from "@/views/chat/chat-message.view";
+import { Avatar } from "@/views/shared/avatar.view";
 
 /** A message shown while the server is still saving it. */
 export interface PendingChatMessage {
@@ -432,9 +433,11 @@ export function ChatConversation({
           onClick={onOpenProfile}
           aria-label={isGroup ? `Group info for ${name}` : `Contact info for ${name}`}
         >
-          <span className={isGroup ? "chat-avatar group" : "chat-avatar"} aria-hidden="true">
-            {chatInitials(summary)}
-          </span>
+          <Avatar
+            className={isGroup ? "chat-avatar group" : "chat-avatar"}
+            initials={chatInitials(summary)}
+            url={summary.other?.avatarUrl}
+          />
           <span className="chat-pane-identity">
             <span className="chat-pane-name">{name}</span>
             <span className={typing ? "chat-pane-status typing" : "chat-pane-status"}>

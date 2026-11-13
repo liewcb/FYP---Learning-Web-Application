@@ -26,14 +26,12 @@ export function DocumentUploadView({ action }: DocumentUploadViewProps) {
       <div className="module-card-heading">
         <span className="module-icon" aria-hidden="true">↑</span>
         <div>
-          <p className="section-kicker">Simple upload</p>
-          <h2>Add learning material</h2>
+          <h2>Upload a document</h2>
         </div>
       </div>
 
       <p className="module-card-copy">
-        Store one private PDF or DOCX. Its text is then extracted, cleaned and
-        split into sentences for content analysis and quiz generation.
+        One PDF or DOCX at a time. Only you can see it.
       </p>
 
       {state.error ? (

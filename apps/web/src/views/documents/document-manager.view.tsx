@@ -36,18 +36,16 @@ export function DocumentManagerView({
         navigation={createStudentNavigation("My Documents")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
       <div className="app-shell module-page-content">
         <header className="module-page-header">
           <div>
-            <p className="section-kicker">Private workspace</p>
-            <h1>Manage your uploaded materials.</h1>
+            <h1>Manage documents</h1>
             <p>
-              Rename, download or remove the learning materials you have
-              uploaded, and check that their text is ready for analysis and
-              quizzes. Only you can see these files.
+              Rename, download or remove your files. Only you can see them.
             </p>
           </div>
           <Link className="button button-outline" href="/documents">

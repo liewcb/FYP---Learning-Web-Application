@@ -18,6 +18,7 @@ export function VideoCallPageView({ viewer, signOutAction, children }: VideoCall
         navigation={createStudentNavigation("Chats")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
       <div className="call-shell">{children}</div>

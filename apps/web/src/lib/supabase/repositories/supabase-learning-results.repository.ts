@@ -244,13 +244,19 @@ export class SupabaseLearningResultsRepository implements LearningResultsReposit
     };
   }
 
-  async listSavedQuizzes(limit: number): Promise<SavedQuizSummary[]> {
-    const { data, error } = await this.supabase
+  async listSavedQuizzes(limit: number, documentId?: number): Promise<SavedQuizSummary[]> {
+    let query = this.supabase
       .from("quizzes")
       .select("id, document_id, title, difficulty, question_count, created_at")
       .eq("status", "ready")
       .order("created_at", { ascending: false })
       .limit(limit);
+
+    if (documentId !== undefined) {
+      query = query.eq("document_id", documentId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw new Error(`Unable to load saved quizzes: ${error.message}`);

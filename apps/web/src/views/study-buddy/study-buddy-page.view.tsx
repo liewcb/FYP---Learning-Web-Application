@@ -288,17 +288,16 @@ export function StudyBuddyPageView({
         navigation={createStudentNavigation("Study Buddy")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
       <div className="app-shell module-page-content">
         <header className="module-page-header">
           <div>
-            <p className="section-kicker">Study Buddy</p>
-            <h1>Find classmates to learn with.</h1>
+            <h1>Study buddy</h1>
             <p>
-              Discover students who share your major, year and learning
-              interests, then add them as study buddies.
+              Find classmates who share your major, year and interests.
             </p>
           </div>
           <Link className="button button-outline" href="/profile">

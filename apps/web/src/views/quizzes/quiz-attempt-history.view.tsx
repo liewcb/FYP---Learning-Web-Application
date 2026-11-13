@@ -38,17 +38,16 @@ export function QuizAttemptHistoryView({
         navigation={createStudentNavigation("Quizzes")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
       <div className="app-shell module-page-content">
         <header className="module-page-header">
           <div>
-            <p className="section-kicker">Quiz &amp; Assessment Generation Module</p>
-            <h1>See how your practice is paying off.</h1>
+            <h1>Quiz history</h1>
             <p>
-              Every quiz you submit from an uploaded document is graded and kept
-              here, so you can review your answers and track your progress.
+              Your graded quizzes. Review answers and track your progress.
             </p>
           </div>
           <Link className="button button-outline" href="/quizzes">
@@ -87,8 +86,7 @@ export function QuizAttemptHistoryView({
           <div className="module-card-heading">
             <span className="module-icon blue" aria-hidden="true">☰</span>
             <div>
-              <p className="section-kicker">Performance history</p>
-              <h2 id="attempts-title">Your quiz attempts</h2>
+              <h2 id="attempts-title">Attempts</h2>
             </div>
           </div>
 
@@ -126,8 +124,7 @@ export function QuizAttemptHistoryView({
               <span aria-hidden="true">?</span>
               <strong>No attempts yet</strong>
               <p>
-                Generate a quiz from one of your documents and submit your
-                answers. Your score will appear here.
+                Submit a quiz made from a document to see your score here.
               </p>
               <Link className="text-action" href="/quizzes">
                 Go to quizzes <span aria-hidden="true">→</span>

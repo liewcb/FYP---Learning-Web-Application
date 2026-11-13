@@ -3,6 +3,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { SavedContentAnalysis } from "@/models/analysis/content-analysis.model";
+import type { QuizAttemptOutcome } from "@/models/quiz/quiz-attempt.model";
+import type { SavedQuiz } from "@/models/quiz/quiz.model";
+import {
+  readerSentenceTexts,
+  type HighlightColour,
+  type StudyHighlight,
+  type TextRange,
+} from "@/models/revision/highlight.model";
 import {
   revisionHref,
   revisionRules,
@@ -25,6 +34,7 @@ import {
   type SubjectFormRequest,
 } from "@/views/revision/revision-dialog.view";
 import { FlameIcon, PlayIcon, QuizIcon, UploadIcon } from "@/views/revision/revision-icons.view";
+import { SavedAnalysisDialog, SavedQuizDialog } from "@/views/revision/saved-work-dialogs.view";
 import { SourcesPane, type SubjectFilter } from "@/views/revision/sources-pane.view";
 
 /** Server Actions the workspace calls; supplied by the route. */
@@ -43,10 +53,26 @@ export interface RevisionActions {
   }): Promise<RevisionActionState<StudyNote>>;
   updateNote(noteId: number, title: string, body: string): Promise<RevisionActionState<StudyNote>>;
   deleteNote(noteId: number): Promise<RevisionActionState>;
-  setHighlight(documentId: number, sentenceIndex: number, on: boolean): Promise<RevisionActionState>;
+  addHighlight(
+    documentId: number,
+    range: TextRange,
+    colour: HighlightColour,
+  ): Promise<RevisionActionState<StudyHighlight>>;
+  recolourHighlight(highlightId: number, colour: HighlightColour): Promise<RevisionActionState>;
+  removeHighlights(highlightIds: readonly number[]): Promise<RevisionActionState>;
   recordProgress(documentId: number, sentenceIndex: number): Promise<number | null>;
   analyse(documentId: number): Promise<RevisionActionState<RevisionAnalysis>>;
+  loadAnalysis(documentId: number): Promise<RevisionActionState<SavedContentAnalysis>>;
+  loadQuiz(quizId: number): Promise<RevisionActionState<SavedQuiz>>;
+  submitQuiz(
+    quizId: number,
+    answers: Record<string, string>,
+    startedAt: string | null,
+  ): Promise<QuizAttemptOutcome>;
 }
+
+/** A saved analysis or quiz open over the dashboard. */
+type SavedWork = { readonly kind: "analysis" } | { readonly kind: "quiz"; readonly quizId: number };
 
 interface RevisionWorkspaceProps {
   readonly model: RevisionDashboardModel;
@@ -67,6 +93,7 @@ export function RevisionWorkspace({ model, actions }: RevisionWorkspaceProps) {
   const [reader, setReader] = useState<ReaderDocument | null>(model.reader);
   const [filter, setFilter] = useState<SubjectFilter>("all");
   const [tab, setTab] = useState<NotebookTab>("notes");
+  const [savedWork, setSavedWork] = useState<SavedWork | null>(null);
   const [openNoteId, setOpenNoteId] = useState<number | null>(null);
   const [passageFilter, setPassageFilter] = useState<PassageFilter | null>(null);
   const [focus, setFocus] = useState<ReaderFocus | null>(
@@ -74,7 +101,17 @@ export function RevisionWorkspace({ model, actions }: RevisionWorkspaceProps) {
       ? { sentence: model.reader.lastSentence, flash: false, key: 0 }
       : null,
   );
+  /**
+   * The document whose original file is shown instead of its text. Opening
+   * another document, or jumping to a passage (a key point, a note), goes
+   * back to the text; key terms are found in the original itself.
+   */
+  const [originalOf, setOriginalOf] = useState<number | null>(null);
+  const [originalFind, setOriginalFind] = useState<{ readonly query: string } | null>(null);
+  const showOriginal = reader !== null && originalOf === reader.id;
   const [loadingId, setLoadingId] = useState<number | null>(null);
+  // Highlights not saved yet have negative ids.
+  const pendingHighlightId = useRef(0);
   const [analysing, setAnalysing] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<RevisionConfirmRequest | null>(null);
@@ -95,7 +132,6 @@ export function RevisionWorkspace({ model, actions }: RevisionWorkspaceProps) {
   }, []);
 
   const sourcesById = useMemo(() => new Map(sources.map((source) => [source.id, source])), [sources]);
-  const highlights = useMemo(() => new Set(reader?.highlights ?? []), [reader]);
   const noteCounts = useMemo(() => {
     const counts = new Map<number, number>();
 
@@ -120,7 +156,22 @@ export function RevisionWorkspace({ model, actions }: RevisionWorkspaceProps) {
     setStreak((current) => (current.today ? current : { days: current.days + 1, today: true }));
   }
 
+  /** After a quiz attempt, so the best scores in Study tools are current. */
+  async function refreshQuizzes() {
+    if (!reader) {
+      return;
+    }
+
+    const result = await actions.openDocument(reader.id).catch(() => null);
+    const quizzes = result?.value?.quizzes;
+
+    if (quizzes) {
+      setReader((current) => (current && current.id === result.value!.id ? { ...current, quizzes } : current));
+    }
+  }
+
   function jumpTo(sentence: number, flash = true) {
+    setOriginalOf(null);
     focusKey.current += 1;
     setFocus({ sentence, flash, key: focusKey.current });
   }
@@ -145,6 +196,7 @@ export function RevisionWorkspace({ model, actions }: RevisionWorkspaceProps) {
 
       const opened = result.value;
       setReader(opened);
+      setOriginalOf(null);
       setPassageFilter(null);
       window.history.replaceState(null, "", revisionHref(documentId));
 
@@ -217,33 +269,80 @@ export function RevisionWorkspace({ model, actions }: RevisionWorkspaceProps) {
     [readerId, saveProgress],
   );
 
-  async function toggleHighlight(start: number) {
+  function changeHighlights(
+    documentId: number,
+    change: (highlights: readonly StudyHighlight[]) => readonly StudyHighlight[],
+  ) {
+    setReader((current) =>
+      current && current.id === documentId ? { ...current, highlights: change(current.highlights) } : current,
+    );
+  }
+
+  async function addHighlight(range: TextRange, colour: HighlightColour) {
     if (!reader) {
       return;
     }
 
     const documentId = reader.id;
-    const on = !highlights.has(start);
-    const apply = (value: boolean) =>
-      setReader((current) =>
-        current && current.id === documentId
-          ? {
-              ...current,
-              highlights: value
-                ? [...current.highlights, start]
-                : current.highlights.filter((index) => index !== start),
-            }
-          : current,
+    pendingHighlightId.current -= 1;
+    const pendingId = pendingHighlightId.current;
+
+    changeHighlights(documentId, (list) => [...list, { id: pendingId, ...range, colour }]);
+
+    const result = await actions
+      .addHighlight(documentId, range, colour)
+      .catch(() => ({ error: genericError }) as RevisionActionState<StudyHighlight>);
+
+    if (!result.value) {
+      changeHighlights(documentId, (list) => list.filter((highlight) => highlight.id !== pendingId));
+      setNotice(result.error ?? genericError);
+      return;
+    }
+
+    const saved = result.value;
+    changeHighlights(documentId, (list) => list.map((highlight) => (highlight.id === pendingId ? saved : highlight)));
+    markActivity();
+  }
+
+  async function recolourHighlight(highlightId: number, colour: HighlightColour) {
+    const previous = reader?.highlights.find((highlight) => highlight.id === highlightId);
+
+    if (!reader || !previous || highlightId < 0) {
+      return;
+    }
+
+    const documentId = reader.id;
+    const paint = (value: HighlightColour) =>
+      changeHighlights(documentId, (list) =>
+        list.map((highlight) => (highlight.id === highlightId ? { ...highlight, colour: value } : highlight)),
       );
 
-    apply(on);
-    const result = await actions.setHighlight(documentId, start, on).catch(() => ({ error: genericError }));
+    paint(colour);
+    const result = await actions.recolourHighlight(highlightId, colour).catch(() => ({ error: genericError }));
 
     if (result.error) {
-      apply(!on);
+      paint(previous.colour);
       setNotice(result.error);
-    } else if (on) {
-      markActivity();
+    }
+  }
+
+  async function removeHighlights(highlightIds: readonly number[]) {
+    const ids = new Set(highlightIds.filter((id) => id > 0));
+    const removed = reader?.highlights.filter((highlight) => ids.has(highlight.id)) ?? [];
+
+    if (!reader || removed.length === 0) {
+      return;
+    }
+
+    const documentId = reader.id;
+    changeHighlights(documentId, (list) => list.filter((highlight) => !ids.has(highlight.id)));
+    const result = await actions.removeHighlights([...ids]).catch(() => ({ error: genericError }));
+
+    if (result.error) {
+      // Back in their places: saved highlights by age, unsaved ones last.
+      const order = (highlight: StudyHighlight) => (highlight.id > 0 ? highlight.id : Number.MAX_SAFE_INTEGER + highlight.id);
+      changeHighlights(documentId, (list) => [...list, ...removed].sort((a, b) => order(a) - order(b)));
+      setNotice(result.error);
     }
   }
 
@@ -417,7 +516,27 @@ export function RevisionWorkspace({ model, actions }: RevisionWorkspaceProps) {
     }
   }
 
+  /**
+   * Shows a sentence of the open document (a key point, a note's passage):
+   * found by its words in the original file when that is open, else in the text.
+   */
+  function showSentence(sentence: number) {
+    const text = showOriginal && reader ? readerSentenceTexts(reader.blocks).get(sentence) : undefined;
+
+    if (text) {
+      setOriginalFind({ query: text });
+    } else {
+      jumpTo(sentence);
+    }
+  }
+
   function findTerm(term: string) {
+    // In the original, the file itself is searched; each click finds the next place.
+    if (showOriginal) {
+      setOriginalFind({ query: term });
+      return;
+    }
+
     const needle = term.toLowerCase();
     const match = reader?.blocks.find(
       (block) =>
@@ -437,7 +556,7 @@ export function RevisionWorkspace({ model, actions }: RevisionWorkspaceProps) {
       <section className="rev-today" aria-label="Today">
         <div className="rev-today-greeting">
           <p>Welcome back, {model.viewerName}</p>
-          <h1>{continueSource ? "Pick up where you left off" : "Your revision space"}</h1>
+          <h1>Dashboard</h1>
         </div>
 
         {continueSource ? (
@@ -517,11 +636,18 @@ export function RevisionWorkspace({ model, actions }: RevisionWorkspaceProps) {
           reader={reader}
           loading={loadingId !== null}
           hasSources={sources.length > 0}
-          highlights={highlights}
           noteCounts={noteCounts}
           progressPercent={openSource?.progressPercent ?? reader?.progressPercent ?? 0}
           focus={focus}
-          onToggleHighlight={(start) => void toggleHighlight(start)}
+          showOriginal={showOriginal}
+          originalFind={originalFind}
+          onToggleOriginal={() => {
+            setOriginalFind(null);
+            setOriginalOf(showOriginal || !reader ? null : reader.id);
+          }}
+          onHighlight={(range, colour) => void addHighlight(range, colour)}
+          onRecolourHighlight={(highlightId, colour) => void recolourHighlight(highlightId, colour)}
+          onRemoveHighlights={(highlightIds) => void removeHighlights(highlightIds)}
           onAddNote={(start, text) => void createNote({ start, text })}
           onNewNote={() => void createNote(null)}
           onShowNotes={(start) => {
@@ -549,15 +675,48 @@ export function RevisionWorkspace({ model, actions }: RevisionWorkspaceProps) {
           onNewNote={() => void createNote(null)}
           onSaveNote={saveNote}
           onDeleteNote={deleteNote}
-          onOpenPassage={(documentId, sentence) => void openDocument(documentId, { sentence, flash: true })}
+          onOpenPassage={(documentId, sentence) =>
+            documentId === reader?.id ? showSentence(sentence) : void openDocument(documentId, { sentence, flash: true })
+          }
           onClearPassageFilter={() => setPassageFilter(null)}
           onAnalyse={() => void analyse()}
           onFindTerm={findTerm}
+          onReadAnalysis={() => setSavedWork({ kind: "analysis" })}
+          onTakeQuiz={(quiz) => setSavedWork({ kind: "quiz", quizId: quiz.id })}
         />
       </div>
 
       <RevisionConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
       <SubjectDialog request={subjectForm} onClose={() => setSubjectForm(null)} />
+
+      {savedWork?.kind === "analysis" && reader ? (
+        <SavedAnalysisDialog
+          documentId={reader.id}
+          documentTitle={reader.title}
+          load={actions.loadAnalysis}
+          onSentence={(sentence) => {
+            setSavedWork(null);
+            showSentence(sentence);
+          }}
+          onClose={() => setSavedWork(null)}
+        />
+      ) : null}
+
+      {savedWork?.kind === "quiz" ? (
+        <SavedQuizDialog
+          key={savedWork.quizId}
+          quizId={savedWork.quizId}
+          load={actions.loadQuiz}
+          submit={actions.submitQuiz}
+          onClose={(attempted) => {
+            setSavedWork(null);
+
+            if (attempted) {
+              void refreshQuizzes();
+            }
+          }}
+        />
+      ) : null}
 
       {notice ? (
         <div className="rev-toast" role="status">

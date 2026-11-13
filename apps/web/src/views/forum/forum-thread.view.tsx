@@ -14,6 +14,7 @@ import {
   type ForumReportAction,
 } from "@/views/forum/report-content.view";
 import { ConfirmSubmitButton } from "@/views/shared/confirm-submit-button.view";
+import { Avatar } from "@/views/shared/avatar.view";
 
 interface ForumThreadViewProps {
   readonly thread: ForumThread;
@@ -58,7 +59,7 @@ export function ForumThreadView({
   return (
     <article className="forum-thread">
       <header className="forum-thread-header">
-        <span className="forum-avatar" aria-hidden="true">{thread.author.initials}</span>
+        <Avatar className="forum-avatar" initials={thread.author.initials} url={thread.author.avatarUrl} />
         <div>
           <strong>{thread.author.displayName}</strong>
           <p>
@@ -151,9 +152,11 @@ export function ForumThreadView({
           {thread.comments.length > 0 ? (
             thread.comments.map((comment) => (
               <div className="forum-comment" key={comment.id}>
-                <span className="forum-avatar small" aria-hidden="true">
-                  {comment.author.initials}
-                </span>
+                <Avatar
+                  className="forum-avatar small"
+                  initials={comment.author.initials}
+                  url={comment.author.avatarUrl}
+                />
                 <div>
                   <div className="forum-comment-heading">
                     <strong>{comment.author.displayName}</strong>

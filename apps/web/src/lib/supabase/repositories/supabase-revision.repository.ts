@@ -2,6 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import type { RevisionRepository } from "@/interfaces/repositories/revision.repository";
 import {
+  highlightRules,
+  isHighlightColour,
+  type CreateStudyHighlightInput,
+  type HighlightColour,
+  type StudyHighlight,
+} from "@/models/revision/highlight.model";
+import {
   isSubjectColour,
   type CreateStudyNoteInput,
   type ReadingProgress,
@@ -11,6 +18,26 @@ import {
   type SubjectColour,
   type UpdateStudyNoteInput,
 } from "@/models/revision/revision.model";
+
+interface HighlightRow {
+  id: number;
+  start_sentence: number;
+  start_offset: number;
+  end_sentence: number;
+  end_offset: number;
+  colour: string;
+}
+
+const highlightColumns = "id, start_sentence, start_offset, end_sentence, end_offset, colour";
+
+function toHighlight(row: HighlightRow): StudyHighlight {
+  return {
+    id: row.id,
+    start: { sentence: row.start_sentence, offset: row.start_offset },
+    end: { sentence: row.end_sentence, offset: row.end_offset },
+    colour: isHighlightColour(row.colour) ? row.colour : "yellow",
+  };
+}
 
 interface SubjectRow {
   id: number;
@@ -247,41 +274,56 @@ export class SupabaseRevisionRepository implements RevisionRepository {
     }
   }
 
-  async listHighlights(documentId: number): Promise<number[]> {
+  async listHighlights(documentId: number): Promise<StudyHighlight[]> {
     const { data, error } = await this.supabase
       .from("study_highlights")
-      .select("sentence_index")
-      .eq("document_id", documentId);
+      .select(highlightColumns)
+      .eq("document_id", documentId)
+      .order("id", { ascending: true })
+      .limit(highlightRules.maxPerDocument);
 
     if (error) {
       throw new Error(`Unable to load highlights: ${error.message}`);
     }
 
-    return (data as { sentence_index: number }[]).map((row) => row.sentence_index);
+    return (data as HighlightRow[]).map(toHighlight);
   }
 
-  async addHighlight(ownerId: string, documentId: number, sentenceIndex: number): Promise<void> {
-    const { error } = await this.supabase
+  async addHighlight(input: CreateStudyHighlightInput): Promise<StudyHighlight> {
+    const { data, error } = await this.supabase
       .from("study_highlights")
-      .upsert(
-        { owner_id: ownerId, document_id: documentId, sentence_index: sentenceIndex },
-        { onConflict: "owner_id,document_id,sentence_index", ignoreDuplicates: true },
-      );
+      .insert({
+        owner_id: input.ownerId,
+        document_id: input.documentId,
+        start_sentence: input.range.start.sentence,
+        start_offset: input.range.start.offset,
+        end_sentence: input.range.end.sentence,
+        end_offset: input.range.end.offset,
+        colour: input.colour,
+      })
+      .select(highlightColumns)
+      .single();
 
     if (error) {
       throw new Error(`Unable to save highlight: ${error.message}`);
     }
+
+    return toHighlight(data as HighlightRow);
   }
 
-  async removeHighlight(documentId: number, sentenceIndex: number): Promise<void> {
-    const { error } = await this.supabase
-      .from("study_highlights")
-      .delete()
-      .eq("document_id", documentId)
-      .eq("sentence_index", sentenceIndex);
+  async recolourHighlight(highlightId: number, colour: HighlightColour): Promise<void> {
+    const { error } = await this.supabase.from("study_highlights").update({ colour }).eq("id", highlightId);
 
     if (error) {
-      throw new Error(`Unable to remove highlight: ${error.message}`);
+      throw new Error(`Unable to change highlight: ${error.message}`);
+    }
+  }
+
+  async removeHighlights(highlightIds: readonly number[]): Promise<void> {
+    const { error } = await this.supabase.from("study_highlights").delete().in("id", [...highlightIds]);
+
+    if (error) {
+      throw new Error(`Unable to remove highlights: ${error.message}`);
     }
   }
 

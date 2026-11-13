@@ -29,6 +29,7 @@ export function LibraryDetailView({ viewer, model, signOutAction }: LibraryDetai
         navigation={createStudentNavigation("Library")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 

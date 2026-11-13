@@ -16,6 +16,7 @@ import {
   formatContentSummary,
   formatDocumentDate,
 } from "@/views/documents/document-display";
+import { DocumentPreviewButton } from "@/views/documents/document-preview-button.view";
 import { ConfirmSubmitButton } from "@/views/shared/confirm-submit-button.view";
 
 export interface ManagedDocumentActions {
@@ -100,7 +101,11 @@ export function ManagedDocumentRow({
             </button>
           </form>
         ) : (
-          <strong title={document.title}>{document.title}</strong>
+          <DocumentPreviewButton
+            documentId={document.id}
+            title={document.title}
+            mimeType={document.mimeType}
+          />
         )}
         <p>
           {document.fileName} · {formatBytes(document.sizeBytes)} · Uploaded{" "}

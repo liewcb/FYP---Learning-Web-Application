@@ -38,6 +38,8 @@ export interface Viewer {
   readonly email: string;
   readonly displayName: string;
   readonly initials: string;
+  /** Link to their profile picture, or null to show initials. */
+  readonly avatarUrl: string | null;
   readonly role: UserRole;
 }
 

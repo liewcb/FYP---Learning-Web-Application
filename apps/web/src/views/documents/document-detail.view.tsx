@@ -4,6 +4,7 @@ import type { SavedContentAnalysis } from "@/models/analysis/content-analysis.mo
 import type { DocumentContent, DocumentRecord } from "@/models/document/document.model";
 import { createStudentNavigation } from "@/models/home/home.model";
 import type { Viewer } from "@/models/profile/profile.model";
+import { SavedAnalysisResults } from "@/views/analysis/saved-analysis-results.view";
 import {
   documentStatusLabels,
   documentTypeLabel,
@@ -36,6 +37,7 @@ export function DocumentDetailView({
         navigation={createStudentNavigation("My Documents")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
 
@@ -100,8 +102,7 @@ export function DocumentDetailView({
           <section className="saved-analysis-page" aria-labelledby="saved-analysis-title">
             <div className="result-heading">
               <div>
-                <p className="section-kicker">Saved content analysis</p>
-                <h2 id="saved-analysis-title">Key ideas from this material</h2>
+                <h2 id="saved-analysis-title">Saved analysis</h2>
               </div>
               <span className="status-chip ready">Saved</span>
             </div>
@@ -115,49 +116,7 @@ export function DocumentDetailView({
               </Link>
             </div>
 
-            <div className="document-detail-results">
-              <article className="result-card">
-                <h3>Keywords</h3>
-                <div className="keyword-cloud">
-                  {analysis.result.semantic_keywords.map((keyword) => (
-                    <span key={`${keyword.method}-${keyword.term}`}>
-                      {keyword.term}<small>{Math.round(keyword.score * 100)}%</small>
-                    </span>
-                  ))}
-                </div>
-              </article>
-
-              <article className="result-card">
-                <h3>Key sentences</h3>
-                <ol className="important-sentence-list">
-                  {analysis.result.important_sentences.map((sentence) => (
-                    <li key={sentence.original_index}>{sentence.text}</li>
-                  ))}
-                </ol>
-              </article>
-
-              <article className="result-card">
-                <h3>Topics</h3>
-                <div className="topic-grid">
-                  {analysis.result.topics.map((topic) => (
-                    <div key={`${topic.label}-${topic.sentence_indexes.join("-")}`}>
-                      <strong>{topic.label}</strong>
-                      <span>{topic.sentences.length} sentences</span>
-                      <p>{topic.keywords.join(" · ")}</p>
-                    </div>
-                  ))}
-                </div>
-              </article>
-
-              <article className="result-card">
-                <h3>Concepts</h3>
-                <div className="concept-list">
-                  {analysis.result.concepts.slice(0, 16).map((concept) => (
-                    <span key={`${concept.kind}-${concept.term}`}>{concept.term}</span>
-                  ))}
-                </div>
-              </article>
-            </div>
+            <SavedAnalysisResults result={analysis.result} />
           </section>
         ) : null}
 
@@ -165,8 +124,7 @@ export function DocumentDetailView({
           <section className="document-detail-empty" aria-labelledby="analyse-material-title">
             <span className="module-icon blue" aria-hidden="true">✦</span>
             <div>
-              <p className="section-kicker">Content analysis</p>
-              <h2 id="analyse-material-title">This material is ready to analyse</h2>
+              <h2 id="analyse-material-title">Not analysed yet</h2>
               <p>
                 Would you like to identify its main ideas, key sentences, topics and concepts now?
               </p>

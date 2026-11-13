@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { DocxViewerProps } from "@/interfaces/services/document-viewer.interface";
+import { revealWithin } from "@/lib/documents/reveal";
+import { findInPieces, searchCandidates } from "@/lib/documents/text-match";
 
 const safeLink = /^(https?:|mailto:|#)/i;
 
@@ -23,17 +25,103 @@ function sanitiseLinks(container: HTMLElement) {
   }
 }
 
+const findClass = "docx-find-hit";
+
+/** Puts back the text that earlier search marks wrapped. */
+function clearMarks(container: HTMLElement) {
+  for (const mark of container.querySelectorAll(`mark.${findClass}`)) {
+    mark.replaceWith(document.createTextNode(mark.textContent ?? ""));
+  }
+
+  container.normalize();
+}
+
+function textNodes(container: HTMLElement): Text[] {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    nodes.push(node as Text);
+  }
+
+  return nodes;
+}
+
+/** How many times `needle` (from looseText) appears in the document. */
+function countMatches(container: HTMLElement, needle: string): number {
+  return findInPieces(textNodes(container).map((node) => node.data), needle).length;
+}
+
+/**
+ * Marks the match of `needle` after the `skip`-th one (wrapping round) and
+ * returns its first mark, or null when there is none. A match may run over
+ * several text nodes (a word in bold, a line break), each part marked.
+ */
+function markMatch(container: HTMLElement, needle: string, skip: number): HTMLElement | null {
+  const nodes = textNodes(container);
+  const matches = findInPieces(nodes.map((node) => node.data), needle);
+
+  if (matches.length === 0) {
+    return null;
+  }
+
+  let first: HTMLElement | null = null;
+
+  // Each part is in a different text node, so marking one leaves the others' offsets as they were.
+  for (const { piece, from, to } of matches[skip % matches.length]) {
+    const range = document.createRange();
+    range.setStart(nodes[piece], from);
+    range.setEnd(nodes[piece], to);
+    const mark = document.createElement("mark");
+    mark.className = findClass;
+    range.surroundContents(mark);
+    first ??= mark;
+  }
+
+  return first;
+}
+
 /** Renders a Word document as HTML with docx-preview, scrolled like the presenter. */
-export function DocxHtmlViewer({ data, scrollTo, onScroll, onLoaded, onError }: DocxViewerProps) {
+export function DocxHtmlViewer({ data, scrollTo, onScroll, find, onFind, onLoaded, onError }: DocxViewerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   // Scroll events caused by following the presenter are not the reader's own.
   const applyingRef = useRef(false);
-  const callbacks = useRef({ onScroll, onLoaded, onError });
+  const callbacks = useRef({ onScroll, onLoaded, onError, onFind });
+  const [rendered, setRendered] = useState(false);
+  /** The last search: what was asked, the words found, and how many matches have been shown. */
+  const lastFindRef = useRef<{ readonly query: string; readonly needle: string; readonly count: number } | null>(null);
 
   useEffect(() => {
-    callbacks.current = { onScroll, onLoaded, onError };
-  }, [onScroll, onLoaded, onError]);
+    callbacks.current = { onScroll, onLoaded, onError, onFind };
+  }, [onScroll, onLoaded, onError, onFind]);
+
+  // A search marks the next match; asking for the same words again moves on.
+  useEffect(() => {
+    const body = bodyRef.current;
+    const query = find?.query.trim().toLowerCase() ?? "";
+
+    if (!body || !rendered || !find || !query) {
+      return;
+    }
+
+    clearMarks(body);
+    const last = lastFindRef.current;
+    const again = last !== null && last.query === query;
+    // All the words, or for a long sentence its first words, whichever is found.
+    const needle = again
+      ? last.needle
+      : searchCandidates(query).find((candidate) => countMatches(body, candidate) > 0);
+    const skip = again ? last.count : 0;
+    const mark = needle ? markMatch(body, needle, skip) : null;
+
+    if (mark && scrollRef.current) {
+      revealWithin(scrollRef.current, mark);
+    }
+
+    lastFindRef.current = mark && needle ? { query, needle, count: skip + 1 } : null;
+    callbacks.current.onFind?.(mark !== null);
+  }, [find, rendered]);
 
   useEffect(() => {
     const body = bodyRef.current;
@@ -63,6 +151,7 @@ export function DocxHtmlViewer({ data, scrollTo, onScroll, onLoaded, onError }: 
         }
 
         sanitiseLinks(body);
+        setRendered(true);
         callbacks.current.onLoaded();
       } catch (error) {
         console.error("Opening Word document failed.", error);

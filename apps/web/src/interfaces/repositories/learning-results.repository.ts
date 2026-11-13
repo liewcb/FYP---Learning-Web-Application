@@ -7,6 +7,7 @@ import type { SavedQuiz, SavedQuizSummary } from "@/models/quiz/quiz.model";
  */
 export interface LearningResultsRepository {
   findLatestReadyAnalysis(documentId: number): Promise<SavedContentAnalysis | null>;
-  listSavedQuizzes(limit: number): Promise<SavedQuizSummary[]>;
+  /** Newest first; only one document's when documentId is given. */
+  listSavedQuizzes(limit: number, documentId?: number): Promise<SavedQuizSummary[]>;
   findSavedQuiz(quizId: number): Promise<SavedQuiz | null>;
 }

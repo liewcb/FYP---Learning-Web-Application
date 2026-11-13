@@ -36,6 +36,7 @@ export function RevisionDashboardView({
         navigation={createStudentNavigation("Dashboard")}
         displayName={viewer.displayName}
         initials={viewer.initials}
+        avatarUrl={viewer.avatarUrl}
         signOutAction={signOutAction}
       />
       <div className="rev-shell">

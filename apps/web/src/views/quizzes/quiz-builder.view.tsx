@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
-import type {
-  QuizAnswers,
-  QuizGenerationFormState,
-  SavedQuiz,
-  SavedQuizSummary,
+import {
+  toAnswerRecord,
+  type QuizGenerationFormState,
+  type SavedQuiz,
+  type SavedQuizSummary,
 } from "@/models/quiz/quiz.model";
 import {
   gradeGeneratedQuizLocally,
@@ -52,12 +52,6 @@ const typeLabels = {
   short_answer: "Short answer",
 } as const;
 
-function toAnswerRecord(answers: QuizAnswers): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(answers).map(([position, answer]) => [position, answer]),
-  );
-}
-
 function PastAttempts({ attempts }: { readonly attempts: readonly QuizAttemptSummary[] }) {
   if (attempts.length === 0) {
     return null;
@@ -66,8 +60,7 @@ function PastAttempts({ attempts }: { readonly attempts: readonly QuizAttemptSum
   return (
     <section className="saved-quiz-history" aria-labelledby="past-attempts-title">
       <div>
-        <p className="section-kicker">This quiz</p>
-        <h2 id="past-attempts-title">Your previous attempts</h2>
+        <h2 id="past-attempts-title">Previous attempts</h2>
       </div>
       <ul>
         {attempts.map((attempt) => (
@@ -110,15 +103,14 @@ export function QuizBuilderView({
         <div className="module-card-heading">
           <span className="module-icon blue" aria-hidden="true">✦</span>
           <div>
-            <p className="section-kicker">Quiz settings</p>
-            <h2>Create a grounded assessment</h2>
+            <h2>Quiz settings</h2>
           </div>
         </div>
 
         <p className="module-card-copy">
           {source
-            ? `Questions will be generated from the text extracted from “${source.title}”. Long documents are handled automatically.`
-            : "Choose a ready upload from My Documents or paste learning content. Gemini will ground questions in the supplied sentences."}
+            ? `Questions come from “${source.title}”.`
+            : "Choose a Ready document or paste your notes."}
         </p>
 
         {sourceNotice ? (
@@ -164,8 +156,7 @@ export function QuizBuilderView({
               required
             />
             <p className="field-hint">
-              Or pick a Ready document from My Documents and choose
-              &ldquo;Make a quiz&rdquo; &mdash; no copying needed.
+              Or use &ldquo;Make a quiz&rdquo; on a Ready document.
             </p>
           </div>
         )}
@@ -213,8 +204,7 @@ export function QuizBuilderView({
         </button>
         {pending ? (
           <p className="pending-note" role="status">
-            Gemini can take a minute or longer when demand is high. Please do
-            not submit the form again while it is working.
+            This can take a minute. Please don&apos;t submit again.
           </p>
         ) : null}
 
@@ -265,9 +255,7 @@ export function QuizBuilderView({
             <span aria-hidden="true">?</span>
             <h2>Your generated quiz will appear here</h2>
             <p>
-              Choose the settings and learning material to create a grounded
-              assessment, or pick a saved quiz below to practise again. Answers
-              stay hidden until you submit.
+              Set up a new quiz, or practise a saved one below.
             </p>
           </div>
         )}
@@ -275,7 +263,6 @@ export function QuizBuilderView({
         {savedQuizzes.length > 0 ? (
           <section className="saved-quiz-history" aria-labelledby="saved-quizzes-title">
             <div>
-              <p className="section-kicker">Your assessments</p>
               <h2 id="saved-quizzes-title">Saved quizzes</h2>
               <Link className="text-action" href="/quizzes/attempts">
                 Attempt history <span aria-hidden="true">→</span>

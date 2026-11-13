@@ -24,15 +24,18 @@ function useModal(open: boolean) {
   return ref;
 }
 
-function RevisionDialog({
+export function RevisionDialog({
   open,
   labelledBy,
   onClose,
+  wide = false,
   children,
 }: {
   readonly open: boolean;
   readonly labelledBy: string;
   readonly onClose: () => void;
+  /** For reading and quizzes rather than a short form. */
+  readonly wide?: boolean;
   readonly children: ReactNode;
 }) {
   const ref = useModal(open);
@@ -45,7 +48,7 @@ function RevisionDialog({
 
   return (
     <dialog
-      className="rev-dialog"
+      className={wide ? "rev-dialog wide" : "rev-dialog"}
       ref={ref}
       aria-labelledby={labelledBy}
       onClose={onClose}
