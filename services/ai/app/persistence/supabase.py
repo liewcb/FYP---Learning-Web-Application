@@ -207,6 +207,12 @@ class SupabasePersistence:
                         else {}
                     ),
                 },
+                # Gemini study notes; null when no guide could be written.
+                "study_guide": (
+                    result.study_guide.model_dump(mode="json")
+                    if result.study_guide is not None
+                    else None
+                ),
                 "error_message": None,
                 "completed_at": self._now(),
             },

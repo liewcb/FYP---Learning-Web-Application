@@ -11,6 +11,7 @@ import type {
   DocumentStudySource,
   DocumentStudySourceOption,
 } from "@/models/document/document.model";
+import { StudyGuideView } from "@/views/analysis/study-guide.view";
 
 interface ContentAnalysisTesterProps {
   readonly source: DocumentStudySource | null;
@@ -54,6 +55,7 @@ export function ContentAnalysisTester({
   // After a new sign-in, the Server Action state is empty. The persisted
   // result restores the newest finished analysis for the selected document.
   const result = state.result ?? savedAnalysis?.result;
+  const guide = result?.study_guide ?? null;
   const saved = state.savedAnalysisId !== undefined || savedAnalysis !== null;
   const analysedAt = savedAnalysis ? formatAnalysedAt(savedAnalysis.completedAt) : null;
   const alreadyAnalysed = mode === "upload" && source !== null && savedAnalysis !== null;
@@ -76,7 +78,8 @@ export function ContentAnalysisTester({
         </div>
 
         <p className="module-card-copy">
-          Find a material&apos;s key terms, key sentences and main topics.
+          Turn a material into a study guide: main ideas in study order, key
+          points from your notes, and a glossary.
         </p>
 
         <div className="source-switch" role="tablist" aria-label="Material source">
@@ -194,7 +197,8 @@ export function ContentAnalysisTester({
         </button>
         {pending ? (
           <p className="pending-note" role="status">
-            Usually a few seconds. The first run takes longer.
+            Usually 10–30 seconds while the study guide is written. The first
+            run takes longer.
           </p>
         ) : null}
       </form>
@@ -207,26 +211,20 @@ export function ContentAnalysisTester({
                 <p className="section-kicker">
                   {saved ? "Saved analysis" : "Analysis complete"}
                 </p>
-                <h2>{result.sentence_count} sentences understood</h2>
+                <h2>{guide ? "Your study guide" : `${result.sentence_count} sentences understood`}</h2>
+                {guide ? (
+                  <p>
+                    {guide.sections.length}{" "}
+                    {guide.sections.length === 1 ? "section" : "sections"}
+                    {guide.glossary.length > 0
+                      ? ` · ${guide.glossary.length} glossary terms`
+                      : ""}{" "}
+                    · from {result.sentence_count} sentences
+                  </p>
+                ) : null}
               </div>
               <span className="status-chip ready">{saved ? "Saved" : "Ready"}</span>
             </div>
-
-            {result.selection ? (
-              <details className="analysis-selection">
-                <summary>
-                  {result.selection.keyword_count} key terms ·{" "}
-                  {result.selection.important_sentence_count} key sentences ·{" "}
-                  {result.selection.topic_count}{" "}
-                  {result.selection.topic_count === 1 ? "topic" : "topics"}
-                  {result.selection.automatic ? ", sized automatically" : ""}
-                  <span>How were these chosen?</span>
-                </summary>
-                <ul>
-                  {result.selection.notes.map((note) => <li key={note}>{note}</li>)}
-                </ul>
-              </details>
-            ) : null}
 
             {saved ? (
               <p className="saved-result-note">
@@ -234,56 +232,90 @@ export function ContentAnalysisTester({
               </p>
             ) : null}
 
-            <article className="result-card">
-              <h3>Semantic keywords</h3>
-              <div className="keyword-cloud">
-                {result.semantic_keywords.map((keyword) => (
-                  <span key={`${keyword.method}-${keyword.term}`}>
-                    {keyword.term}
-                    <small>{Math.round(keyword.score * 100)}%</small>
-                  </span>
-                ))}
-              </div>
-            </article>
+            {guide ? (
+              <StudyGuideView guide={guide} />
+            ) : (
+              <p className="quiz-local-note" role="status">
+                No study guide was written for this analysis, so the detailed
+                results are shown. Press Analyse again to create one.
+              </p>
+            )}
 
-            <article className="result-card">
-              <h3>Important sentences</h3>
-              <ol className="important-sentence-list">
-                {result.important_sentences.map((sentence) => (
-                  <li key={sentence.original_index}>{sentence.text}</li>
-                ))}
-              </ol>
-            </article>
+            {/* The raw NLP output stays available for checking how the guide
+                was grounded; it is collapsed when a study guide exists. */}
+            <details className="analysis-details" open={!guide}>
+              <summary>
+                Analysis details
+                <span>Keywords, key sentences, topics and concepts found by the NLP models</span>
+              </summary>
 
-            <article className="result-card">
-              <h3>Detected topics</h3>
-              <div className="topic-grid">
-                {result.topics.map((topic) => (
-                  <div key={`${topic.label}-${topic.sentence_indexes.join("-")}`}>
-                    <strong>{topic.label}</strong>
-                    <span>{topic.sentences.length} sentences</span>
-                    <p>{topic.keywords.join(" · ")}</p>
-                  </div>
-                ))}
-              </div>
-            </article>
+              {result.selection ? (
+                <details className="analysis-selection">
+                  <summary>
+                    {result.selection.keyword_count} key terms ·{" "}
+                    {result.selection.important_sentence_count} key sentences ·{" "}
+                    {result.selection.topic_count}{" "}
+                    {result.selection.topic_count === 1 ? "topic" : "topics"}
+                    {result.selection.automatic ? ", sized automatically" : ""}
+                    <span>How were these chosen?</span>
+                  </summary>
+                  <ul>
+                    {result.selection.notes.map((note) => <li key={note}>{note}</li>)}
+                  </ul>
+                </details>
+              ) : null}
 
-            <article className="result-card">
-              <h3>Concepts</h3>
-              <div className="concept-list">
-                {result.concepts.slice(0, 16).map((concept) => (
-                  <span key={`${concept.kind}-${concept.term}`}>{concept.term}</span>
-                ))}
-              </div>
-            </article>
+              <article className="result-card">
+                <h3>Semantic keywords</h3>
+                <div className="keyword-cloud">
+                  {result.semantic_keywords.map((keyword) => (
+                    <span key={`${keyword.method}-${keyword.term}`}>
+                      {keyword.term}
+                      <small>{Math.round(keyword.score * 100)}%</small>
+                    </span>
+                  ))}
+                </div>
+              </article>
+
+              <article className="result-card">
+                <h3>Important sentences</h3>
+                <ol className="important-sentence-list">
+                  {result.important_sentences.map((sentence) => (
+                    <li key={sentence.original_index}>{sentence.text}</li>
+                  ))}
+                </ol>
+              </article>
+
+              <article className="result-card">
+                <h3>Detected topics</h3>
+                <div className="topic-grid">
+                  {result.topics.map((topic) => (
+                    <div key={`${topic.label}-${topic.sentence_indexes.join("-")}`}>
+                      <strong>{topic.label}</strong>
+                      <span>{topic.sentences.length} sentences</span>
+                      <p>{topic.keywords.join(" · ")}</p>
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="result-card">
+                <h3>Concepts</h3>
+                <div className="concept-list">
+                  {result.concepts.slice(0, 16).map((concept) => (
+                    <span key={`${concept.kind}-${concept.term}`}>{concept.term}</span>
+                  ))}
+                </div>
+              </article>
+            </details>
           </>
         ) : (
           <div className="result-empty">
             <span aria-hidden="true">◎</span>
             <h2>Your analysis will appear here</h2>
             <p>
-              Choose a document and press Analyse to see its key terms,
-              sentences and topics.
+              Choose a document and press Analyse to get a study guide with
+              its main ideas, key points and a glossary.
             </p>
           </div>
         )}

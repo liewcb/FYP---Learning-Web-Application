@@ -32,6 +32,49 @@ export interface AnalysisSelection {
   readonly notes: readonly string[];
 }
 
+/** A sentence from the material that a study-guide item is based on. */
+export interface StudyGuideSource {
+  readonly index: number;
+  readonly text: string;
+}
+
+export interface StudyGuidePoint {
+  readonly text: string;
+  readonly sources: readonly StudyGuideSource[];
+}
+
+export interface StudyGuideCheck {
+  readonly question: string;
+  readonly answer: string;
+}
+
+export interface StudyGuideSection {
+  readonly title: string;
+  readonly summary: string;
+  readonly key_points: readonly StudyGuidePoint[];
+  readonly key_terms: readonly string[];
+  readonly self_check: readonly StudyGuideCheck[];
+  /** Indexes into the analysis topics that this section explains. */
+  readonly topic_indexes: readonly number[];
+}
+
+export interface GlossaryEntry {
+  readonly term: string;
+  readonly definition: string;
+  readonly sources: readonly StudyGuideSource[];
+}
+
+/**
+ * Readable study notes Gemini writes from the NLP analysis. Every key point
+ * and glossary entry cites the sentences it came from. Absent when no Gemini
+ * key is configured, Gemini failed, or the analysis predates the feature.
+ */
+export interface StudyGuide {
+  readonly overview: string;
+  readonly sections: readonly StudyGuideSection[];
+  readonly glossary: readonly GlossaryEntry[];
+}
+
 export interface ContentAnalysisResult {
   readonly sentence_count: number;
   readonly baseline_keywords: readonly KeywordScore[];
@@ -45,8 +88,10 @@ export interface ContentAnalysisResult {
     readonly topic_method: string;
     readonly concept_method: string;
     readonly trained_for_this_project: boolean;
+    readonly study_guide_model?: string | null;
   };
   readonly selection?: AnalysisSelection;
+  readonly study_guide?: StudyGuide | null;
 }
 
 /** The response from the trusted endpoint after it has written an analysis row. */
@@ -204,4 +249,84 @@ export function parseBoundedInteger(
   return Number.isInteger(parsed) && parsed >= minimum && parsed <= maximum
     ? parsed
     : fallback;
+}
+
+function recordList(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.filter(
+        (item): item is Record<string, unknown> =>
+          typeof item === "object" && item !== null,
+      )
+    : [];
+}
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function guideSources(value: unknown): StudyGuideSource[] {
+  return recordList(value).flatMap((item) =>
+    typeof item.index === "number" && text(item.text)
+      ? [{ index: item.index, text: text(item.text) }]
+      : [],
+  );
+}
+
+/**
+ * Reads a stored study guide defensively: the column is JSON, so anything
+ * malformed is dropped rather than breaking the page. Returns null when no
+ * usable section remains, so the page falls back to the NLP results.
+ */
+export function parseStudyGuide(value: unknown): StudyGuide | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+
+  const guide = value as Record<string, unknown>;
+  const sections: StudyGuideSection[] = recordList(guide.sections).flatMap((section) => {
+    const keyPoints = recordList(section.key_points).flatMap((point) => {
+      const sources = guideSources(point.sources);
+
+      return text(point.text) && sources.length > 0
+        ? [{ text: text(point.text), sources }]
+        : [];
+    });
+
+    return text(section.title) && keyPoints.length > 0
+      ? [
+          {
+            title: text(section.title),
+            summary: text(section.summary),
+            key_points: keyPoints,
+            key_terms: Array.isArray(section.key_terms)
+              ? section.key_terms.map(text).filter(Boolean)
+              : [],
+            self_check: recordList(section.self_check).flatMap((check) =>
+              text(check.question) && text(check.answer)
+                ? [{ question: text(check.question), answer: text(check.answer) }]
+                : [],
+            ),
+            topic_indexes: Array.isArray(section.topic_indexes)
+              ? section.topic_indexes.filter(
+                  (index): index is number => Number.isSafeInteger(index),
+                )
+              : [],
+          },
+        ]
+      : [];
+  });
+
+  if (sections.length === 0) {
+    return null;
+  }
+
+  const glossary: GlossaryEntry[] = recordList(guide.glossary).flatMap((entry) => {
+    const sources = guideSources(entry.sources);
+
+    return text(entry.term) && text(entry.definition) && sources.length > 0
+      ? [{ term: text(entry.term), definition: text(entry.definition), sources }]
+      : [];
+  });
+
+  return { overview: text(guide.overview), sections, glossary };
 }

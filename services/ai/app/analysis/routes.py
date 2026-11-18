@@ -16,7 +16,10 @@ from .schemas import (
     PersistedContentAnalysisRequest,
     PersistedContentAnalysisResponse,
 )
+from app.quiz.service import GeminiNotConfiguredError
+
 from .service import ContentAnalyzer
+from .study_guide import GeminiStudyGuideWriter, StudyGuideError
 
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -30,18 +33,61 @@ def get_content_analyzer() -> ContentAnalyzer:
     return ContentAnalyzer()
 
 
+@lru_cache(maxsize=1)
+def _cached_study_guide_writer() -> GeminiStudyGuideWriter:
+    return GeminiStudyGuideWriter()
+
+
+def get_study_guide_writer() -> GeminiStudyGuideWriter | None:
+    """Return the Gemini writer, or None so analysis still works without a key."""
+
+    try:
+        return _cached_study_guide_writer()
+    except GeminiNotConfiguredError:
+        logger.info("No Gemini key configured; returning analysis without a study guide.")
+        return None
+
+
+def _with_study_guide(
+    result: ContentAnalysisResponse,
+    request: ContentAnalysisRequest,
+    writer: GeminiStudyGuideWriter | None,
+) -> ContentAnalysisResponse:
+    """Add Gemini study notes when possible; the NLP result is kept either way."""
+
+    if writer is None or not request.include_study_guide:
+        return result
+
+    try:
+        guide = writer.write(list(request.sentences), result)
+    except StudyGuideError:
+        logger.warning("Study guide unavailable; returning the NLP analysis only.", exc_info=True)
+        return result
+
+    return result.model_copy(
+        update={
+            "study_guide": guide,
+            "model": result.model.model_copy(
+                update={"study_guide_model": writer.model_name}
+            ),
+        }
+    )
+
+
 @router.post(
     "/content",
     response_model=ContentAnalysisResponse,
     summary="Analyse learning-material content",
     description=(
         "Accepts preprocessed sentences and returns baseline keywords, semantic "
-        "keywords, diverse important sentences, adaptive topics and concepts."
+        "keywords, diverse important sentences, adaptive topics and concepts, "
+        "plus a Gemini study guide grounded in the numbered sentences."
     ),
 )
 def analyse_content(
     request: ContentAnalysisRequest,
     analyzer: ContentAnalyzer = Depends(get_content_analyzer),
+    writer: GeminiStudyGuideWriter | None = Depends(get_study_guide_writer),
 ) -> ContentAnalysisResponse:
     """HTTP adapter used by Swagger now and by the Next.js server later.
 
@@ -49,7 +95,7 @@ def analyse_content(
     function runs. Depends(...) supplies the cached ContentAnalyzer.
     """
 
-    return analyzer.analyse(request)
+    return _with_study_guide(analyzer.analyse(request), request, writer)
 
 
 @router.post(
@@ -66,6 +112,7 @@ def analyse_content_and_save(
     _authorization: None = Depends(require_internal_token),
     analyzer: ContentAnalyzer = Depends(get_content_analyzer),
     persistence: SupabasePersistence = Depends(get_supabase_persistence),
+    writer: GeminiStudyGuideWriter | None = Depends(get_study_guide_writer),
 ) -> PersistedContentAnalysisResponse:
     try:
         analysis_id = persistence.start_analysis(
@@ -78,18 +125,20 @@ def analyse_content_and_save(
             detail="Could not create the analysis record.",
         ) from error
 
+    analysis_request = ContentAnalysisRequest.model_validate(
+        request.model_dump(exclude={"document_id"})
+    )
     try:
-        result = analyzer.analyse(
-            ContentAnalysisRequest.model_validate(
-                request.model_dump(exclude={"document_id"})
-            )
-        )
+        result = analyzer.analyse(analysis_request)
     except Exception as error:
         _try_fail_analysis(persistence, analysis_id, "Content analysis failed.")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Content analysis failed.",
         ) from error
+
+    # Gemini failures never fail the analysis: the NLP result is saved alone.
+    result = _with_study_guide(result, analysis_request, writer)
 
     try:
         persistence.complete_analysis(analysis_id, result)

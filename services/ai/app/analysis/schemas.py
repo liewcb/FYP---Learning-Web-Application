@@ -52,6 +52,14 @@ class ContentAnalysisRequest(BaseModel):
         ),
     )
 
+    include_study_guide: bool = Field(
+        default=True,
+        description=(
+            "Ask Gemini to write readable study notes from the analysis. Skipped "
+            "automatically when no Gemini key is configured."
+        ),
+    )
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -102,6 +110,10 @@ class AnalysisModelInfo(BaseModel):
     topic_method: str
     concept_method: str
     trained_for_this_project: bool = False
+    study_guide_model: str | None = Field(
+        default=None,
+        description="Gemini model that wrote the study guide, when one was written.",
+    )
 
 
 class AnalysisSelection(BaseModel):
@@ -126,6 +138,55 @@ class AnalysisSelection(BaseModel):
     )
 
 
+class StudyGuideSource(BaseModel):
+    """A sentence from the material that a study-guide item is based on."""
+
+    index: int = Field(ge=0, description="Zero-based index in the analysed sentences.")
+    text: str
+
+
+class StudyGuidePoint(BaseModel):
+    text: str
+    sources: list[StudyGuideSource] = Field(min_length=1)
+
+
+class StudyGuideCheck(BaseModel):
+    """A short self-check question so students can test their understanding."""
+
+    question: str
+    answer: str
+
+
+class StudyGuideSection(BaseModel):
+    title: str
+    summary: str
+    key_points: list[StudyGuidePoint] = Field(min_length=1)
+    key_terms: list[str] = Field(default_factory=list)
+    self_check: list[StudyGuideCheck] = Field(default_factory=list)
+    topic_indexes: list[int] = Field(
+        default_factory=list,
+        description="Indexes of the NLP topics this section explains.",
+    )
+
+
+class GlossaryEntry(BaseModel):
+    term: str
+    definition: str
+    sources: list[StudyGuideSource] = Field(min_length=1)
+
+
+class StudyGuide(BaseModel):
+    """Readable study notes written by Gemini from the NLP analysis.
+
+    Every key point and glossary entry cites the sentences it came from; the
+    service drops anything whose citations do not exist in the material.
+    """
+
+    overview: str
+    sections: list[StudyGuideSection] = Field(min_length=1)
+    glossary: list[GlossaryEntry] = Field(default_factory=list)
+
+
 class ContentAnalysisResponse(BaseModel):
     sentence_count: int
     baseline_keywords: list[KeywordScore]
@@ -135,6 +196,13 @@ class ContentAnalysisResponse(BaseModel):
     concepts: list[ConceptResult]
     model: AnalysisModelInfo
     selection: AnalysisSelection | None = None
+    study_guide: StudyGuide | None = Field(
+        default=None,
+        description=(
+            "Readable study notes. None when Gemini is not configured or failed; "
+            "the NLP results are still returned."
+        ),
+    )
 
 
 class PersistedContentAnalysisRequest(ContentAnalysisRequest):

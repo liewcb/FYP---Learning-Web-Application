@@ -10,6 +10,7 @@ import type {
   KeywordScore,
   SavedContentAnalysis,
 } from "@/models/analysis/content-analysis.model";
+import { parseStudyGuide } from "@/models/analysis/content-analysis.model";
 import type {
   QuizDifficulty,
   QuizQuestionType,
@@ -28,6 +29,7 @@ interface AnalysisRow {
   topics: unknown;
   concepts: unknown;
   model_info: unknown;
+  study_guide: unknown;
   completed_at: string | null;
 }
 
@@ -172,8 +174,11 @@ function analysisResult(row: AnalysisRow): ContentAnalysisResult {
       concept_method:
         typeof model.concept_method === "string" ? model.concept_method : "Saved analysis",
       trained_for_this_project: model.trained_for_this_project === true,
+      study_guide_model:
+        typeof model.study_guide_model === "string" ? model.study_guide_model : null,
     },
     selection: selection(model.selection),
+    study_guide: parseStudyGuide(row.study_guide),
   };
 }
 
@@ -218,7 +223,7 @@ export class SupabaseLearningResultsRepository implements LearningResultsReposit
     const { data, error } = await this.supabase
       .from("document_analyses")
       .select(
-        "id, document_id, sentence_count, baseline_keywords, semantic_keywords, important_sentences, topics, concepts, model_info, completed_at",
+        "id, document_id, sentence_count, baseline_keywords, semantic_keywords, important_sentences, topics, concepts, model_info, study_guide, completed_at",
       )
       .eq("document_id", documentId)
       .eq("status", "ready")

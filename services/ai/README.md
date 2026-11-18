@@ -119,6 +119,34 @@ and explains each choice in the response's `selection` object:
 `top_keywords`, `top_sentences` and `max_topics` can still be sent to fix the
 counts. `max_topics` stays an upper limit rather than a required count.
 
+## Study guide (Gemini)
+
+After the NLP pipeline runs, `app/analysis/study_guide.py` asks Gemini to turn
+the results into readable study notes, returned as `study_guide`:
+
+- `overview`: what the material covers, in 2-3 sentences.
+- `sections`: main ideas in the order a student should study them, each with a
+  readable title, a short summary, key points, terms to know and self-check
+  questions. `topic_indexes` links a section back to the NLP topics.
+- `glossary`: important terms and acronyms with one-line definitions.
+
+Gemini receives the analysed sentences numbered and grouped by NLP topic, plus
+the keywords and concepts. Every key point and glossary entry must cite the
+sentence numbers it is based on. `ground()` removes citations that do not
+exist, then removes any point, section or glossary entry left without one, and
+stores the cited sentences in `sources` so the page can show them.
+
+The guide is optional. With no Gemini key, `include_study_guide: false`, or a
+Gemini failure after one retry, the analysis is returned and saved with
+`study_guide: null`, and the page shows the NLP results instead. The saved
+guide lives in `document_analyses.study_guide`, so Gemini runs once per
+analysis, not on every page view.
+
+`GEMINI_ANALYSIS_API_KEY` and `GEMINI_ANALYSIS_MODEL` are optional and fall
+back to `GEMINI_API_KEY` and `GEMINI_MODEL`. Gemini free-tier limits apply per
+Google Cloud project, so a separate key only gets separate limits when it is
+created in a different project.
+
 ## Configure Gemini quiz generation
 
 Create an API key in Google AI Studio, then copy `.env.example` to `.env` and
