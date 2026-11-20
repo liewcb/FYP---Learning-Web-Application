@@ -9,8 +9,10 @@ import {
   deleteForumThreadAction,
   editForumCommentAction,
   editForumThreadAction,
+  followForumTopicAction,
   reportForumContentAction,
   toggleForumUpvoteAction,
+  unfollowForumTopicAction,
 } from "@/app/forum/actions";
 import {
   createForumController,
@@ -18,7 +20,7 @@ import {
 } from "@/lib/dependencies/server";
 import { adminBasePath } from "@/models/admin/admin.model";
 import { authRoutes } from "@/models/auth/auth-routes";
-import { parseForumFeedScope } from "@/models/forum/forum.model";
+import { parseForumFeedScope, parseForumTopicFilter } from "@/models/forum/forum.model";
 import { ForumPageView } from "@/views/forum/forum-page.view";
 
 export const metadata: Metadata = {
@@ -26,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 interface ForumPageProps {
-  readonly searchParams: Promise<{ scope?: string | string[] }>;
+  readonly searchParams: Promise<{ scope?: string | string[]; topic?: string | string[] }>;
 }
 
 export default async function ForumPage({ searchParams }: ForumPageProps) {
@@ -41,15 +43,24 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
     redirect(adminBasePath);
   }
 
-  const scope = parseForumFeedScope((await searchParams).scope);
+  const params = await searchParams;
+  const scope = parseForumFeedScope(params.scope);
+  const topic = parseForumTopicFilter(params.topic);
   const forum = await createForumController();
-  const threads = await forum.list(scope, viewer.id);
+  const [threads, context] = await Promise.all([
+    forum.list({ scope, viewerId: viewer.id, topic }),
+    forum.feedContext(viewer.id),
+  ]);
 
   return (
     <ForumPageView
       viewer={viewer}
       scope={scope}
+      topic={topic}
       threads={threads}
+      context={context}
+      followTopicAction={followForumTopicAction}
+      unfollowTopicAction={unfollowForumTopicAction}
       createThreadAction={createForumThreadAction}
       addCommentAction={addForumCommentAction}
       toggleUpvoteAction={toggleForumUpvoteAction}

@@ -1,8 +1,30 @@
-export const forumFeedScopes = ["community", "connections", "mine"] as const;
+/**
+ * Feeds on the forum page. "for_you" is ranked by the viewer's interests
+ * (see forum-feed.model.ts); "latest" is every post they can see, newest
+ * first; "connections" is posts by their study buddies.
+ */
+export const forumFeedScopes = ["for_you", "latest", "connections", "mine"] as const;
 
 export type ForumFeedScope = (typeof forumFeedScopes)[number];
 export type ForumVisibility = "community" | "connections";
 export type ForumContentStatus = "published" | "hidden" | "deleted";
+
+export const forumVisibilityLabels: Record<ForumVisibility, string> = {
+  community: "Everyone",
+  connections: "Study buddies only",
+};
+
+export function isForumVisibility(value: unknown): value is ForumVisibility {
+  return value === "community" || value === "connections";
+}
+
+/** Why a post appears in the "For you" feed, shown above the post. */
+export type ForumFeedReason =
+  | { readonly kind: "followed_topic"; readonly topic: string }
+  | { readonly kind: "interest_topic"; readonly topic: string }
+  | { readonly kind: "buddy" }
+  | { readonly kind: "popular" }
+  | { readonly kind: "recent" };
 
 export interface ForumAuthor {
   readonly id: string;
@@ -43,6 +65,7 @@ export interface ForumThread {
   readonly title: string;
   readonly content: string;
   readonly visibility: ForumVisibility;
+  readonly topics: readonly string[];
   readonly status: ForumContentStatus;
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -51,6 +74,8 @@ export interface ForumThread {
   readonly upvoteCount: number;
   readonly viewerHasUpvoted: boolean;
   readonly canDelete: boolean;
+  /** Only set in the "For you" feed. */
+  readonly feedReason?: ForumFeedReason;
 }
 
 export interface CreateForumThreadInput {
@@ -58,6 +83,7 @@ export interface CreateForumThreadInput {
   readonly title: string;
   readonly content: string;
   readonly visibility: ForumVisibility;
+  readonly topics: readonly string[];
 }
 
 export interface CreateForumAttachmentInput {
@@ -82,11 +108,21 @@ export interface ForumThreadFormValues {
   readonly content: string;
 }
 
+/** A new post also chooses its audience and topics. */
+export interface ForumNewThreadValues extends ForumThreadFormValues {
+  readonly visibility: string;
+  readonly topics: readonly string[];
+}
+
 export interface ForumThreadFormState {
   readonly error?: string;
   readonly notice?: string;
-  readonly fieldErrors?: Partial<Record<"title" | "content" | "attachments", string>>;
-  readonly values?: ForumThreadFormValues;
+  /** Set after a successful post so the form can start fresh. */
+  readonly postedAt?: number;
+  readonly fieldErrors?: Partial<
+    Record<"title" | "content" | "attachments" | "topics" | "visibility", string>
+  >;
+  readonly values?: ForumNewThreadValues;
 }
 
 export interface ForumCommentFormState {
@@ -101,6 +137,9 @@ export const forumRules = {
   contentMinLength: 10,
   contentMaxLength: 5000,
   commentMaxLength: 1500,
+  maxTopics: 5,
+  topicMaxLength: 30,
+  maxFollowedTopics: 30,
   maxAttachments: 4,
   maxAttachmentBytes: 10 * 1024 * 1024,
   maxCombinedAttachmentBytes: 25 * 1024 * 1024,
@@ -118,9 +157,88 @@ const allowedAttachmentTypes = new Set<string>(forumRules.allowedAttachmentTypes
 export function parseForumFeedScope(value: string | string[] | undefined): ForumFeedScope {
   const candidate = Array.isArray(value) ? value[0] : value;
 
+  // Old links used "community" for what is now the Latest feed.
+  if (candidate === "community") {
+    return "latest";
+  }
+
   return forumFeedScopes.includes(candidate as ForumFeedScope)
     ? (candidate as ForumFeedScope)
-    : "community";
+    : "for_you";
+}
+
+/* ---------- Topics ---------- */
+
+/** "Software Security!" -> "software-security"; null when nothing usable is left. */
+export function normalizeForumTopic(raw: string): string | null {
+  const topic = raw
+    .trim()
+    .replace(/^#+/, "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, forumRules.topicMaxLength)
+    .replace(/-$/, "");
+
+  return topic ? topic : null;
+}
+
+export type ForumTopicsValidation =
+  | { readonly ok: true; readonly topics: string[] }
+  | { readonly ok: false; readonly error: string };
+
+/** A post needs 1-5 topics; duplicates are merged after normalising. */
+export function validateForumTopics(raw: readonly string[]): ForumTopicsValidation {
+  const topics = [
+    ...new Set(
+      raw
+        .flatMap((value) => value.split(","))
+        .map(normalizeForumTopic)
+        .filter((topic): topic is string => topic !== null),
+    ),
+  ];
+
+  if (topics.length === 0) {
+    return { ok: false, error: "Add at least one topic so classmates can find your post." };
+  }
+
+  if (topics.length > forumRules.maxTopics) {
+    return { ok: false, error: `Use up to ${forumRules.maxTopics} topics.` };
+  }
+
+  return { ok: true, topics };
+}
+
+/** Forum link for a feed, optionally filtered to one topic. */
+export function forumHref(scope: ForumFeedScope, topic: string | null): string {
+  return topic
+    ? `/forum?scope=${scope}&topic=${encodeURIComponent(topic)}`
+    : `/forum?scope=${scope}`;
+}
+
+export function parseForumTopicFilter(value: string | string[] | undefined): string | null {
+  const candidate = Array.isArray(value) ? value[0] : value;
+
+  return candidate ? normalizeForumTopic(candidate) : null;
+}
+
+export interface ForumTopicCount {
+  readonly topic: string;
+  readonly threadCount: number;
+}
+
+/** Everything the forum page needs besides the posts. */
+export interface ForumFeedContext {
+  readonly followedTopics: readonly string[];
+  readonly popularTopics: readonly ForumTopicCount[];
+  readonly buddyCount: number;
+}
+
+export interface ForumTopicFollowState {
+  readonly error?: string;
 }
 
 export function createInitials(displayName: string): string {

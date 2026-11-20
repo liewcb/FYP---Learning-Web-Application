@@ -10,9 +10,10 @@ import {
 import type {
   ForumCommentFormState,
   ForumEditFormState,
+  ForumNewThreadValues,
   ForumReportFormState,
   ForumThreadFormState,
-  ForumThreadFormValues,
+  ForumTopicFollowState,
 } from "@/models/forum/forum.model";
 
 function field(formData: FormData, name: string): string {
@@ -37,9 +38,13 @@ export async function createForumThreadAction(
   _previous: ForumThreadFormState,
   formData: FormData,
 ): Promise<ForumThreadFormState> {
-  const values: ForumThreadFormValues = {
+  const values: ForumNewThreadValues = {
     title: field(formData, "title"),
     content: field(formData, "content"),
+    visibility: field(formData, "visibility"),
+    topics: formData
+      .getAll("topics")
+      .filter((value): value is string => typeof value === "string"),
   };
   const attachments = formData
     .getAll("attachments")
@@ -217,4 +222,42 @@ export async function editForumCommentAction(
   }
 
   return state;
+}
+
+export async function followForumTopicAction(
+  _previous: ForumTopicFollowState,
+  formData: FormData,
+): Promise<ForumTopicFollowState> {
+  const viewer = await currentViewer();
+
+  if (!viewer) {
+    return { error: "Your session expired. Sign in and try again." };
+  }
+
+  const forum = await createForumController();
+  const state = await forum.followTopic(viewer.id, field(formData, "topic"));
+
+  if (!state.error) {
+    revalidatePath("/forum");
+  }
+
+  return state;
+}
+
+export async function unfollowForumTopicAction(formData: FormData): Promise<void> {
+  const viewer = await currentViewer();
+
+  if (!viewer) {
+    return;
+  }
+
+  const forum = await createForumController();
+
+  try {
+    await forum.unfollowTopic(viewer.id, field(formData, "topic"));
+  } catch (error) {
+    console.error("Unfollowing a forum topic failed.", error);
+  }
+
+  revalidatePath("/forum");
 }

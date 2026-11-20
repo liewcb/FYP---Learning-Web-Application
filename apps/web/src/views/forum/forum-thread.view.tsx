@@ -1,8 +1,17 @@
+import Link from "next/link";
+
 import type {
   ForumCommentFormState,
   ForumThread,
 } from "@/models/forum/forum.model";
-import { isEdited, isImageAttachment } from "@/models/forum/forum.model";
+import { describeFeedReason } from "@/models/forum/forum-feed.model";
+import {
+  forumHref,
+  forumVisibilityLabels,
+  isEdited,
+  isImageAttachment,
+  type ForumFeedScope,
+} from "@/models/forum/forum.model";
 import { CommentFormView } from "@/views/forum/comment-form.view";
 import {
   EditableCommentContent,
@@ -18,6 +27,8 @@ import { Avatar } from "@/views/shared/avatar.view";
 
 interface ForumThreadViewProps {
   readonly thread: ForumThread;
+  /** Topic links keep the student in the feed they are reading. */
+  readonly scope: ForumFeedScope;
   readonly addCommentAction: (
     state: ForumCommentFormState,
     formData: FormData,
@@ -48,6 +59,7 @@ function formatBytes(bytes: number): string {
 
 export function ForumThreadView({
   thread,
+  scope,
   addCommentAction,
   toggleUpvoteAction,
   deleteThreadAction,
@@ -58,6 +70,12 @@ export function ForumThreadView({
 }: ForumThreadViewProps) {
   return (
     <article className="forum-thread">
+      {thread.feedReason ? (
+        <p className="forum-feed-reason">
+          <span aria-hidden="true">✦</span>
+          {describeFeedReason(thread.feedReason, thread.author.displayName)}
+        </p>
+      ) : null}
       <header className="forum-thread-header">
         <Avatar className="forum-avatar" initials={thread.author.initials} url={thread.author.avatarUrl} />
         <div>
@@ -67,7 +85,11 @@ export function ForumThreadView({
             {dateFormatter.format(new Date(thread.createdAt))}
           </p>
         </div>
-        <span className="status-chip uploaded">Community</span>
+        <span
+          className={`status-chip ${thread.visibility === "connections" ? "forum-buddies" : "uploaded"}`}
+        >
+          {forumVisibilityLabels[thread.visibility]}
+        </span>
       </header>
 
       <EditableThreadContent
@@ -79,6 +101,16 @@ export function ForumThreadView({
         canEdit={thread.canDelete && thread.status === "published"}
         action={editThreadAction}
       />
+
+      {thread.topics.length > 0 ? (
+        <ul className="forum-thread-topics" aria-label="Topics">
+          {thread.topics.map((topic) => (
+            <li key={topic}>
+              <Link href={forumHref(scope === "mine" ? "latest" : scope, topic)}>#{topic}</Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       {thread.attachments.length > 0 ? (
         <div className="forum-attachments">

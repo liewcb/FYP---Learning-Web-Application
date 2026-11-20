@@ -13,8 +13,14 @@ import {
   type ForumComment,
   type ForumContentStatus,
   type ForumThread,
+  type ForumTopicCount,
   type ForumVisibility,
 } from "@/models/forum/forum.model";
+import type {
+  FeedCandidate,
+  InterestSignal,
+  InterestSource,
+} from "@/models/forum/forum-feed.model";
 import { avatarHref } from "@/models/profile/avatar.model";
 
 interface ProfileRow {
@@ -30,6 +36,7 @@ interface ThreadRow {
   title: string;
   content: string;
   visibility: ForumVisibility;
+  topics: string[] | null;
   status: ForumContentStatus;
   created_at: string;
   updated_at: string;
@@ -107,49 +114,234 @@ function toAttachment(row: AttachmentRow): ForumAttachment {
   };
 }
 
+const threadColumns = `
+  id,
+  author_id,
+  title,
+  content,
+  visibility,
+  topics,
+  status,
+  created_at,
+  updated_at,
+  author:profiles!forum_threads_author_id_fkey(
+    id,
+    full_name,
+    username,
+    avatar_path
+  )
+`;
+
+interface CandidateRow {
+  id: number;
+  author_id: string;
+  topics: string[] | null;
+  created_at: string;
+  upvotes: { count: number }[] | null;
+  comments: { count: number }[] | null;
+}
+
+function embeddedCount(value: { count: number }[] | null): number {
+  return Number(value?.[0]?.count ?? 0);
+}
+
+const interestSources = new Set<InterestSource>(["followed", "posted", "commented", "upvoted"]);
+
 export class SupabaseForumRepository implements ForumRepository {
   constructor(private readonly supabase: SupabaseClient) {}
 
   async listThreads(input: {
-    readonly scope: "community" | "mine";
+    readonly scope: "latest" | "mine" | "connections";
     readonly viewerId: string;
     readonly limit: number;
+    readonly topic: string | null;
+    readonly authorIds?: readonly string[];
   }): Promise<ForumThread[]> {
+    // Row-level security decides visibility: community posts, the viewer's
+    // own posts and posts their study buddies shared with buddies only.
     let query = this.supabase
       .from("forum_threads")
-      .select(`
-        id,
-        author_id,
-        title,
-        content,
-        visibility,
-        status,
-        created_at,
-        updated_at,
-        author:profiles!forum_threads_author_id_fkey(
-          id,
-          full_name,
-          username,
-          avatar_path
-        )
-      `)
+      .select(threadColumns)
       .eq("status", "published")
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
       .limit(input.limit);
 
-    query = input.scope === "mine"
-      ? query.eq("author_id", input.viewerId)
-      : query.eq("visibility", "community");
+    if (input.scope === "mine") {
+      query = query.eq("author_id", input.viewerId);
+    } else if (input.scope === "connections") {
+      if (!input.authorIds || input.authorIds.length === 0) {
+        return [];
+      }
 
-    const { data: threadData, error: threadError } = await query;
-
-    if (threadError) {
-      throw new Error(`Unable to load forum threads: ${threadError.message}`);
+      query = query.in("author_id", [...input.authorIds]);
     }
 
-    const rows = (threadData ?? []) as unknown as ThreadRow[];
+    if (input.topic) {
+      query = query.contains("topics", [input.topic]);
+    }
 
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Unable to load forum threads: ${error.message}`);
+    }
+
+    return this.hydrate((data ?? []) as unknown as ThreadRow[], input.viewerId);
+  }
+
+  async listFeedCandidates(input: {
+    readonly sinceDays: number;
+    readonly limit: number;
+    readonly topic: string | null;
+  }): Promise<FeedCandidate[]> {
+    const since = new Date(Date.now() - input.sinceDays * 24 * 60 * 60 * 1000).toISOString();
+    let query = this.supabase
+      .from("forum_threads")
+      .select(
+        "id, author_id, topics, created_at, upvotes:forum_thread_upvotes(count), comments:forum_comments(count)",
+      )
+      .eq("status", "published")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(input.limit);
+
+    if (input.topic) {
+      query = query.contains("topics", [input.topic]);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Unable to load forum feed: ${error.message}`);
+    }
+
+    return ((data ?? []) as unknown as CandidateRow[]).map((row) => ({
+      id: row.id,
+      authorId: row.author_id,
+      topics: row.topics ?? [],
+      createdAt: row.created_at,
+      upvoteCount: embeddedCount(row.upvotes),
+      commentCount: embeddedCount(row.comments),
+    }));
+  }
+
+  async findThreadsByIds(ids: readonly number[], viewerId: string): Promise<ForumThread[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await this.supabase
+      .from("forum_threads")
+      .select(threadColumns)
+      .in("id", [...ids])
+      .eq("status", "published");
+
+    if (error) {
+      throw new Error(`Unable to load forum threads: ${error.message}`);
+    }
+
+    const threads = await this.hydrate((data ?? []) as unknown as ThreadRow[], viewerId);
+    const byId = new Map(threads.map((thread) => [thread.id, thread]));
+
+    return ids.flatMap((id) => {
+      const thread = byId.get(id);
+      return thread ? [thread] : [];
+    });
+  }
+
+  async listStudyBuddyIds(viewerId: string): Promise<string[]> {
+    // peer_connections belongs to the study-buddy module; this only reads it.
+    const { data, error } = await this.supabase
+      .from("peer_connections")
+      .select("requester_id, addressee_id")
+      .eq("status", "accepted")
+      .or(`requester_id.eq.${viewerId},addressee_id.eq.${viewerId}`);
+
+    if (error) {
+      throw new Error(`Unable to load study buddies: ${error.message}`);
+    }
+
+    return (data as { requester_id: string; addressee_id: string }[]).map((row) =>
+      row.requester_id === viewerId ? row.addressee_id : row.requester_id,
+    );
+  }
+
+  async listInterestSignals(): Promise<InterestSignal[]> {
+    const { data, error } = await this.supabase.rpc("my_forum_interest_signals");
+
+    if (error) {
+      throw new Error(`Unable to load forum interests: ${error.message}`);
+    }
+
+    return ((data ?? []) as { topic: string; source: string; occurred_at: string }[]).flatMap(
+      (row) =>
+        interestSources.has(row.source as InterestSource)
+          ? [
+              {
+                topic: row.topic,
+                source: row.source as InterestSource,
+                occurredAt: row.occurred_at,
+              },
+            ]
+          : [],
+    );
+  }
+
+  async listFollowedTopics(viewerId: string): Promise<string[]> {
+    const { data, error } = await this.supabase
+      .from("forum_topic_follows")
+      .select("topic")
+      .eq("user_id", viewerId)
+      .order("topic", { ascending: true });
+
+    if (error) {
+      throw new Error(`Unable to load followed topics: ${error.message}`);
+    }
+
+    return (data as { topic: string }[]).map((row) => row.topic);
+  }
+
+  async followTopic(viewerId: string, topic: string): Promise<void> {
+    const { error } = await this.supabase
+      .from("forum_topic_follows")
+      .upsert({ user_id: viewerId, topic }, { onConflict: "user_id,topic", ignoreDuplicates: true });
+
+    if (error) {
+      // The insert policy refuses a 31st follow.
+      throw new Error(
+        error.code === "42501" ? "follow_limit" : `Unable to follow topic: ${error.message}`,
+      );
+    }
+  }
+
+  async unfollowTopic(viewerId: string, topic: string): Promise<void> {
+    const { error } = await this.supabase
+      .from("forum_topic_follows")
+      .delete()
+      .eq("user_id", viewerId)
+      .eq("topic", topic);
+
+    if (error) {
+      throw new Error(`Unable to unfollow topic: ${error.message}`);
+    }
+  }
+
+  async listPopularTopics(limit: number): Promise<ForumTopicCount[]> {
+    const { data, error } = await this.supabase.rpc("forum_popular_topics", { p_limit: limit });
+
+    if (error) {
+      throw new Error(`Unable to load popular topics: ${error.message}`);
+    }
+
+    return ((data ?? []) as { topic: string; thread_count: number }[]).map((row) => ({
+      topic: row.topic,
+      threadCount: Number(row.thread_count),
+    }));
+  }
+
+  /** Loads attachments, comments and upvotes for a page of threads. */
+  private async hydrate(rows: readonly ThreadRow[], viewerId: string): Promise<ForumThread[]> {
     if (rows.length === 0) {
       return [];
     }
@@ -214,6 +406,7 @@ export class SupabaseForumRepository implements ForumRepository {
         title: row.title,
         content: row.content,
         visibility: row.visibility,
+        topics: row.topics ?? [],
         status: row.status,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
@@ -222,12 +415,10 @@ export class SupabaseForumRepository implements ForumRepository {
           .map(toAttachment),
         comments: comments
           .filter((comment) => comment.thread_id === row.id)
-          .map((comment) => toComment(comment, input.viewerId)),
+          .map((comment) => toComment(comment, viewerId)),
         upvoteCount: threadUpvotes.length,
-        viewerHasUpvoted: threadUpvotes.some(
-          (vote) => vote.user_id === input.viewerId,
-        ),
-        canDelete: row.author_id === input.viewerId,
+        viewerHasUpvoted: threadUpvotes.some((vote) => vote.user_id === viewerId),
+        canDelete: row.author_id === viewerId,
       } satisfies ForumThread;
     });
   }
@@ -240,6 +431,7 @@ export class SupabaseForumRepository implements ForumRepository {
         title: input.title,
         content: input.content,
         visibility: input.visibility,
+        topics: [...input.topics],
       })
       .select("id")
       .single();

@@ -1,18 +1,33 @@
 import type { ForumRepository } from "@/interfaces/repositories/forum.repository";
 import type { ForumAttachmentStorage } from "@/interfaces/services/forum-attachment-storage.interface";
 import {
+  buildInterestProfile,
+  rankFeed,
+} from "@/models/forum/forum-feed.model";
+import {
+  forumRules,
+  isForumVisibility,
+  normalizeForumTopic,
   validateForumComment,
   validateForumThread,
   validateForumThreadEdit,
+  validateForumTopics,
   type ForumCommentFormState,
   type ForumEditFormState,
+  type ForumFeedContext,
   type ForumFeedScope,
+  type ForumNewThreadValues,
   type ForumThread,
   type ForumThreadFormState,
   type ForumThreadFormValues,
+  type ForumTopicFollowState,
 } from "@/models/forum/forum.model";
 
 const forumPageSize = 20;
+/** "For you" ranks recent posts only; older ones stay under Latest. */
+const feedWindowDays = 30;
+const feedCandidateLimit = 200;
+const popularTopicLimit = 12;
 
 export class ForumController {
   constructor(
@@ -20,19 +35,110 @@ export class ForumController {
     private readonly storage: ForumAttachmentStorage,
   ) {}
 
-  async list(scope: ForumFeedScope, viewerId: string): Promise<ForumThread[]> {
-    // The connection table belongs to the peer-connection module. Keeping this
-    // branch here lets that repository filter be added without changing the UI.
-    if (scope === "connections") {
-      return [];
+  async list(input: {
+    readonly scope: ForumFeedScope;
+    readonly viewerId: string;
+    readonly topic: string | null;
+  }): Promise<ForumThread[]> {
+    const { scope, viewerId, topic } = input;
+    let threads: ForumThread[];
+
+    if (scope === "for_you") {
+      threads = await this.forYou(viewerId, topic);
+    } else if (scope === "connections") {
+      const buddyIds = await this.forum.listStudyBuddyIds(viewerId);
+      threads = await this.forum.listThreads({
+        scope,
+        viewerId,
+        limit: forumPageSize,
+        topic,
+        authorIds: buddyIds,
+      });
+    } else {
+      threads = await this.forum.listThreads({ scope, viewerId, limit: forumPageSize, topic });
     }
 
-    const threads = await this.forum.listThreads({
-      scope,
-      viewerId,
-      limit: forumPageSize,
-    });
+    return this.signAttachments(threads);
+  }
 
+  /** Followed topics, popular topics and buddy count for the side panel. */
+  async feedContext(viewerId: string): Promise<ForumFeedContext> {
+    const [followedTopics, popularTopics, buddyIds] = await Promise.all([
+      this.forum.listFollowedTopics(viewerId),
+      this.forum.listPopularTopics(popularTopicLimit),
+      this.forum.listStudyBuddyIds(viewerId),
+    ]);
+
+    return { followedTopics, popularTopics, buddyCount: buddyIds.length };
+  }
+
+  async followTopic(viewerId: string, rawTopic: string): Promise<ForumTopicFollowState> {
+    const topic = normalizeForumTopic(rawTopic);
+
+    if (!topic) {
+      return { error: "Choose a topic to follow." };
+    }
+
+    try {
+      await this.forum.followTopic(viewerId, topic);
+      return {};
+    } catch (error) {
+      if (error instanceof Error && error.message === "follow_limit") {
+        return {
+          error: `You can follow up to ${forumRules.maxFollowedTopics} topics. Unfollow one first.`,
+        };
+      }
+
+      console.error("Following a forum topic failed.", error);
+      return { error: "The topic could not be followed. Please try again." };
+    }
+  }
+
+  async unfollowTopic(viewerId: string, rawTopic: string): Promise<void> {
+    const topic = normalizeForumTopic(rawTopic);
+
+    if (topic) {
+      await this.forum.unfollowTopic(viewerId, topic);
+    }
+  }
+
+  /**
+   * Ranks recent posts with the model in forum-feed.model.ts, then loads only
+   * the posts that made the page, each with the reason it was chosen.
+   */
+  private async forYou(viewerId: string, topic: string | null): Promise<ForumThread[]> {
+    const [candidates, signals, buddyIds, followedTopics] = await Promise.all([
+      this.forum.listFeedCandidates({
+        sinceDays: feedWindowDays,
+        limit: feedCandidateLimit,
+        topic,
+      }),
+      this.forum.listInterestSignals(),
+      this.forum.listStudyBuddyIds(viewerId),
+      this.forum.listFollowedTopics(viewerId),
+    ]);
+    const now = new Date();
+    const ranked = rankFeed(
+      candidates,
+      {
+        viewerId,
+        buddyIds: new Set(buddyIds),
+        followedTopics: new Set(followedTopics),
+        interests: buildInterestProfile(signals, now),
+        now,
+      },
+      forumPageSize,
+    );
+    const threads = await this.forum.findThreadsByIds(
+      ranked.map((item) => item.candidate.id),
+      viewerId,
+    );
+    const reasons = new Map(ranked.map((item) => [item.candidate.id, item.reason]));
+
+    return threads.map((thread) => ({ ...thread, feedReason: reasons.get(thread.id) }));
+  }
+
+  private signAttachments(threads: readonly ForumThread[]): Promise<ForumThread[]> {
     return Promise.all(
       threads.map(async (thread) => ({
         ...thread,
@@ -55,13 +161,24 @@ export class ForumController {
 
   async createThread(input: {
     readonly authorId: string;
-    readonly values: ForumThreadFormValues;
+    readonly values: ForumNewThreadValues;
     readonly attachments: readonly File[];
   }): Promise<ForumThreadFormState> {
     const validation = validateForumThread(input.values, input.attachments);
+    const topics = validateForumTopics(input.values.topics);
+    const visibility = isForumVisibility(input.values.visibility)
+      ? input.values.visibility
+      : null;
 
-    if (!validation.ok) {
-      return { fieldErrors: validation.fieldErrors, values: input.values };
+    if (!validation.ok || !topics.ok || visibility === null) {
+      return {
+        fieldErrors: {
+          ...(validation.ok ? {} : validation.fieldErrors),
+          ...(topics.ok ? {} : { topics: topics.error }),
+          ...(visibility === null ? { visibility: "Choose who can see this post." } : {}),
+        },
+        values: input.values,
+      };
     }
 
     let threadId: number | null = null;
@@ -72,9 +189,8 @@ export class ForumController {
         authorId: input.authorId,
         title: validation.value.title,
         content: validation.value.content,
-        // Community is the report-aligned default. The connection option will
-        // be exposed after the peer-connection module supplies its table.
-        visibility: "community",
+        visibility,
+        topics: topics.topics,
       });
 
       for (const [position, file] of validation.attachments.entries()) {
@@ -98,7 +214,13 @@ export class ForumController {
         });
       }
 
-      return { notice: "Your discussion thread has been published." };
+      return {
+        notice:
+          visibility === "connections"
+            ? "Your post is published for your study buddies."
+            : "Your discussion thread has been published.",
+        postedAt: Date.now(),
+      };
     } catch (error) {
       if (storedPaths.length > 0) {
         try {
