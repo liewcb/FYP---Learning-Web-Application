@@ -8,6 +8,7 @@ export const libraryStatuses = [
   "published",
   "rejected",
   "archived",
+  "withdrawn",
 ] as const;
 
 export type LibraryStatus = (typeof libraryStatuses)[number];
@@ -18,6 +19,7 @@ export const libraryStatusLabels: Record<LibraryStatus, string> = {
   published: "Published",
   rejected: "Rejected",
   archived: "Archived",
+  withdrawn: "Removed",
 };
 
 export function isLibraryStatus(value: unknown): value is LibraryStatus {
@@ -30,6 +32,7 @@ export const libraryReviewFilters = [
   "published",
   "rejected",
   "archived",
+  "withdrawn",
 ] as const;
 
 export type LibraryReviewFilter = (typeof libraryReviewFilters)[number];
@@ -44,6 +47,7 @@ export const libraryRules = {
   tagMax: 30,
   noteMin: 5,
   noteMax: 2000,
+  removalReasonMax: 500,
   pageSize: 60,
 } as const;
 
@@ -64,6 +68,9 @@ export interface LibraryMaterial {
   readonly reviewedAt: string | null;
   readonly publishedAt: string | null;
   readonly archivedAt: string | null;
+  /** Set when the author removed the material. */
+  readonly withdrawnAt: string | null;
+  readonly withdrawalReason: string | null;
   readonly fileName: string | null;
   readonly mimeType: string | null;
   readonly sizeBytes: number | null;
@@ -101,6 +108,8 @@ export function describeLibraryEvent(event: LibraryEvent): string {
       return "Rejected";
     case "archived":
       return "Archived";
+    case "withdrawn":
+      return "Removed by the author";
     case "pending_review":
       return "Returned to review";
     default:
@@ -384,4 +393,69 @@ export interface LibraryReviewModel {
   readonly filter: LibraryReviewFilter;
   readonly counts: Record<LibraryReviewFilter, number>;
   readonly materials: readonly LibraryMaterial[];
+}
+/* ---------- Removal by the author ---------- */
+
+export interface LibraryRemovalCopy {
+  readonly buttonLabel: string;
+  readonly title: string;
+  readonly body: string;
+  readonly confirmLabel: string;
+}
+
+/**
+ * What the author's remove button says for each status, or null when the
+ * material cannot be removed (already archived or removed). The database
+ * function withdraw_library_material enforces the same statuses.
+ */
+export function libraryRemovalCopy(status: LibraryStatus): LibraryRemovalCopy | null {
+  switch (status) {
+    case "pending_review":
+      return {
+        buttonLabel: "Withdraw submission",
+        title: "Withdraw this submission?",
+        body: "It will be taken out of the review queue and will not be published. Your document in My Documents is not affected. To share it later, submit it again.",
+        confirmLabel: "Withdraw",
+      };
+    case "published":
+      return {
+        buttonLabel: "Remove from library",
+        title: "Remove this material from the library?",
+        body: "Other students will no longer be able to find or download it. Anyone who already downloaded it keeps their copy. Your document in My Documents is not affected. To share it again, submit it for review again.",
+        confirmLabel: "Remove",
+      };
+    case "rejected":
+      return {
+        buttonLabel: "Remove",
+        title: "Remove this rejected submission?",
+        body: "It will disappear from My submissions. Your document in My Documents is not affected.",
+        confirmLabel: "Remove",
+      };
+    default:
+      return null;
+  }
+}
+
+export interface LibraryRemoveFormState {
+  readonly error?: string;
+  /** Echoed back so a failed removal does not lose the typed reason. */
+  readonly reason?: string;
+}
+
+export type LibraryRemovalReasonValidation =
+  | { readonly ok: true; readonly reason: string | null }
+  | { readonly ok: false; readonly error: string };
+
+/** The reason is optional; it is kept in the material's history. */
+export function validateRemovalReason(raw: string): LibraryRemovalReasonValidation {
+  const reason = raw.trim().replace(/\s+/g, " ");
+
+  if (reason.length > libraryRules.removalReasonMax) {
+    return {
+      ok: false,
+      error: `Keep the reason under ${libraryRules.removalReasonMax} characters.`,
+    };
+  }
+
+  return { ok: true, reason: reason || null };
 }

@@ -10,17 +10,33 @@ import { createStudentNavigation } from "@/models/home/home.model";
 import type { Viewer } from "@/models/profile/profile.model";
 import { documentTypeLabel, formatBytes } from "@/views/documents/document-display";
 import { formatLibraryDate, formatLibraryDateTime } from "@/views/library/library-display";
+import {
+  RemoveLibraryMaterial,
+  type LibraryRemoveAction,
+} from "@/views/library/remove-library-material.view";
 import { ReportButton } from "@/views/reports/report-button.view";
 import { StudentTopbar } from "@/views/student/student-topbar.view";
 
 interface LibraryDetailViewProps {
   readonly viewer: Viewer;
   readonly model: LibraryDetailModel;
+  readonly removeAction: LibraryRemoveAction;
   readonly signOutAction: () => Promise<void>;
 }
 
-export function LibraryDetailView({ viewer, model, signOutAction }: LibraryDetailViewProps) {
+export function LibraryDetailView({
+  viewer,
+  model,
+  removeAction,
+  signOutAction,
+}: LibraryDetailViewProps) {
   const { material, events, isOwner } = model;
+  const removed = material.status === "withdrawn";
+  const canRemove =
+    isOwner &&
+    (material.status === "pending_review" ||
+      material.status === "published" ||
+      material.status === "rejected");
   const backHref = isOwner && material.status !== "published" ? "/library?tab=mine" : "/library";
 
   return (
@@ -102,17 +118,29 @@ export function LibraryDetailView({ viewer, model, signOutAction }: LibraryDetai
           </section>
         ) : null}
 
-        {isOwner && material.reviewNote && material.status !== "published" ? (
+        {isOwner && removed && material.withdrawnAt ? (
+          <p className="form-notice" role="status">
+            You removed this material on {formatLibraryDateTime(material.withdrawnAt)}. It is no
+            longer in the library and its file copy was deleted. Your document in My Documents
+            was not affected.
+          </p>
+        ) : null}
+
+        {isOwner &&
+        material.reviewNote &&
+        (material.status === "rejected" || material.status === "archived") ? (
           <p className="form-alert" role="status">
             <strong>Moderator feedback:</strong> {material.reviewNote}
           </p>
         ) : null}
 
-        {material.fileName ? (
+        {material.fileName || canRemove ? (
           <div className="document-detail-actions">
-            <a className="button button-dark" href={`/library/${material.id}/download`}>
-              Download <span aria-hidden="true">↓</span>
-            </a>
+            {material.fileName ? (
+              <a className="button button-dark" href={`/library/${material.id}/download`}>
+                Download <span aria-hidden="true">↓</span>
+              </a>
+            ) : null}
             {isOwner && material.status === "rejected" ? (
               <Link
                 className="button button-outline"
@@ -124,6 +152,14 @@ export function LibraryDetailView({ viewer, model, signOutAction }: LibraryDetai
               >
                 Submit again
               </Link>
+            ) : null}
+            {canRemove ? (
+              <RemoveLibraryMaterial
+                materialId={material.id}
+                materialTitle={material.title}
+                status={material.status}
+                action={removeAction}
+              />
             ) : null}
           </div>
         ) : null}

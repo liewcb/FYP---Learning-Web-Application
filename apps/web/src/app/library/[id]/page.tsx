@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { signOutAction } from "@/app/auth/actions";
+import { removeLibraryMaterialAction } from "@/app/library/actions";
 import { submitReportAction } from "@/app/reports/actions";
 import {
   createLibraryController,
@@ -49,7 +50,12 @@ export default async function LibraryDetailPage({ params }: LibraryDetailPagePro
 
   return (
     <ReportActionProvider action={submitReportAction}>
-      <LibraryDetailView viewer={viewer} model={model} signOutAction={signOutAction} />
+      <LibraryDetailView
+        viewer={viewer}
+        model={model}
+        removeAction={removeLibraryMaterialAction}
+        signOutAction={signOutAction}
+      />
     </ReportActionProvider>
   );
 }

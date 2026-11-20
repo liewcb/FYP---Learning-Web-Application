@@ -7,9 +7,11 @@ import {
   createLibraryController,
   createProfileController,
 } from "@/lib/dependencies/server";
-import type {
-  LibrarySubmitFormState,
-  LibrarySubmitFormValues,
+import {
+  parseLibraryId,
+  type LibraryRemoveFormState,
+  type LibrarySubmitFormState,
+  type LibrarySubmitFormValues,
 } from "@/models/library/library.model";
 
 function field(formData: FormData, name: string): string {
@@ -53,4 +55,38 @@ export async function submitLibraryMaterialAction(
   revalidatePath("/library");
   revalidatePath("/admin/library");
   redirect("/library?tab=mine&submitted=1");
+}
+export async function removeLibraryMaterialAction(
+  _previous: LibraryRemoveFormState,
+  formData: FormData,
+): Promise<LibraryRemoveFormState> {
+  const reason = field(formData, "reason");
+  const materialId = parseLibraryId(field(formData, "materialId"));
+
+  if (materialId === null) {
+    return { error: "This material could not be found.", reason };
+  }
+
+  const profiles = await createProfileController();
+  const viewer = await profiles.currentViewer();
+
+  if (!viewer) {
+    return { error: "Your session expired. Sign in and try again.", reason };
+  }
+
+  if (viewer.role !== "student") {
+    return { error: "Only the student who shared a material can remove it.", reason };
+  }
+
+  const library = await createLibraryController();
+  const result = await library.remove({ materialId, rawReason: reason });
+
+  if (!result.ok) {
+    return result.state;
+  }
+
+  revalidatePath("/library");
+  revalidatePath(`/library/${materialId}`);
+  revalidatePath("/admin/library");
+  redirect("/library?tab=mine&removed=1");
 }

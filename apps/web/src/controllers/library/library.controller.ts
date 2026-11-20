@@ -5,11 +5,13 @@ import {
   libraryDecisionRules,
   libraryRules,
   validateLibrarySubmission,
+  validateRemovalReason,
   validateReviewNote,
   type LibraryBrowseFilters,
   type LibraryDecision,
   type LibraryDetailModel,
   type LibraryPageModel,
+  type LibraryRemoveFormState,
   type LibraryReviewFilter,
   type LibraryReviewFormState,
   type LibraryReviewModel,
@@ -179,6 +181,52 @@ export class LibraryController {
       console.error("Library submission failed.", error);
       return fail("Your material could not be submitted. Please try again.");
     }
+  }
+
+  /**
+   * The author removes their own material: pending submissions are withdrawn,
+   * published ones leave the library and rejected ones are cleared away. The
+   * database function checks ownership; the private file copy is then deleted.
+   */
+  async remove(input: {
+    readonly materialId: number;
+    readonly rawReason: string;
+  }): Promise<{ readonly ok: true } | { readonly ok: false; readonly state: LibraryRemoveFormState }> {
+    const validation = validateRemovalReason(input.rawReason);
+
+    if (!validation.ok) {
+      return { ok: false, state: { error: validation.error, reason: input.rawReason } };
+    }
+
+    let removedPath: string | null;
+
+    try {
+      removedPath = await this.library.withdraw(input.materialId, validation.reason);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const userMessage =
+        message === "not_found"
+          ? "This material could not be found among your submissions."
+          : message === "not_removable"
+            ? "This material has already been removed or archived. Refresh the page."
+            : "The material could not be removed. Please try again.";
+
+      if (message !== "not_found" && message !== "not_removable") {
+        console.error("Library removal failed.", error);
+      }
+
+      return { ok: false, state: { error: userMessage, reason: input.rawReason } };
+    }
+
+    if (removedPath) {
+      // The row is already withdrawn, so a failed delete only leaves an
+      // unreachable file behind; it is logged rather than shown to the student.
+      await this.storage.remove([removedPath]).catch((error: unknown) => {
+        console.error("Removed library file cleanup failed.", error);
+      });
+    }
+
+    return { ok: true };
   }
 
   /**

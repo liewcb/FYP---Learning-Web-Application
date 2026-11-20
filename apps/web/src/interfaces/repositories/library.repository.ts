@@ -41,6 +41,12 @@ export interface LibraryRepository {
   createSubmission(input: CreateLibrarySubmissionInput): Promise<number>;
   /** Moves a material between statuses; false when it is no longer in `from`. */
   decide(input: LibraryDecisionInput): Promise<boolean>;
+  /**
+   * The author removes their own material (status becomes "withdrawn").
+   * Returns the private file path to delete, or null when there was none.
+   * Throws Error("not_found") or Error("not_removable").
+   */
+  withdraw(materialId: number, reason: string | null): Promise<string | null>;
   recordView(id: number): Promise<void>;
   recordDownload(id: number): Promise<void>;
 }

@@ -9414,9 +9414,23 @@ a.student-avatar {
 }
 
 .status-chip.archived,
+.status-chip.withdrawn,
 .status-chip.draft {
   background: var(--surface-soft);
   color: var(--muted);
+}
+
+/* The author's Withdraw / Remove action on a My submissions card. */
+.lib-remove-link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--danger);
+  cursor: pointer;
+}
+
+.lib-remove-link:hover {
+  text-decoration: underline;
 }
 
 .lib-filters {

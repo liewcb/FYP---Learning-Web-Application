@@ -37,6 +37,8 @@ interface MaterialRow {
   reviewed_at: string | null;
   published_at: string | null;
   archived_at: string | null;
+  withdrawn_at: string | null;
+  withdrawal_reason: string | null;
   file_name: string | null;
   mime_type: string | null;
   size_bytes: number | null;
@@ -72,6 +74,8 @@ const materialColumns = `
   reviewed_at,
   published_at,
   archived_at,
+  withdrawn_at,
+  withdrawal_reason,
   file_name,
   mime_type,
   size_bytes,
@@ -104,6 +108,8 @@ function toMaterial(row: MaterialRow): LibraryMaterial {
     reviewedAt: row.reviewed_at,
     publishedAt: row.published_at,
     archivedAt: row.archived_at,
+    withdrawnAt: row.withdrawn_at,
+    withdrawalReason: row.withdrawal_reason,
     fileName: row.file_name,
     mimeType: row.mime_type,
     sizeBytes: row.size_bytes === null ? null : Number(row.size_bytes),
@@ -206,6 +212,8 @@ export class SupabaseLibraryRepository implements LibraryRepository {
       .from("library_materials")
       .select(materialColumns)
       .eq("submitted_by", viewerId)
+      // Materials the student removed no longer appear in My submissions.
+      .neq("status", "withdrawn")
       .order("created_at", { ascending: false })
       .limit(200);
 
@@ -359,6 +367,28 @@ export class SupabaseLibraryRepository implements LibraryRepository {
     }
 
     return data !== null;
+  }
+
+  async withdraw(materialId: number, reason: string | null): Promise<string | null> {
+    // The database function checks that the signed-in student submitted it.
+    const { data, error } = await this.supabase.rpc("withdraw_library_material", {
+      p_material: materialId,
+      p_reason: reason,
+    });
+
+    if (error) {
+      if (error.message.includes("not_found")) {
+        throw new Error("not_found");
+      }
+
+      if (error.message.includes("not_removable")) {
+        throw new Error("not_removable");
+      }
+
+      throw new Error(`Unable to remove the material: ${error.message}`);
+    }
+
+    return typeof data === "string" && data ? data : null;
   }
 
   async recordView(id: number): Promise<void> {

@@ -8,18 +8,25 @@ import {
 import type { Viewer } from "@/models/profile/profile.model";
 import { documentTypeLabel } from "@/views/documents/document-display";
 import { formatLibraryDate } from "@/views/library/library-display";
+import {
+  RemoveLibraryMaterial,
+  type LibraryRemoveAction,
+} from "@/views/library/remove-library-material.view";
 
 interface LibraryMaterialCardProps {
   readonly material: LibraryMaterial;
   readonly viewer: Viewer;
   /** Show the moderation status and feedback (My submissions tab). */
   readonly showStatus?: boolean;
+  /** Adds the author's Withdraw / Remove button (My submissions tab). */
+  readonly removeAction?: LibraryRemoveAction;
 }
 
 export function LibraryMaterialCard({
   material,
   viewer,
   showStatus = false,
+  removeAction,
 }: LibraryMaterialCardProps) {
   const feedback =
     showStatus && material.reviewNote && material.status !== "published"
@@ -81,6 +88,15 @@ export function LibraryMaterialCard({
         <Link className="text-action" href={`/library/${material.id}`}>
           View details
         </Link>
+        {removeAction ? (
+          <RemoveLibraryMaterial
+            materialId={material.id}
+            materialTitle={material.title}
+            status={material.status}
+            action={removeAction}
+            variant="text"
+          />
+        ) : null}
       </div>
     </article>
   );

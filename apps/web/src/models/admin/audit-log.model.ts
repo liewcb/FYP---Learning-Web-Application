@@ -84,6 +84,7 @@ const libraryStatusWords: Record<string, string> = {
   published: "published",
   rejected: "rejected",
   archived: "archived",
+  withdrawn: "removed by its author",
 };
 
 /** “Title” for new events; "Library material #12" for events logged before titles were recorded. */
@@ -142,6 +143,10 @@ export function describeAuditEvent(event: AuditEvent): string {
       return `Rejected ${libraryTitle(event)}`;
     case "library_material_archived":
       return `Archived ${libraryTitle(event)} from the library`;
+    case "library_material_withdrawn":
+      return text(meta, "previous_status") === "pending_review"
+        ? `${libraryTitle(event)} submission withdrawn by its author`
+        : `${libraryTitle(event)} removed from the library by its author`;
     case "library_material_status_changed": {
       const status = text(meta, "status");
       return `${libraryTitle(event)} ${status ? libraryStatusWords[status] ?? status : "updated"}`;

@@ -23,6 +23,7 @@ const emptyMessages: Record<LibraryReviewFilter, string> = {
   published: "No materials are published yet.",
   rejected: "No materials have been rejected.",
   archived: "No materials have been archived.",
+  withdrawn: "No authors have removed their materials.",
 };
 
 export function AdminLibraryView({ model, reviewAction }: AdminLibraryViewProps) {
@@ -95,6 +96,15 @@ export function AdminLibraryView({ model, reviewAction }: AdminLibraryViewProps)
                 <p className="lib-card-feedback">
                   <strong>Reviewer note:</strong> {material.reviewNote}
                   {material.reviewedAt ? ` (${formatLibraryDateTime(material.reviewedAt)})` : ""}
+                </p>
+              ) : null}
+
+              {material.status === "withdrawn" ? (
+                <p className="lib-card-feedback">
+                  <strong>Removed by the author</strong>
+                  {material.withdrawnAt ? ` on ${formatLibraryDateTime(material.withdrawnAt)}` : ""}
+                  {material.withdrawalReason ? `: ${material.withdrawalReason}` : "."} The file
+                  copy was deleted.
                 </p>
               ) : null}
 

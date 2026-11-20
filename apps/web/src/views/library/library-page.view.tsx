@@ -4,12 +4,15 @@ import { createStudentNavigation } from "@/models/home/home.model";
 import { hasLibraryFilters, type LibraryPageModel } from "@/models/library/library.model";
 import type { Viewer } from "@/models/profile/profile.model";
 import { LibraryMaterialCard } from "@/views/library/library-material-card.view";
+import type { LibraryRemoveAction } from "@/views/library/remove-library-material.view";
 import { StudentTopbar } from "@/views/student/student-topbar.view";
 
 interface LibraryPageViewProps {
   readonly viewer: Viewer;
   readonly model: LibraryPageModel;
   readonly justSubmitted: boolean;
+  readonly justRemoved: boolean;
+  readonly removeAction: LibraryRemoveAction;
   readonly signOutAction: () => Promise<void>;
 }
 
@@ -17,6 +20,8 @@ export function LibraryPageView({
   viewer,
   model,
   justSubmitted,
+  justRemoved,
+  removeAction,
   signOutAction,
 }: LibraryPageViewProps) {
   const { filters } = model;
@@ -151,6 +156,13 @@ export function LibraryPageView({
               </p>
             ) : null}
 
+            {justRemoved ? (
+              <p className="form-notice" role="status">
+                Your material was removed from the library. Your document in My Documents was not
+                affected.
+              </p>
+            ) : null}
+
             {model.mine.length > 0 ? (
               <div className="lib-grid">
                 {model.mine.map((material) => (
@@ -159,6 +171,7 @@ export function LibraryPageView({
                     material={material}
                     viewer={viewer}
                     showStatus
+                    removeAction={removeAction}
                   />
                 ))}
               </div>

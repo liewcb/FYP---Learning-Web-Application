@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { signOutAction } from "@/app/auth/actions";
+import { removeLibraryMaterialAction } from "@/app/library/actions";
 import {
   createLibraryController,
   createProfileController,
@@ -24,6 +25,7 @@ interface LibraryPageProps {
     subject?: SearchParamValue;
     sort?: SearchParamValue;
     submitted?: SearchParamValue;
+    removed?: SearchParamValue;
   }>;
 }
 
@@ -52,6 +54,8 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
       viewer={viewer}
       model={model}
       justSubmitted={params.submitted === "1"}
+      justRemoved={params.removed === "1"}
+      removeAction={removeLibraryMaterialAction}
       signOutAction={signOutAction}
     />
   );
